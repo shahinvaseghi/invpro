@@ -21,6 +21,8 @@ from production.forms.bom import (
     BOMForm,
     BOMMaterialLineForm,
     BOMMaterialLineFormSet,
+    BOMMaterialAlternativeForm,
+    BOMMaterialAlternativeFormSet,
 )
 
 # Import work line forms
@@ -67,6 +69,8 @@ __all__ = [
     'BOMForm',
     'BOMMaterialLineForm',
     'BOMMaterialLineFormSet',
+    'BOMMaterialAlternativeForm',
+    'BOMMaterialAlternativeFormSet',
     # WorkLine forms
     'WorkLineForm',
     # Process forms

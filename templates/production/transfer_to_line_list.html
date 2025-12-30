@@ -1,169 +1,305 @@
-{% extends "base.html" %}
+{% extends "shared/generic/generic_list.html" %}
 {% load i18n %}
 {% load jalali_tags %}
 {% load access_tags %}
 
-{% block title %}{% trans "Transfer to Line Requests" %} - {{ block.super }}{% endblock %}
+{% block page_title %}{% trans "Transfer to Line Requests" %}{% endblock %}
 
-{% block content %}
-<div class="inventory-module">
-  <div class="module-header">
-    <nav class="breadcrumb">
-      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
-      <span>/</span>
-      <span>{% trans "Transfer to Line Requests" %}</span>
-    </nav>
-    
-    <h1 class="page-title">{% trans "Transfer to Line Requests" %}</h1>
-    
-    <div class="page-actions">
-      {% if user_feature_permissions|feature_allowed:'production.transfer_requests:create' or user.is_superuser %}
-        <a href="{% url 'production:transfer_request_create' %}" class="btn btn-primary">{% trans "Create Transfer Request +" %}</a>
-      {% endif %}
-    </div>
-  </div>
-  
-  {% if transfers %}
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>{% trans "Transfer Code" %}</th>
-        <th>{% trans "Product Order" %}</th>
-        <th>{% trans "Finished Item" %}</th>
-        <th>{% trans "Transfer Date" %}</th>
-        <th>{% trans "Status" %}</th>
-        <th>{% trans "Approver" %}</th>
-        <th>{% trans "Lock Status" %}</th>
-        <th>{% trans "Actions" %}</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for transfer in transfers %}
-      <tr>
-        <td>{{ transfer.transfer_code }}</td>
-        <td>{{ transfer.order_code }}</td>
-        <td>
-          {% if transfer.order.finished_item %}
-            {{ transfer.order.finished_item.item_code }} - {{ transfer.order.finished_item.name }}
-          {% else %}
-            -
-          {% endif %}
-        </td>
-        <td>{{ transfer.transfer_date|jalali_date }}</td>
-        <td>
-          <span class="badge badge-{{ transfer.status }}">
-            {{ transfer.get_status_display }}
-          </span>
-        </td>
-        <td>{{ transfer.approved_by.get_full_name|default:transfer.approved_by.username|default:"-" }}</td>
-        <td>
-          {% if transfer.is_locked == 1 %}
-            <span class="badge badge-locked">{% trans "Locked" %}</span>
-          {% else %}
-            <span class="badge badge-unlocked">{% trans "Editable" %}</span>
-          {% endif %}
-        </td>
-        <td>
-          {% if transfer.is_locked != 1 %}
-            {% if user_feature_permissions|feature_allowed:'production.transfer_requests:edit_own' or user.is_superuser %}
-              <a href="{% url 'production:transfer_request_edit' transfer.pk %}" class="btn btn-sm btn-secondary">{% trans "Edit" %}</a>
-            {% endif %}
-            {% if user_feature_permissions|feature_allowed:'production.transfer_requests:delete_own' or user.is_superuser %}
-              <a href="{% url 'production:transfer_request_delete' transfer.pk %}" class="btn btn-sm btn-danger">{% trans "Delete" %}</a>
-            {% endif %}
-          {% endif %}
-          {% if transfer.status == 'pending_approval' and transfer.approved_by == user %}
-            {% if user_feature_permissions|feature_allowed:'production.transfer_requests:approve' or user.is_superuser %}
-              <button type="button" class="btn btn-sm btn-success" onclick="approveTransfer({{ transfer.pk }})">{% trans "Approve" %}</button>
-            {% endif %}
-            {% if user_feature_permissions|feature_allowed:'production.transfer_requests:reject' or user.is_superuser %}
-              <button type="button" class="btn btn-sm btn-warning" onclick="rejectTransfer({{ transfer.pk }})">{% trans "Reject" %}</button>
-            {% endif %}
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  
-  {% if is_paginated %}
-  <div class="pagination">
-    {% if page_obj.has_previous %}
-      <a href="?page={{ page_obj.previous_page_number }}">{% trans "Previous" %}</a>
-    {% endif %}
-    <span>{% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}</span>
-    {% if page_obj.has_next %}
-      <a href="?page={{ page_obj.next_page_number }}">{% trans "Next" %}</a>
-    {% endif %}
-  </div>
-  {% endif %}
-  
-  {% else %}
-  <div class="empty-state">
-    <div class="empty-icon">📋</div>
-    <h2>{% trans "Transfer to Line Requests" %}</h2>
-    <p>{% trans "No transfer requests found. Create your first transfer request to get started." %}</p>
-    {% if user_feature_permissions|feature_allowed:'production.transfer_requests:create' or user.is_superuser %}
-      <a href="{% url 'production:transfer_request_create' %}" class="btn btn-primary">{% trans "Create Transfer Request +" %}</a>
-    {% endif %}
-  </div>
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Production" %}</span>
+<span class="separator">/</span>
+<span>{% trans "Transfer to Line Requests" %}</span>
+{% endblock %}
+
+{% block page_actions %}
+<div class="page-actions">
+  {% if user_feature_permissions|feature_allowed:'production.transfer_requests:create' or user.is_superuser %}
+    <a href="{% url 'production:transfer_request_create' %}" class="btn btn-primary">{% trans "Create Transfer Request +" %}</a>
   {% endif %}
 </div>
+{% endblock %}
+
+{% block table_headers %}
+<th>{% trans "Transfer Code" %}</th>
+<th>{% trans "Product Order" %}</th>
+<th>{% trans "Finished Item" %}</th>
+<th>{% trans "Transfer Date" %}</th>
+<th>{% trans "Warehouse Transfer" %}</th>
+<th>{% trans "Status" %}</th>
+<th>{% trans "Approver" %}</th>
+<th>{% trans "Lock Status" %}</th>
+<th>{% trans "Actions" %}</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for object in object_list %}
+<tr>
+  <td>{{ object.transfer_code }}</td>
+  <td>{{ object.order_code }}</td>
+  <td>
+    {% if object.order.finished_item %}
+      {{ object.order.finished_item.item_code }} - {{ object.order.finished_item.name }}
+    {% else %}
+      -
+    {% endif %}
+  </td>
+  <td>{{ object.transfer_date|jalali_date }}</td>
+  <td>
+    {% if object.active_warehouse_transfers %}
+      {% for wt in object.active_warehouse_transfers %}
+        <a href="{% url 'inventory:issue_warehouse_transfer_detail' wt.pk %}" style="color: #3b82f6; text-decoration: underline;">
+          <code>{{ wt.document_code }}</code>
+        </a>
+        {% if not forloop.last %}, {% endif %}
+      {% endfor %}
+    {% else %}
+      {% if object.status == 'approved' and object.is_locked == 1 %}
+        <button type="button" class="btn btn-sm btn-primary" onclick="createWarehouseTransfer({{ object.pk }})" title="{% trans 'Create Warehouse Transfer' %}" style="margin-left: 0.25rem;">
+          {% trans "Issue Transfer" %}
+        </button>
+        {% if user_feature_permissions|feature_allowed:'inventory.requests.purchase:create' or user.is_superuser %}
+        <a href="{% url 'production:transfer_request_create_purchase_request' object.pk %}" class="btn btn-sm btn-success" title="{% trans 'Create Purchase Request' %}" style="margin-left: 0.25rem;">
+          {% trans "Create Purchase Request" %}
+        </a>
+        {% endif %}
+      {% else %}
+        -
+      {% endif %}
+    {% endif %}
+  </td>
+  <td>
+    <span class="badge badge-{{ object.status }}">
+      {{ object.get_status_display }}
+    </span>
+    {% if object.is_scrap_replacement == 1 %}
+      <br>
+      <small>
+        <span class="badge badge-{{ object.qc_status }}">
+          {% trans "QC:" %} {{ object.get_qc_status_display }}
+        </span>
+      </small>
+    {% endif %}
+  </td>
+  <td>{{ object.approved_by.get_full_name|default:object.approved_by.username|default:"-" }}</td>
+  <td>
+    {% if object.is_locked == 1 %}
+      <span class="badge badge-locked">{% trans "Locked" %}</span>
+    {% else %}
+      <span class="badge badge-unlocked">{% trans "Editable" %}</span>
+    {% endif %}
+  </td>
+  <td>
+    {% include "shared/partials/row_actions.html" with object=object feature_code=feature_code detail_url_name=detail_url_name edit_url_name=edit_url_name delete_url_name=delete_url_name %}
+    {% if object.is_locked != 1 %}
+      {% if delete_url_name %}
+        {% if user_feature_permissions|feature_allowed:'production.transfer_requests:delete_own' or user.is_superuser %}
+          <a href="{% url delete_url_name object.pk %}" class="btn btn-sm btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background-color: #dc3545; color: white; border: 1px solid #dc3545; border-radius: 4px; text-decoration: none; white-space: nowrap; margin-left: 0.25rem;">{% trans "Delete" %}</a>
+        {% endif %}
+      {% endif %}
+    {% else %}
+      {% if user_feature_permissions|feature_allowed:'production.transfer_requests:unlock' or user.is_superuser %}
+        <button type="button" class="btn btn-sm btn-warning" onclick="unlockTransfer({{ object.pk }})" title="{% trans 'Unlock' %}" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background-color: #ffc107; color: #000; border: 1px solid #ffc107; border-radius: 4px; white-space: nowrap; margin-left: 0.25rem;">
+          {% trans "Unlock" %}
+        </button>
+      {% endif %}
+    {% endif %}
+    {% if object.status == 'pending_approval' and object.approved_by == user %}
+      {% if user_feature_permissions|feature_allowed:'production.transfer_requests:approve' or user.is_superuser %}
+        <button type="button" class="btn btn-sm btn-success" onclick="approveTransfer({{ object.pk }})" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background-color: #198754; color: white; border: 1px solid #198754; border-radius: 4px; white-space: nowrap; margin-left: 0.25rem;">{% trans "Approve" %}</button>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'production.transfer_requests:reject' or user.is_superuser %}
+        <button type="button" class="btn btn-sm btn-warning" onclick="rejectTransfer({{ object.pk }})" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background-color: #ffc107; color: #000; border: 1px solid #ffc107; border-radius: 4px; white-space: nowrap; margin-left: 0.25rem;">{% trans "Reject" %}</button>
+      {% endif %}
+    {% endif %}
+    {% if object.status == 'pending_qc_approval' and object.qc_approved_by == user %}
+      {% if user_feature_permissions|feature_allowed:'production.transfer_requests:approve' or user.is_superuser %}
+        <button type="button" class="btn btn-sm btn-success" onclick="approveQCTransfer({{ object.pk }})" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background-color: #198754; color: white; border: 1px solid #198754; border-radius: 4px; white-space: nowrap; margin-left: 0.25rem;">{% trans "Approve QC" %}</button>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'production.transfer_requests:reject' or user.is_superuser %}
+        <button type="button" class="btn btn-sm btn-warning" onclick="rejectQCTransfer({{ object.pk }})" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background-color: #ffc107; color: #000; border: 1px solid #ffc107; border-radius: 4px; white-space: nowrap; margin-left: 0.25rem;">{% trans "Reject QC" %}</button>
+      {% endif %}
+    {% endif %}
+  </td>
+</tr>
+{% endfor %}
+{% endblock %}
+
+{% block pagination %}
+{% include 'shared/partials/pagination.html' %}
+{% endblock %}
+
+{% block empty_state_title %}{% trans "No Transfer Requests Found" %}{% endblock %}
+{% block empty_state_message %}{% trans "No transfer to line requests found. Create your first transfer request to get started." %}{% endblock %}
+{% block empty_state_icon %}📦{% endblock %}
+{% block empty_state_action %}
+  {% if user_feature_permissions|feature_allowed:'production.transfer_requests:create' or user.is_superuser %}
+    <a href="{% url 'production:transfer_request_create' %}" class="btn btn-primary">{% trans "Create Transfer Request +" %}</a>
+  {% endif %}
+{% endblock %}
 
 {% block extra_scripts %}
+<!-- CSRF Token for AJAX requests -->
+{% csrf_token %}
 <script>
-function approveTransfer(transferId) {
-  if (!confirm('{% trans "Are you sure you want to approve this transfer request?" %}')) {
-    return;
-  }
-  
-  fetch(`{% url 'production:transfer_request_approve' 0 %}`.replace('0', transferId), {
-    method: 'POST',
-    headers: {
-      'X-CSRFToken': '{{ csrf_token }}',
-      'Content-Type': 'application/json',
-    },
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      location.reload();
-    } else {
-      alert(data.error || '{% trans "An error occurred while approving the transfer request." %}');
+function getCSRFToken() {
+  // First try to get from cookies (Django sets csrftoken cookie) - most reliable
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'csrftoken') {
+      return decodeURIComponent(value);
     }
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    alert('{% trans "An error occurred while approving the transfer request." %}');
-  });
+  }
+  // Fallback: try to get from hidden input
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+  if (csrfToken) {
+    return csrfToken.value;
+  }
+  // Last resort: try meta tag
+  const metaToken = document.querySelector('meta[name=csrf-token]');
+  if (metaToken) {
+    return metaToken.getAttribute('content');
+  }
+  return null;
+}
+</script>
+
+{% load static %}
+<script src="{% static 'js/approval-actions.js' %}"></script>
+<script>
+// Wrapper functions for transfer requests using fetch API
+function approveTransfer(transferId) {
+  approveObject(
+    transferId,
+    '{% url "production:transfer_request_approve" 0 %}',
+    '{% trans "Are you sure you want to approve this transfer request?" %}',
+    { useFetch: true }
+  );
 }
 
 function rejectTransfer(transferId) {
-  if (!confirm('{% trans "Are you sure you want to reject this transfer request?" %}')) {
+  rejectObject(
+    transferId,
+    '{% url "production:transfer_request_reject" 0 %}',
+    '{% trans "Are you sure you want to reject this transfer request?" %}',
+    { useFetch: true }
+  );
+}
+
+function approveQCTransfer(transferId) {
+  approveObject(
+    transferId,
+    '{% url "production:transfer_request_qc_approve" 0 %}',
+    '{% trans "Are you sure you want to approve QC for this transfer request?" %}',
+    { useFetch: true }
+  );
+}
+
+function rejectQCTransfer(transferId) {
+  rejectObject(
+    transferId,
+    '{% url "production:transfer_request_qc_reject" 0 %}',
+    '{% trans "Are you sure you want to reject QC for this transfer request?" %}',
+    { useFetch: true }
+  );
+}
+
+function createWarehouseTransfer(transferId) {
+  if (!confirm('{% trans "Are you sure you want to create warehouse transfer for this transfer request?" %}')) {
     return;
   }
   
-  fetch(`{% url 'production:transfer_request_reject' 0 %}`.replace('0', transferId), {
+  const url = `{% url 'production:transfer_request_create_warehouse_transfer' 0 %}`.replace('0', transferId);
+  const csrfToken = getCSRFToken();
+  
+  if (!csrfToken) {
+    alert('{% trans "CSRF token not found. Please refresh the page and try again." %}');
+    return;
+  }
+  
+  console.log('Creating warehouse transfer for transfer ID:', transferId);
+  console.log('URL:', url);
+  
+  fetch(url, {
     method: 'POST',
     headers: {
-      'X-CSRFToken': '{{ csrf_token }}',
+      'X-CSRFToken': csrfToken,
+      'Content-Type': 'application/json',
+    },
+  })
+  .then(response => {
+    console.log('Response status:', response.status);
+    console.log('Response ok:', response.ok);
+    
+    // Try to parse JSON response regardless of status
+    return response.json().then(data => {
+      console.log('Response data:', data);
+      
+      // Check if response is ok (status 200-299)
+      if (!response.ok) {
+        throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      return data;
+    }).catch(parseError => {
+      console.error('JSON parse error:', parseError);
+      // If JSON parsing fails, throw with status text
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      throw new Error('{% trans "Invalid response from server." %}');
+    });
+  })
+  .then(data => {
+    console.log('Processing response data:', data);
+    
+    if (data.success) {
+      const message = data.message || '{% trans "Warehouse transfer created successfully." %}';
+      console.log('Success:', message);
+      alert(message);
+      // Reload page to show updated status
+      window.location.reload();
+    } else {
+      const errorMsg = data.error || '{% trans "An error occurred while creating warehouse transfer." %}';
+      console.error('Error in response:', errorMsg);
+      alert(errorMsg);
+    }
+  })
+  .catch(error => {
+    console.error('Error creating warehouse transfer:', error);
+    alert(error.message || '{% trans "An error occurred while creating warehouse transfer." %}');
+  });
+}
+
+function unlockTransfer(transferId) {
+  if (!confirm('{% trans "Are you sure you want to unlock this transfer request?" %}')) {
+    return;
+  }
+  
+  const url = `{% url 'production:transfer_request_unlock' 0 %}`.replace('0', transferId);
+  const csrfToken = getCSRFToken();
+  
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': csrfToken,
       'Content-Type': 'application/json',
     },
   })
   .then(response => response.json())
   .then(data => {
     if (data.success) {
-      location.reload();
+      // Reload page to show updated status
+      window.location.reload();
     } else {
-      alert(data.error || '{% trans "An error occurred while rejecting the transfer request." %}');
+      alert(data.error || '{% trans "An error occurred while unlocking the transfer request." %}');
     }
   })
   .catch(error => {
     console.error('Error:', error);
-    alert('{% trans "An error occurred while rejecting the transfer request." %}');
+    alert('{% trans "An error occurred while unlocking the transfer request." %}');
   });
 }
 </script>
 {% endblock %}
-{% endblock %}
-

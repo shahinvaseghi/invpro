@@ -1,19 +1,22 @@
 {% load static %}
 {% load i18n %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE }}" dir="{% if LANGUAGE_CODE == 'fa' %}rtl{% else %}ltr{% endif %}">
+<html lang="fa" dir="rtl">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block title %}{% trans "invproj Platform" %}{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=20241121-0245" />
+    <link rel="stylesheet" href="{% static 'css/vazirmatn-font-face.css' %}?v=20241206-2000" />
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=20241206-2000" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    {% block extra_head %}{% endblock %}
   </head>
   <body>
     <div class="app-shell sidebar-collapsed">
       <header class="app-header">
         <div class="header-left">
           <button type="button" class="sidebar-toggle-btn" id="sidebar-toggle" title="{% trans 'Toggle Sidebar' %}">
-            <span class="toggle-icon">☰</span>
+            <span class="toggle-icon icon-menu"></span>
           </button>
           <div class="logo">invproj</div>
           <nav class="top-menu-nav">
@@ -22,13 +25,24 @@
             <!-- Dashboard Menu (First Item) -->
             <div class="top-menu-item">
               <button type="button" class="top-menu-btn" onclick="window.location.href='{% url 'ui:dashboard' %}';">
-                <span class="menu-icon">📊</span>
+                <span class="menu-icon icon-dashboard"></span>
                 <span class="menu-label">{% trans "Dashboard" %}</span>
               </button>
             </div>
             
-            <!-- Shared Menu -->
+            <!-- Modules Menu (All modules in one dropdown) -->
             <div class="top-menu-item">
+              <button type="button" class="top-menu-btn" data-menu="modules">
+                <span class="menu-icon icon-modules"></span>
+                <span class="menu-label">{% trans "ماژول‌ها" %}</span>
+              </button>
+              {% include "ui/components/modules_menu.html" %}
+            </div>
+            
+            <!-- Old individual menus - commented out, all modules are now in modules_menu.html -->
+            {% comment %}
+            <!-- Shared Menu -->
+            <div class="top-menu-item" style="display: none;">
               <button type="button" class="top-menu-btn" data-menu="shared">
                 <span class="menu-icon">🔧</span>
                 <span class="menu-label">{% trans "Shared" %}</span>
@@ -137,12 +151,6 @@
                       {% endif %}
                     </div>
                   </div>
-                {% endif %}
-                {% if user_feature_permissions|feature_allowed:'inventory.requests.purchase' %}
-                  <a href="{% url 'inventory:purchase_requests' %}" class="dropdown-item">{% trans "Purchase Requests" %}</a>
-                {% endif %}
-                {% if user_feature_permissions|feature_allowed:'inventory.requests.warehouse' %}
-                  <a href="{% url 'inventory:warehouse_requests' %}" class="dropdown-item">{% trans "Warehouse Requests" %}</a>
                 {% endif %}
                 {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.deficit' or user_feature_permissions|feature_allowed:'inventory.stocktaking.surplus' or user_feature_permissions|feature_allowed:'inventory.stocktaking.records' %}
                   <div class="dropdown-submenu">
@@ -317,24 +325,24 @@
                   </div>
                 </div>
                 {% endif %}
-                {% if user_feature_permissions|feature_allowed:'accounting.payroll.document' or user_feature_permissions|feature_allowed:'accounting.payroll.decrees' or user_feature_permissions|feature_allowed:'accounting.payroll.decree_groups' or user_feature_permissions|feature_allowed:'accounting.payroll.decree_subgroups' %}
+                {% if user_feature_permissions|feature_allowed:'accounting.payroll.payment' or user_feature_permissions|feature_allowed:'accounting.payroll.insurance_tax' or user_feature_permissions|feature_allowed:'accounting.payroll.document' or user_feature_permissions|feature_allowed:'accounting.payroll.bank_transfer' %}
                 <div class="dropdown-submenu">
                   <button type="button" class="dropdown-item dropdown-toggle" data-submenu="accounting-payroll">
                     <span>{% trans "Payroll" %}</span>
                     <span class="dropdown-arrow">▶</span>
                   </button>
                   <div class="dropdown-menu-sub" id="accounting-payroll">
+                    {% if user_feature_permissions|feature_allowed:'accounting.payroll.payment' %}
+                    <a href="{% url 'accounting:payroll_payment' %}" class="dropdown-item-sub">{% trans "پرداخت حقوق و دستمزد" %}</a>
+                    {% endif %}
+                    {% if user_feature_permissions|feature_allowed:'accounting.payroll.insurance_tax' %}
+                    <a href="{% url 'accounting:payroll_insurance_tax' %}" class="dropdown-item-sub">{% trans "تنظیمات بیمه و مالیات" %}</a>
+                    {% endif %}
                     {% if user_feature_permissions|feature_allowed:'accounting.payroll.document' %}
-                    <a href="{% url 'accounting:payroll_document' %}" class="dropdown-item-sub">{% trans "Payroll Document" %}</a>
+                    <a href="{% url 'accounting:payroll_document' %}" class="dropdown-item-sub">{% trans "بارگذاری اسناد حقوق و دستمزد" %}</a>
                     {% endif %}
-                    {% if user_feature_permissions|feature_allowed:'accounting.payroll.decrees' %}
-                    <a href="{% url 'accounting:payroll_decrees' %}" class="dropdown-item-sub">{% trans "Decrees" %}</a>
-                    {% endif %}
-                    {% if user_feature_permissions|feature_allowed:'accounting.payroll.decree_groups' %}
-                    <a href="{% url 'accounting:payroll_decree_groups' %}" class="dropdown-item-sub">{% trans "Decree Groups" %}</a>
-                    {% endif %}
-                    {% if user_feature_permissions|feature_allowed:'accounting.payroll.decree_subgroups' %}
-                    <a href="{% url 'accounting:payroll_decree_subgroups' %}" class="dropdown-item-sub">{% trans "Decree Subgroups" %}</a>
+                    {% if user_feature_permissions|feature_allowed:'accounting.payroll.bank_transfer' %}
+                    <a href="{% url 'accounting:payroll_bank_transfer' %}" class="dropdown-item-sub">{% trans "خروجی حقوق و دستمزد برای بانک" %}</a>
                     {% endif %}
                   </div>
                 </div>
@@ -352,8 +360,17 @@
               </button>
               <div class="dropdown-menu" id="menu-sales">
                 <a href="{% url 'sales:dashboard' %}" class="dropdown-item">{% trans "Dashboard" %}</a>
+                {% if user_feature_permissions|feature_allowed:'sales.price_card' or request.user.is_superuser %}
+                <a href="{% url 'sales:price_card_list' %}" class="dropdown-item">{% trans "Item Price Cards" %}</a>
+                {% endif %}
                 {% if user_feature_permissions|feature_allowed:'sales.invoice' %}
                 <a href="{% url 'sales:invoice_create' %}" class="dropdown-item">{% trans "Sales Invoice" %}</a>
+                {% endif %}
+                {% if user_feature_permissions|feature_allowed:'sales.customers' or request.user.is_superuser %}
+                <a href="{% url 'sales:customers' %}" class="dropdown-item">{% trans "مشتریان" %}</a>
+                {% endif %}
+                {% if user_feature_permissions|feature_allowed:'sales.settings' or request.user.is_superuser %}
+                <a href="{% url 'sales:settings' %}" class="dropdown-item">{% trans "تنظیمات" %}</a>
                 {% endif %}
               </div>
             </div>
@@ -427,6 +444,25 @@
                     {% endif %}
                     {% if user_feature_permissions|feature_allowed:'hr.loans.savings_fund' %}
                     <a href="{% url 'hr:loans_savings_fund' %}" class="dropdown-item-sub">{% trans "Savings Fund" %}</a>
+                    {% endif %}
+                  </div>
+                </div>
+                {% endif %}
+                {% if user_feature_permissions|feature_allowed:'hr.payroll.decrees' or user_feature_permissions|feature_allowed:'hr.payroll.decree_groups' or user_feature_permissions|feature_allowed:'hr.payroll.decree_subgroups' %}
+                <div class="dropdown-submenu">
+                  <button type="button" class="dropdown-item dropdown-toggle" data-submenu="hr-payroll-decrees">
+                    <span>{% trans "حکم‌های حقوق و دستمزد" %}</span>
+                    <span class="dropdown-arrow">▶</span>
+                  </button>
+                  <div class="dropdown-menu-sub" id="hr-payroll-decrees">
+                    {% if user_feature_permissions|feature_allowed:'hr.payroll.decrees' %}
+                    <a href="{% url 'hr:payroll_decrees' %}" class="dropdown-item-sub">{% trans "حکم‌ها" %}</a>
+                    {% endif %}
+                    {% if user_feature_permissions|feature_allowed:'hr.payroll.decree_groups' %}
+                    <a href="{% url 'hr:payroll_decree_groups' %}" class="dropdown-item-sub">{% trans "گروه‌بندی حکم‌ها" %}</a>
+                    {% endif %}
+                    {% if user_feature_permissions|feature_allowed:'hr.payroll.decree_subgroups' %}
+                    <a href="{% url 'hr:payroll_decree_subgroups' %}" class="dropdown-item-sub">{% trans "زیر گروه‌بندی حکم‌ها" %}</a>
                     {% endif %}
                   </div>
                 </div>
@@ -542,6 +578,8 @@
               </div>
             </div>
             {% endif %}
+            {% endcomment %}
+            <!-- End of old individual menus -->
             {% endblock %}
           </nav>
         </div>
@@ -551,7 +589,7 @@
           {% if request.user.is_authenticated %}
           <div class="notification-bell">
             <button type="button" class="notification-btn" id="notification-btn" title="{% trans 'Notifications' %}">
-              <span class="notification-icon">🔔</span>
+              <span class="notification-icon icon-bell"></span>
               {% if notification_count > 0 %}
               <span class="notification-badge">{{ notification_count }}</span>
               {% endif %}
@@ -597,7 +635,7 @@
               </div>
               {% else %}
               <div class="notification-empty">
-                <div class="notification-empty-icon">🔔</div>
+                <div class="notification-empty-icon icon-bell"></div>
                 <div class="notification-empty-text">{% trans "No notifications" %}</div>
               </div>
               {% endif %}
@@ -607,10 +645,10 @@
           
           <!-- Company Selector -->
           {% if request.user.is_authenticated and user_companies|length > 1 %}
-          <form action="{% url 'set_active_company' %}" method="post" class="company-switcher">
+          <form action="{% url 'shared:set_active_company' %}" method="post" class="company-switcher">
             {% csrf_token %}
             <input name="next" type="hidden" value="{{ request.get_full_path }}" />
-            <label for="company-select" style="margin-right: 8px; font-size: 0.9rem; color: #fff;">
+            <label for="company-select" style="margin-right: 8px; font-size: 0.9rem; color: var(--color-text);">
               {% trans "Company" %}:
             </label>
             <select name="company_id" id="company-select" onchange="this.form.submit()" class="company-select">
@@ -623,41 +661,37 @@
           </form>
           {% endif %}
           
-          <!-- Language Switcher -->
-          <form action="{% url 'set_language' %}" method="post" class="language-switcher" id="language-switcher-form">
+          <!-- Fiscal Year Selector -->
+          {% if request.user.is_authenticated and active_company %}
+          {% if active_fiscal_year %}
+          <form action="{% url 'accounting:set_fiscal_year' %}" method="post" class="fiscal-year-switcher">
             {% csrf_token %}
-            <input name="next" type="hidden" id="language-next-input" value="" />
-            <select name="language" onchange="updateLanguageNext(); this.form.submit();" class="language-select">
-              {% get_current_language as LANGUAGE_CODE %}
-              {% get_available_languages as LANGUAGES %}
-              {% for lang_code, lang_name in LANGUAGES %}
-                <option value="{{ lang_code }}" {% if lang_code == LANGUAGE_CODE %}selected{% endif %}>
-                  {{ lang_name }}
+            <input name="next" type="hidden" value="{{ request.get_full_path }}" />
+            <label for="fiscal-year-select" style="margin-right: 8px; font-size: 0.9rem; color: var(--color-text);">
+              {% trans "سال مالی" %}:
+            </label>
+            <select name="fiscal_year_id" id="fiscal-year-select" onchange="this.form.submit()" class="fiscal-year-select">
+              {% if available_fiscal_years|length > 0 %}
+                {% for fy in available_fiscal_years %}
+                  <option value="{{ fy.id }}" {% if active_fiscal_year and fy.id == active_fiscal_year.id %}selected{% endif %}>
+                    {{ fy.fiscal_year_code }} - {{ fy.fiscal_year_name }}
+                  </option>
+                {% endfor %}
+              {% else %}
+                <option value="{{ active_fiscal_year.id }}" selected>
+                  {{ active_fiscal_year.fiscal_year_code }} - {{ active_fiscal_year.fiscal_year_name }}
                 </option>
-              {% endfor %}
+              {% endif %}
             </select>
           </form>
-          <script>
-            function updateLanguageNext() {
-              // Get current path and remove language prefix if exists
-              let currentPath = window.location.pathname;
-              // Remove /fa/ or /en/ prefix
-              currentPath = currentPath.replace(/^\/(fa|en)\//, '/');
-              // If path is empty, use /
-              if (!currentPath || currentPath === '/') {
-                currentPath = '/';
-              }
-              document.getElementById('language-next-input').value = currentPath;
-            }
-            // Set initial value
-            updateLanguageNext();
-          </script>
+          {% endif %}
+          {% endif %}
           
           <!-- User Info -->
           <div class="user-info-container">
             <span class="company-context">
               {% if request.user.is_authenticated %}
-                👤 {{ request.user.username }}
+                <span class="user-icon icon-user-small"></span> {{ request.user.username }}
               {% else %}
                 {% trans "Guest" %}
               {% endif %}
@@ -770,38 +804,265 @@
           });
         });
 
-        // Top menu dropdowns
+        // Prevent nav-link-sub clicks from closing parent sections
+        document.querySelectorAll('.nav-link-sub').forEach(link => {
+          link.addEventListener('click', function(e) {
+            e.stopPropagation();
+          });
+        });
+
+        // Top menu dropdowns and mega menus
         const menuButtons = document.querySelectorAll('.top-menu-btn');
         const dropdowns = document.querySelectorAll('.dropdown-menu');
+        const megaMenus = document.querySelectorAll('.mega-menu');
         
         menuButtons.forEach(btn => {
-          btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const menuId = this.getAttribute('data-menu');
-            const dropdown = document.getElementById(`menu-${menuId}`);
+          const menuId = btn.getAttribute('data-menu');
+          const dropdown = document.getElementById(`menu-${menuId}`);
+          const isMegaMenu = dropdown && dropdown.classList.contains('mega-menu');
+          
+          if (isMegaMenu) {
+            // Mega menu: hover and click for desktop, click for mobile
+            const menuItem = btn.closest('.top-menu-item');
             
-            // Close other dropdowns
-            dropdowns.forEach(d => {
-              if (d !== dropdown) {
-                d.classList.remove('open');
+            // Click handler for both desktop and mobile
+            btn.addEventListener('click', function(e) {
+              e.stopPropagation();
+              
+              // Close other menus
+              megaMenus.forEach(m => {
+                if (m !== dropdown) {
+                  m.classList.remove('open');
+                  m.setAttribute('data-click-opened', 'false');
+                }
+              });
+              dropdowns.forEach(d => {
+                if (d !== dropdown) {
+                  d.classList.remove('open');
+                }
+              });
+              
+              const isOpening = !dropdown.classList.contains('open');
+              dropdown.classList.toggle('open');
+              
+              // Mark if opened by click
+              if (isOpening) {
+                dropdown.setAttribute('data-click-opened', 'true');
+                btn.classList.add('active');
+              } else {
+                dropdown.setAttribute('data-click-opened', 'false');
+                btn.classList.remove('active');
               }
             });
             
-            // Toggle current dropdown
-            if (dropdown) {
-              dropdown.classList.toggle('open');
+            // Desktop: hover to show (but don't close if opened by click)
+            if (window.innerWidth > 768) {
+              menuItem.addEventListener('mouseenter', function() {
+                const clickOpened = dropdown.getAttribute('data-click-opened') === 'true';
+                if (!clickOpened) {
+                  // Close other menus
+                  megaMenus.forEach(m => {
+                    if (m !== dropdown) {
+                      m.classList.remove('open');
+                      m.setAttribute('data-click-opened', 'false');
+                    }
+                  });
+                  dropdowns.forEach(d => {
+                    if (d !== dropdown) {
+                      d.classList.remove('open');
+                    }
+                  });
+                  
+                  dropdown.classList.add('open');
+                  btn.classList.add('active');
+                }
+              });
+              
+              menuItem.addEventListener('mouseleave', function(e) {
+                const clickOpened = dropdown.getAttribute('data-click-opened') === 'true';
+                // Don't close if mouse is moving to mega menu or if opened by click
+                if (!clickOpened && !dropdown.contains(e.relatedTarget)) {
+                  dropdown.classList.remove('open');
+                  btn.classList.remove('active');
+                }
+              });
+              
+              dropdown.addEventListener('mouseleave', function(e) {
+                const clickOpened = dropdown.getAttribute('data-click-opened') === 'true';
+                // Close when leaving mega menu (but not if opened by click)
+                if (!clickOpened && !menuItem.contains(e.relatedTarget)) {
+                  dropdown.classList.remove('open');
+                  btn.classList.remove('active');
+                }
+              });
+            }
+          } else {
+            // Regular dropdown: click to toggle
+            btn.addEventListener('click', function(e) {
+              e.stopPropagation();
+              
+              // Close other dropdowns and mega menus
+              dropdowns.forEach(d => {
+                if (d !== dropdown) {
+                  d.classList.remove('open');
+                }
+              });
+              megaMenus.forEach(m => {
+                m.classList.remove('open');
+              });
+              
+              // Toggle current dropdown
+              if (dropdown) {
+                const isOpening = !dropdown.classList.contains('open');
+                dropdown.classList.toggle('open');
+                
+                // Toggle button active state
+                if (isOpening) {
+                  this.classList.add('active');
+                } else {
+                  this.classList.remove('active');
+                }
+              }
+            });
+          }
+        });
+        
+        // Prevent dropdown-item-sub clicks from closing dropdowns
+        document.querySelectorAll('.dropdown-item-sub').forEach(link => {
+          link.addEventListener('click', function(e) {
+            // Don't prevent default - allow navigation
+            // But stop propagation to prevent dropdown from closing
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+          });
+        });
+        
+        // Handle window resize for mega menus
+        window.addEventListener('resize', function() {
+          if (window.innerWidth > 768) {
+            // Desktop: close all mega menus opened by click
+            megaMenus.forEach(menu => {
+              menu.classList.remove('open');
+            });
+          } else {
+            // Mobile: ensure hover events don't interfere
+            megaMenus.forEach(menu => {
+              // Keep open state if it was opened by click
+            });
+          }
+        });
+        
+        // Add hover effects to mega menu items (desktop only)
+        document.querySelectorAll('.mega-menu-section ul li a').forEach(item => {
+          item.addEventListener('mouseenter', function() {
+            if (window.innerWidth > 768) {
+              this.style.transform = 'translateX(5px)';
+              if (document.dir === 'rtl') {
+                this.style.transform = 'translateX(-5px)';
+              }
+            }
+          });
+          
+          item.addEventListener('mouseleave', function() {
+            if (window.innerWidth > 768) {
+              this.style.transform = 'none';
             }
           });
         });
         
-        // Close dropdowns when clicking outside
-        document.addEventListener('click', function(e) {
-          if (!e.target.closest('.top-menu-item')) {
-            dropdowns.forEach(d => {
-              d.classList.remove('open');
-            });
-          }
+        // Handle mega menu section toggle
+        document.querySelectorAll('.mega-menu-section-toggle').forEach(toggle => {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const sectionId = this.getAttribute('data-section');
+            const section = this.closest('.mega-menu-section');
+            const sectionContent = document.getElementById(sectionId);
+            
+            if (!section || !sectionContent) return;
+            
+            const isCollapsed = section.classList.contains('collapsed');
+            
+            // Toggle section
+            if (isCollapsed) {
+              section.classList.remove('collapsed');
+            } else {
+              section.classList.add('collapsed');
+            }
+          });
         });
+        
+        // Handle mega menu submenu toggle
+        document.querySelectorAll('.mega-menu-toggle').forEach(toggle => {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const submenuId = this.getAttribute('data-submenu');
+            const submenuItem = this.closest('.mega-menu-submenu-item');
+            const submenu = document.getElementById(submenuId);
+            
+            if (!submenu || !submenuItem) return;
+            
+            const isActive = submenuItem.classList.contains('active');
+            
+            // Close all other submenus in the same section
+            const section = submenuItem.closest('.mega-menu-section');
+            if (section) {
+              section.querySelectorAll('.mega-menu-submenu-item').forEach(item => {
+                if (item !== submenuItem) {
+                  item.classList.remove('active');
+                }
+              });
+            }
+            
+            // Toggle current submenu
+            if (isActive) {
+              submenuItem.classList.remove('active');
+            } else {
+              submenuItem.classList.add('active');
+            }
+          });
+        });
+
+        // Close dropdowns and mega menus when clicking outside
+        // This runs in bubble phase (AFTER capture phase handlers)
+        document.addEventListener('click', function(e) {
+          // Don't close if clicking on ANY dropdown or mega menu element
+          // Check thoroughly - including nested elements and buttons
+          const clickedOnDropdown = e.target.closest('.dropdown-toggle') || 
+                                    e.target.closest('.dropdown-menu-sub') || 
+                                    e.target.closest('.dropdown-item-sub') ||
+                                    e.target.closest('.dropdown-submenu') ||
+                                    e.target.closest('.dropdown-menu') ||
+                                    e.target.closest('.mega-menu') ||
+                                    e.target.closest('.mega-menu-section') ||
+                                    e.target.closest('.mega-menu-toggle') ||
+                                    e.target.closest('.mega-menu-submenu') ||
+                                    e.target.closest('.top-menu-item') ||
+                                    e.target.closest('.dropdown-item') ||
+                                    e.target.closest('button[data-submenu]') ||
+                                    e.target.closest('.top-menu-btn');
+          
+          if (clickedOnDropdown) {
+            return; // Don't close dropdown/mega menu
+          }
+          
+          // Only close if we're really outside
+          dropdowns.forEach(d => {
+            d.classList.remove('open');
+          });
+          megaMenus.forEach(m => {
+            m.classList.remove('open');
+            m.setAttribute('data-click-opened', 'false');
+          });
+          
+          // Remove active state from buttons
+          menuButtons.forEach(btn => {
+            btn.classList.remove('active');
+          });
+        }); // Bubble phase - runs AFTER capture phase
 
         // Notification dropdown
         const notificationBtn = document.getElementById('notification-btn');
@@ -855,22 +1116,32 @@
         }
 
         // Dropdown submenus - click to toggle
-        document.querySelectorAll('.dropdown-submenu').forEach(submenu => {
+        // Use capture phase with HIGHEST priority to handle BEFORE all other handlers
+        document.addEventListener('click', function(e) {
+          // Check if click is on a dropdown-toggle button
+          const toggleBtn = e.target.closest('.dropdown-toggle');
+          if (!toggleBtn) return;
+          
+          // Check if this toggle is inside a dropdown-submenu
+          const submenu = toggleBtn.closest('.dropdown-submenu');
+          if (!submenu) return;
+          
           const submenuEl = submenu.querySelector('.dropdown-menu-sub');
-          const toggleBtn = submenu.querySelector('.dropdown-toggle');
           const dropdownMenu = submenu.closest('.dropdown-menu');
           
-          if (!submenuEl || !toggleBtn) return;
+          if (!submenuEl || !dropdownMenu) return;
           
-          // Click to toggle submenu
-          toggleBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const isOpen = submenuEl.classList.contains('open');
-            
-            // Close all other submenus
-            document.querySelectorAll('.dropdown-submenu').forEach(otherSubmenu => {
+          // Stop ALL event propagation immediately - BEFORE any other handlers
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          
+          const isOpen = submenuEl.classList.contains('open');
+          
+          // Close all other submenus at the same level
+          const parentSubmenu = submenu.parentElement.closest('.dropdown-submenu');
+          if (parentSubmenu) {
+            parentSubmenu.querySelectorAll('.dropdown-submenu').forEach(otherSubmenu => {
               if (otherSubmenu !== submenu) {
                 const otherSubmenuEl = otherSubmenu.querySelector('.dropdown-menu-sub');
                 if (otherSubmenuEl) {
@@ -879,25 +1150,62 @@
                 }
               }
             });
-            
-            // Toggle current submenu
-            if (isOpen) {
-              submenuEl.classList.remove('open');
-              submenu.classList.remove('active');
-            } else {
-              submenuEl.classList.add('open');
-              submenu.classList.add('active');
-              
-              // Allow dropdown to show items below the submenu
-              if (dropdownMenu) {
-                dropdownMenu.style.overflowY = 'auto';
+          } else {
+            // Close all other submenus in the same dropdown
+            dropdownMenu.querySelectorAll('.dropdown-submenu').forEach(otherSubmenu => {
+              if (otherSubmenu !== submenu) {
+                const otherSubmenuEl = otherSubmenu.querySelector('.dropdown-menu-sub');
+                if (otherSubmenuEl) {
+                  otherSubmenuEl.classList.remove('open');
+                  otherSubmenu.classList.remove('active');
+                }
+              }
+            });
+          }
+          
+          // Toggle current submenu
+          if (isOpen) {
+            submenuEl.classList.remove('open');
+            submenu.classList.remove('active');
+          } else {
+            submenuEl.classList.add('open');
+            submenu.classList.add('active');
+            dropdownMenu.style.overflowY = 'auto';
+          }
+          
+          // CRITICAL: Force parent dropdown to stay open - use requestAnimationFrame to ensure it happens
+          requestAnimationFrame(function() {
+            dropdownMenu.classList.add('open');
+            const topMenuItem = dropdownMenu.closest('.top-menu-item');
+            if (topMenuItem) {
+              const menuBtn = topMenuItem.querySelector('.top-menu-btn');
+              if (menuBtn) {
+                menuBtn.classList.add('active');
               }
             }
           });
           
-          // Close submenu when clicking outside
-          document.addEventListener('click', function(e) {
-            if (!submenu.contains(e.target)) {
+          // Prevent any other handlers from running
+          return false;
+        }, true); // Capture phase - runs FIRST with highest priority
+        
+        // Close submenu when clicking outside (but not when clicking on submenu items or toggles)
+        document.addEventListener('click', function(e) {
+          // Don't close if clicking on dropdown elements
+          const clickedInside = e.target.closest('.dropdown-item-sub') || 
+                                e.target.closest('.dropdown-toggle') || 
+                                e.target.closest('.dropdown-submenu') ||
+                                e.target.closest('.dropdown-menu') ||
+                                e.target.closest('.top-menu-item');
+          
+          if (clickedInside) {
+            return;
+          }
+          
+          // Close all submenus when clicking outside
+          document.querySelectorAll('.dropdown-submenu').forEach(submenu => {
+            const submenuEl = submenu.querySelector('.dropdown-menu-sub');
+            if (submenuEl) {
               submenuEl.classList.remove('open');
               submenu.classList.remove('active');
             }
@@ -966,6 +1274,115 @@
           window.location.href = redirectUrl;
         });
       }
+    </script>
+    
+    <script>
+      // Convert English digits to Persian digits
+      function toPersianDigits(str) {
+        if (!str) return str;
+        const persianDigits = {
+          '0': '۰', '1': '۱', '2': '۲', '3': '۳', '4': '۴',
+          '5': '۵', '6': '۶', '7': '۷', '8': '۸', '9': '۹'
+        };
+        return String(str).replace(/[0-9]/g, function(w) {
+          return persianDigits[w];
+        });
+      }
+      
+      // Convert all numbers in text nodes to Persian
+      function convertNumbersToPersian() {
+        const walker = document.createTreeWalker(
+          document.body,
+          NodeFilter.SHOW_TEXT,
+          null,
+          false
+        );
+        
+        const textNodes = [];
+        let node;
+        while (node = walker.nextNode()) {
+          // Skip script and style tags
+          if (node.parentElement && 
+              (node.parentElement.tagName === 'SCRIPT' || 
+               node.parentElement.tagName === 'STYLE' ||
+               node.parentElement.tagName === 'NOSCRIPT')) {
+            continue;
+          }
+          // Skip input, textarea, and select elements
+          if (node.parentElement && 
+              (node.parentElement.tagName === 'INPUT' || 
+               node.parentElement.tagName === 'TEXTAREA' ||
+               node.parentElement.tagName === 'SELECT')) {
+            continue;
+          }
+          // Skip if node is empty or only whitespace
+          if (!node.textContent || !node.textContent.trim()) {
+            continue;
+          }
+          // Skip if parent has data-persian-numbers="false"
+          if (node.parentElement && 
+              node.parentElement.getAttribute('data-persian-numbers') === 'false') {
+            continue;
+          }
+          textNodes.push(node);
+        }
+        
+        textNodes.forEach(textNode => {
+          const originalText = textNode.textContent;
+          const persianText = toPersianDigits(originalText);
+          if (originalText !== persianText) {
+            textNode.textContent = persianText;
+          }
+        });
+      }
+      
+      // Convert numbers on page load
+      document.addEventListener('DOMContentLoaded', function() {
+        convertNumbersToPersian();
+        
+        // Also convert numbers when new content is added dynamically
+        const observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.addedNodes.length) {
+              mutation.addedNodes.forEach(function(node) {
+                if (node.nodeType === 1) { // Element node
+                  const walker = document.createTreeWalker(
+                    node,
+                    NodeFilter.SHOW_TEXT,
+                    null,
+                    false
+                  );
+                  let textNode;
+                  while (textNode = walker.nextNode()) {
+                    if (textNode.parentElement && 
+                        (textNode.parentElement.tagName === 'SCRIPT' || 
+                         textNode.parentElement.tagName === 'STYLE' ||
+                         textNode.parentElement.tagName === 'INPUT' ||
+                         textNode.parentElement.tagName === 'TEXTAREA' ||
+                         textNode.parentElement.tagName === 'SELECT')) {
+                      continue;
+                    }
+                    if (textNode.parentElement && 
+                        textNode.parentElement.getAttribute('data-persian-numbers') === 'false') {
+                      continue;
+                    }
+                    const originalText = textNode.textContent;
+                    const persianText = toPersianDigits(originalText);
+                    if (originalText !== persianText) {
+                      textNode.textContent = persianText;
+                    }
+                  }
+                }
+              });
+            }
+          });
+        });
+        
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true
+        });
+      });
     </script>
     {% block extra_scripts %}{% endblock %}
   </body>

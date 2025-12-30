@@ -1,0 +1,126 @@
+{% extends "shared/generic/generic_list.html" %}
+{% load static i18n %}
+
+{% block filter_fields %}
+<div class="form-group">
+  <label for="document_number">{{ filter_form.document_number.label }}</label>
+  {{ filter_form.document_number }}
+</div>
+<div class="form-group">
+  <label for="file_type">{{ filter_form.file_type.label }}</label>
+  {{ filter_form.file_type }}
+</div>
+<div class="form-group">
+  <label for="date_from">{{ filter_form.date_from.label }}</label>
+  {{ filter_form.date_from }}
+</div>
+<div class="form-group">
+  <label for="date_to">{{ filter_form.date_to.label }}</label>
+  {{ filter_form.date_to }}
+</div>
+{% endblock %}
+
+{% block extra_actions %}
+<button type="button" class="btn btn-success" id="download-selected-btn" disabled>
+  {% trans "دانلود انتخاب شده‌ها" %}
+</button>
+<span id="selected-count">0 {% trans "مورد انتخاب شده" %}</span>
+{% endblock %}
+
+{% block table_headers %}
+<th>
+  <input type="checkbox" id="select-all" />
+</th>
+<th>{% trans "شماره سند" %}</th>
+<th>{% trans "نام فایل" %}</th>
+<th>{% trans "نوع فایل" %}</th>
+<th>{% trans "حجم" %}</th>
+<th>{% trans "تاریخ آپلود" %}</th>
+<th>{% trans "آپلودکننده" %}</th>
+{% if show_actions %}
+  <th>{% trans "عملیات" %}</th>
+{% endif %}
+{% endblock %}
+
+{% block table_rows %}
+{% if object_list %}
+  {% for attachment in object_list %}
+  <tr>
+    <td>
+      <input type="checkbox" class="attachment-checkbox" value="{{ attachment.id }}" />
+    </td>
+    <td>
+      {% if attachment.document_number %}
+        <code>{{ attachment.document_number }}</code>
+      {% else %}
+        <span class="text-muted">-</span>
+      {% endif %}
+    </td>
+    <td>{{ attachment.file_name }}</td>
+    <td>{{ attachment.get_file_type_display }}</td>
+    <td>{{ attachment.get_file_size_display }}</td>
+    <td>{{ attachment.uploaded_at|date:"Y/m/d H:i" }}</td>
+    <td>{{ attachment.uploaded_by.username|default:"-" }}</td>
+    {% if show_actions %}
+      <td>
+        <a href="{% url 'accounting:attachment_download_single' %}?id={{ attachment.id }}" 
+           class="btn btn-sm btn-primary" 
+           download>{% trans "دانلود" %}</a>
+      </td>
+    {% endif %}
+  </tr>
+  {% endfor %}
+{% else %}
+  <tr>
+    <td colspan="{% if show_actions %}8{% else %}7{% endif %}" style="text-align: center; padding: 2rem;">
+      <div class="empty-state">
+        <div class="empty-state-icon">📄</div>
+        <h3>{% trans "هیچ فایلی یافت نشد" %}</h3>
+        <p>{% trans "با استفاده از فیلترها یا آپلود فایل جدید شروع کنید." %}</p>
+      </div>
+    </td>
+  </tr>
+{% endif %}
+{% endblock %}
+
+{% block after_table %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const selectAll = document.getElementById('select-all');
+  const checkboxes = document.querySelectorAll('.attachment-checkbox');
+  const downloadBtn = document.getElementById('download-selected-btn');
+  const selectedCount = document.getElementById('selected-count');
+
+  function updateSelectedCount() {
+    const selected = document.querySelectorAll('.attachment-checkbox:checked');
+    const count = selected.length;
+    selectedCount.textContent = count + ' {% trans "مورد انتخاب شده" %}';
+    downloadBtn.disabled = count === 0;
+  }
+
+  if (selectAll) {
+    selectAll.addEventListener('change', function() {
+      checkboxes.forEach(cb => cb.checked = this.checked);
+      updateSelectedCount();
+    });
+  }
+
+  checkboxes.forEach(cb => {
+    cb.addEventListener('change', updateSelectedCount);
+  });
+
+  if (downloadBtn) {
+    downloadBtn.addEventListener('click', function() {
+      const selected = Array.from(document.querySelectorAll('.attachment-checkbox:checked'))
+        .map(cb => cb.value);
+      
+      if (selected.length > 0) {
+        const url = '{% url "accounting:attachment_download_bulk" %}?' + 
+          selected.map(id => 'ids=' + id).join('&');
+        window.location.href = url;
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

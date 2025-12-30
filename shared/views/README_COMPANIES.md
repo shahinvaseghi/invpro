@@ -28,12 +28,12 @@
 
 **Type**: `FeaturePermissionRequiredMixin, ListView`
 
-**Template**: `shared/companies.html`
+**Template**: `shared/companies.html` (extends `shared/generic/generic_list.html`)
 
 **Attributes**:
 - `model`: `Company`
 - `template_name`: `'shared/companies.html'`
-- `context_object_name`: `'companies'`
+- `context_object_name`: `'object_list'`
 - `paginate_by`: `50`
 - `feature_code`: `'shared.companies'`
 
@@ -82,7 +82,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, CreateView`
 
-**Template**: `shared/company_form.html`
+**Template**: `shared/company_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `CompanyForm`
 
@@ -130,6 +130,8 @@
 - `form`: `CompanyForm`
 - `active_module`: `'shared'`
 - `form_title`: `_('Create Company')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `cancel_url`: URL برای cancel (back to companies list)
 
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: context با form_title
@@ -142,7 +144,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, UpdateView`
 
-**Template**: `shared/company_form.html`
+**Template**: `shared/company_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `CompanyForm`
 
@@ -177,9 +179,11 @@
 
 **Context Variables**:
 - `form`: `CompanyForm`
-- `company`: company object (از `get_object()`)
+- `object`: company object (از `get_object()`)
 - `active_module`: `'shared'`
 - `form_title`: `_('Edit Company')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `cancel_url`: URL برای cancel (back to companies list)
 
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: context با form_title
@@ -192,7 +196,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, DeleteView`
 
-**Template**: `shared/company_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `shared:companies`
 
@@ -224,8 +228,13 @@
 **توضیح**: اضافه کردن active module به context.
 
 **Context Variables**:
-- `company`: company object (از `get_object()`)
+- `object`: company object (از `get_object()`)
 - `active_module`: `'shared'`
+- `delete_title`: `_('Delete Company')`
+- `confirmation_message`: پیام تایید حذف
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `object_details`: لیست جزئیات company برای نمایش (code, display_name, legal_name)
+- `cancel_url`: URL برای cancel (back to companies list)
 
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: context با active_module
@@ -299,4 +308,27 @@ path('companies/<int:pk>/delete/', CompanyDeleteView.as_view(), name='company_de
 
 ### Shared Mixins
 - از `FeaturePermissionRequiredMixin` برای permission checking استفاده می‌کند
+
+---
+
+## Migration to Generic Templates
+
+این views در migration به template های generic منتقل شده‌اند:
+
+### List Template
+- **Template**: `shared/companies.html` (extends `shared/generic/generic_list.html`)
+- **Note**: این template قبلاً از generic_list استفاده می‌کرد
+
+### Form Template
+- **Template**: `shared/company_form.html` (extends `shared/generic/generic_form.html`)
+- **Changes**:
+  - Template از `base.html` به `generic_form.html` منتقل شد
+  - Blocks override شده: `form_sections`, `form_actions_extra`
+  - Context variables اضافه شد: `breadcrumbs`, `cancel_url`, `form_title`
+
+### Delete Template
+- **Template**: `shared/generic/generic_confirm_delete.html` (مستقیم استفاده می‌شود)
+- **Changes**:
+  - Template اختصاصی حذف شد
+  - `get_context_data` به‌روزرسانی شد تا context variables مناسب را ارسال کند
 

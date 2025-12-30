@@ -1,0 +1,15 @@
+{% extends "shared/generic/generic_confirm_delete.html" %}
+{% load i18n %}
+
+{% block delete_details_extra %}
+{% if object.invoice_code %}
+<p><strong>{% trans "Invoice Code" %}:</strong> <code>{{ object.invoice_code }}</code></p>
+{% endif %}
+{% if object.supplier %}
+<p><strong>{% trans "Supplier" %}:</strong> {{ object.supplier.name }}</p>
+{% endif %}
+{% if object.total_amount %}
+<p><strong>{% trans "Total Amount" %}:</strong> {{ object.total_amount|floatformat:2 }}</p>
+{% endif %}
+{% endblock %}
+

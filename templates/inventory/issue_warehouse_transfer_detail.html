@@ -1,0 +1,113 @@
+{% extends "shared/generic/generic_detail.html" %}
+{% load i18n jalali_tags %}
+
+{% block title %}{% trans "View Warehouse Transfer Issue" %} - {{ block.super }}{% endblock %}
+
+{% block info_banner_extra %}
+<div><strong>{% trans "Document Code" %}:</strong> {{ warehouse_transfer.document_code }}</div>
+<div><strong>{% trans "Document Date" %}:</strong> {{ warehouse_transfer.document_date|jalali_date }}</div>
+{% if warehouse_transfer.approver %}
+<div><strong>{% trans "Approver" %}:</strong> {{ warehouse_transfer.approver.get_full_name|default:warehouse_transfer.approver.username }}</div>
+{% endif %}
+{% if warehouse_transfer.production_transfer %}
+<div>
+  <strong>{% trans "Production Transfer" %}:</strong>
+  <a href="{% url 'production:transfer_request_detail' warehouse_transfer.production_transfer.pk %}" style="color: #3b82f6; text-decoration: underline;">
+    {{ warehouse_transfer.production_transfer_code }}
+  </a>
+</div>
+{% endif %}
+<div class="lock-status">
+  <strong>{% trans "Lock Status" %}:</strong>
+  {% if warehouse_transfer.is_locked %}
+    <span class="badge badge-locked">{% trans "Locked" %}</span>
+  {% else %}
+    <span class="badge badge-unlocked">{% trans "Editable" %}</span>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block page_actions %}
+{% if warehouse_transfer.can_current_user_approve %}
+  <form method="post" action="{% url 'inventory:issue_warehouse_transfer_approve' warehouse_transfer.pk %}" style="display: inline;">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary" data-confirm="{% trans 'Are you sure you want to approve this warehouse transfer?' %}">
+      {% trans "Approve" %}
+    </button>
+  </form>
+{% endif %}
+{% if warehouse_transfer.can_current_user_reject %}
+  <button type="button" class="btn btn-danger" onclick="showRejectModal({{ warehouse_transfer.pk }})">
+    {% trans "Reject" %}
+  </button>
+{% endif %}
+{% endblock %}
+
+{% block detail_sections %}
+{% if warehouse_transfer.is_locked %}
+<div class="alert alert-info">
+  {% trans "This document is locked and can no longer be edited or deleted." %}
+</div>
+{% endif %}
+
+<div class="form-section">
+  <h3>{% trans "Document Information" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Created By" %}</label>
+      <div class="readonly-field">
+        {{ warehouse_transfer.created_by.get_full_name|default:warehouse_transfer.created_by.username|default:"-" }}
+      </div>
+    </div>
+    {% if warehouse_transfer.production_transfer %}
+    <div class="form-field">
+      <label>{% trans "Production Transfer" %}</label>
+      <div class="readonly-field">
+        <a href="{% url 'production:transfer_request_detail' warehouse_transfer.production_transfer.pk %}">
+          {{ warehouse_transfer.production_transfer_code }}
+        </a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="form-section">
+  <h3>{% trans "Transfer Lines" %}</h3>
+  {% if warehouse_transfer.lines.all %}
+  <div class="data-table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>{% trans "Item" %}</th>
+          <th>{% trans "Source Warehouse" %}</th>
+          <th>{% trans "Destination Warehouse" %}</th>
+          <th>{% trans "Unit" %}</th>
+          <th>{% trans "Quantity" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for line in warehouse_transfer.lines.all %}
+        <tr>
+          <td>
+            <strong>{{ line.item.name }}</strong>
+            <br>
+            <small class="text-muted">{{ line.item.item_code }}</small>
+          </td>
+          <td>{{ line.source_warehouse.name }} ({{ line.source_warehouse_code }})</td>
+          <td>{{ line.destination_warehouse.name }} ({{ line.destination_warehouse_code }})</td>
+          <td>{{ line.unit }}</td>
+          <td style="text-align: right;">{{ line.quantity|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="alert alert-info">
+    {% trans "No lines found for this document." %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

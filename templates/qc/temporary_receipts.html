@@ -1,7 +1,5 @@
-{% extends "base.html" %}
+{% extends "shared/generic/generic_list.html" %}
 {% load i18n jalali_tags %}
-
-{% block page_title %}{% trans "Temporary Receipts - QC Inspection" %}{% endblock %}
 
 {% block breadcrumb_extra %}
 <span class="separator">/</span>
@@ -10,256 +8,207 @@
 <span>{% trans "Temporary Receipts" %}</span>
 {% endblock %}
 
-{% block page_actions %}
-<div class="page-actions">
-  <button onclick="window.print()" class="btn btn-secondary">
-    {% trans "Print" %}
-  </button>
+{% block before_table %}
+<!-- Stats Summary -->
+<div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+  <div class="stat-card" style="background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem;">
+    <div class="stat-label" style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.5rem;">{% trans "Awaiting QC" %}</div>
+    <div class="stat-value" style="color: #f59e0b; font-size: 1.5rem; font-weight: 600;">{{ stats.awaiting_qc|default:0 }}</div>
+  </div>
+  <div class="stat-card" style="background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem;">
+    <div class="stat-label" style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.5rem;">{% trans "QC Approved" %}</div>
+    <div class="stat-value" style="color: #10b981; font-size: 1.5rem; font-weight: 600;">{{ stats.approved|default:0 }}</div>
+  </div>
+  <div class="stat-card" style="background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem;">
+    <div class="stat-label" style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.5rem;">{% trans "QC Rejected" %}</div>
+    <div class="stat-value" style="color: #ef4444; font-size: 1.5rem; font-weight: 600;">{{ stats.rejected|default:0 }}</div>
+  </div>
+  <div class="stat-card" style="background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem;">
+    <div class="stat-label" style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.5rem;">{% trans "Total" %}</div>
+    <div class="stat-value" style="font-size: 1.5rem; font-weight: 600;">{{ object_list|length }}</div>
+  </div>
 </div>
+
+<style>
+  .action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .badge-pending {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background-color: #f59e0b;
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .badge-approved {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background-color: #10b981;
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .badge-rejected {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background-color: #ef4444;
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .badge-locked {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background-color: #6b7280;
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .approval-form {
+    display: inline-block;
+    margin: 0;
+  }
+  .approval-notes {
+    margin-top: 0.5rem;
+    width: 100%;
+    min-width: 200px;
+  }
+</style>
 {% endblock %}
 
-{% block content %}
-<div class="container-fluid">
-  <h1>{% trans "Temporary Receipts - QC Inspection" %}</h1>
-  
-  <!-- Stats Summary -->
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-label">{% trans "Awaiting QC" %}</div>
-      <div class="stat-value" style="color: #f59e0b;">{{ stats.awaiting_qc|default:0 }}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">{% trans "QC Approved" %}</div>
-      <div class="stat-value" style="color: #10b981;">{{ stats.approved|default:0 }}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">{% trans "QC Rejected" %}</div>
-      <div class="stat-value" style="color: #ef4444;">{{ stats.rejected|default:0 }}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">{% trans "Total" %}</div>
-      <div class="stat-value">{{ receipts|length }}</div>
-    </div>
-  </div>
+{% block table_headers %}
+<th>{% trans "Document Code" %}</th>
+<th>{% trans "Document Date" %}</th>
+<th>{% trans "Items" %}</th>
+<th>{% trans "Quantity" %}</th>
+<th>{% trans "Warehouses" %}</th>
+<th>{% trans "Supplier" %}</th>
+<th>{% trans "Created By" %}</th>
+<th>{% trans "Status" %}</th>
+<th>{% trans "Actions" %}</th>
+{% endblock %}
 
-  <!-- Receipts Table -->
-  <div class="data-table-container">
-    <style>
-      .action-buttons {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-      }
-      .badge-pending {
-        display: inline-flex;
-        align-items: center;
-        padding: 2px 8px;
-        border-radius: 999px;
-        background-color: #f59e0b;
-        color: #ffffff;
-        font-size: 0.75rem;
-        font-weight: 600;
-      }
-      .badge-approved {
-        display: inline-flex;
-        align-items: center;
-        padding: 2px 8px;
-        border-radius: 999px;
-        background-color: #10b981;
-        color: #ffffff;
-        font-size: 0.75rem;
-        font-weight: 600;
-      }
-      .badge-rejected {
-        display: inline-flex;
-        align-items: center;
-        padding: 2px 8px;
-        border-radius: 999px;
-        background-color: #ef4444;
-        color: #ffffff;
-        font-size: 0.75rem;
-        font-weight: 600;
-      }
-      .badge-locked {
-        display: inline-flex;
-        align-items: center;
-        padding: 2px 8px;
-        border-radius: 999px;
-        background-color: #6b7280;
-        color: #ffffff;
-        font-size: 0.75rem;
-        font-weight: 600;
-      }
-      .approval-form {
-        display: inline-block;
-        margin: 0;
-      }
-      .approval-notes {
-        margin-top: 0.5rem;
-        width: 100%;
-        min-width: 200px;
-      }
-    </style>
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>{% trans "Document Code" %}</th>
-          <th>{% trans "Document Date" %}</th>
-          <th>{% trans "Items" %}</th>
-          <th>{% trans "Quantity" %}</th>
-          <th>{% trans "Warehouses" %}</th>
-          <th>{% trans "Supplier" %}</th>
-          <th>{% trans "Created By" %}</th>
-          <th>{% trans "Status" %}</th>
-          <th>{% trans "Actions" %}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% if receipts %}
-          {% for receipt in receipts %}
-          <tr {% if receipt.is_locked %}style="opacity: 0.7;"{% endif %}>
-            <td><code>{{ receipt.document_code }}</code></td>
-            <td>{{ receipt.document_date|jalali_date }}</td>
-            <td>
-              {% if receipt.lines.all %}
-                {% for line in receipt.lines.all|slice:":3" %}
-                  <strong>{{ line.item.name }}</strong><br>
-                  <small style="color: #6b7280;"><code>{{ line.item.item_code }}</code></small>{% if not forloop.last %}<br><br>{% endif %}
-                {% endfor %}
-                {% if receipt.lines.count > 3 %}
-                  <small style="color: #6b7280;">+ {{ receipt.lines.count|add:"-3" }} {% trans "more" %}</small>
-                {% endif %}
-              {% else %}
-                <span style="color: #6b7280;">—</span>
-              {% endif %}
-            </td>
-            <td style="text-align: right;">
-              {% if receipt.lines.all %}
-                {% for line in receipt.lines.all|slice:":3" %}
-                  {% if line.entered_quantity %}
-                    {{ line.entered_quantity|floatformat:2 }}
-                    {% if line.entered_unit %}
-                      {{ line.entered_unit }}
-                    {% else %}
-                      {{ line.unit }}
-                    {% endif %}
-                  {% else %}
-                    {{ line.quantity|floatformat:2 }} {{ line.unit }}
-                  {% endif %}{% if not forloop.last %}<br>{% endif %}
-                {% endfor %}
-                {% if receipt.lines.count > 3 %}
-                  <small style="color: #6b7280;">...</small>
-                {% endif %}
-              {% else %}
-                <span style="color: #6b7280;">—</span>
-              {% endif %}
-            </td>
-            <td>
-              {% if receipt.lines.all %}
-                {% for line in receipt.lines.all|slice:":3" %}
-                  {{ line.warehouse.name }}{% if not forloop.last %}<br>{% endif %}
-                {% endfor %}
-                {% if receipt.lines.count > 3 %}
-                  <small style="color: #6b7280;">...</small>
-                {% endif %}
-              {% else %}
-                <span style="color: #6b7280;">—</span>
-              {% endif %}
-            </td>
-            <td>
-              {% if receipt.supplier %}
-                {{ receipt.supplier.name }}
-              {% else %}
-                <span style="color: #6b7280;">—</span>
-              {% endif %}
-            </td>
-            <td>
-              {% if receipt.created_by %}
-                {{ receipt.created_by.get_full_name|default:receipt.created_by.username }}
-              {% else %}
-                <span style="color: #6b7280;">—</span>
-              {% endif %}
-            </td>
-            <td>
-              {% if receipt.status == 1 %}
-                <span class="badge badge-pending">{% trans "Awaiting QC" %}</span>
-              {% elif receipt.status == 3 %}
-                <span class="badge badge-approved">{% trans "QC Approved" %}</span>
-                {% if receipt.qc_approved_by %}
-                  <br><small style="color: #6b7280;">{% trans "By" %}: {{ receipt.qc_approved_by.get_full_name|default:receipt.qc_approved_by.username }}</small>
-                {% endif %}
-              {% elif receipt.status == 2 %}
-                <span class="badge badge-rejected">{% trans "QC Rejected" %}</span>
-              {% else %}
-                <span class="badge badge-locked">{% trans "Draft" %}</span>
-              {% endif %}
-              {% if receipt.is_locked %}
-                <br><span class="badge badge-locked">{% trans "Locked" %}</span>
-              {% endif %}
-            </td>
-            <td>
-              {% if receipt.is_locked %}
-                <div class="action-buttons">
-                  {% if receipt.rejected_lines_count > 0 %}
-                    <a href="{% url 'qc:temporary_receipt_rejection_management' receipt.pk %}" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem; text-decoration: none; display: inline-block;">
-                      📝 {% trans "Manage Rejection Reasons" %}
-                    </a>
-                  {% endif %}
-                  <span style="color: #6b7280; font-size: 0.85rem;">{% trans "Locked" %}</span>
-                </div>
-              {% else %}
-                <div class="action-buttons">
-                  <a href="{% url 'qc:temporary_receipt_line_selection' receipt.pk %}" class="btn btn-success" style="padding: 4px 12px; font-size: 0.85rem; text-decoration: none; display: inline-block;">
-                    ✓ {% trans "Approve Lines" %}
-                  </a>
-                  <form method="post" action="{% url 'qc:temporary_receipt_reject' receipt.pk %}" class="approval-form" onsubmit="return confirm('{% trans 'Are you sure you want to reject this receipt for QC?' %}');" style="display: inline-block;">
-                    {% csrf_token %}
-                    <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
-                      <input type="text" name="rejection_notes" placeholder="{% trans 'Rejection notes (required)' %}" class="form-control approval-notes" style="display: inline-block;" required>
-                      <button type="submit" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;">
-                        ✗ {% trans "Reject" %}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
+{% block table_rows %}
+{% for receipt in object_list %}
+<tr {% if receipt.is_locked %}style="opacity: 0.7;"{% endif %}>
+  <td><code>{{ receipt.document_code }}</code></td>
+  <td>{{ receipt.document_date|jalali_date }}</td>
+  <td>
+    {% if receipt.lines.all %}
+      {% for line in receipt.lines.all|slice:":3" %}
+        <strong>{{ line.item.name }}</strong><br>
+        <small style="color: #6b7280;"><code>{{ line.item.item_code }}</code></small>{% if not forloop.last %}<br><br>{% endif %}
+      {% endfor %}
+      {% if receipt.lines.count > 3 %}
+        <small style="color: #6b7280;">+ {{ receipt.lines.count|add:"-3" }} {% trans "more" %}</small>
+      {% endif %}
+    {% else %}
+      <span style="color: #6b7280;">—</span>
+    {% endif %}
+  </td>
+  <td style="text-align: right;">
+    {% if receipt.lines.all %}
+      {% for line in receipt.lines.all|slice:":3" %}
+        {% if line.entered_quantity %}
+          {{ line.entered_quantity|floatformat:2 }}
+          {% if line.entered_unit %}
+            {{ line.entered_unit }}
+          {% else %}
+            {{ line.unit }}
+          {% endif %}
         {% else %}
-          <tr>
-            <td colspan="9">
-              <div class="empty-state">
-                <div class="empty-state-icon">📋</div>
-                <h3>{% trans "No Receipts" %}</h3>
-                <p>{% trans "There are no temporary receipts." %}</p>
-              </div>
-            </td>
-          </tr>
+          {{ line.quantity|floatformat:2 }} {{ line.unit }}
+        {% endif %}{% if not forloop.last %}<br>{% endif %}
+      {% endfor %}
+      {% if receipt.lines.count > 3 %}
+        <small style="color: #6b7280;">...</small>
+      {% endif %}
+    {% else %}
+      <span style="color: #6b7280;">—</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if receipt.lines.all %}
+      {% for line in receipt.lines.all|slice:":3" %}
+        {{ line.warehouse.name }}{% if not forloop.last %}<br>{% endif %}
+      {% endfor %}
+      {% if receipt.lines.count > 3 %}
+        <small style="color: #6b7280;">...</small>
+      {% endif %}
+    {% else %}
+      <span style="color: #6b7280;">—</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if receipt.supplier %}
+      {{ receipt.supplier.name }}
+    {% else %}
+      <span style="color: #6b7280;">—</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if receipt.created_by %}
+      {{ receipt.created_by.get_full_name|default:receipt.created_by.username }}
+    {% else %}
+      <span style="color: #6b7280;">—</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if receipt.status == 1 %}
+      <span class="badge badge-pending">{% trans "Awaiting QC" %}</span>
+    {% elif receipt.status == 3 %}
+      <span class="badge badge-approved">{% trans "QC Approved" %}</span>
+      {% if receipt.qc_approved_by %}
+        <br><small style="color: #6b7280;">{% trans "By" %}: {{ receipt.qc_approved_by.get_full_name|default:receipt.qc_approved_by.username }}</small>
+      {% endif %}
+    {% elif receipt.status == 2 %}
+      <span class="badge badge-rejected">{% trans "QC Rejected" %}</span>
+    {% else %}
+      <span class="badge badge-locked">{% trans "Draft" %}</span>
+    {% endif %}
+    {% if receipt.is_locked %}
+      <br><span class="badge badge-locked">{% trans "Locked" %}</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if receipt.is_locked %}
+      <div class="action-buttons">
+        {% if receipt.rejected_lines_count > 0 %}
+          <a href="{% url 'qc:temporary_receipt_rejection_management' receipt.pk %}" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem; text-decoration: none; display: inline-block;">
+            📝 {% trans "Manage Rejection Reasons" %}
+          </a>
         {% endif %}
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Pagination -->
-  {% if is_paginated %}
-  <div class="pagination">
-    {% if page_obj.has_previous %}
-      <a href="?page=1">&laquo; {% trans "First" %}</a>
-      <a href="?page={{ page_obj.previous_page_number }}">{% trans "Previous" %}</a>
+        <span style="color: #6b7280; font-size: 0.85rem;">{% trans "Locked" %}</span>
+      </div>
+    {% else %}
+      <div class="action-buttons">
+        <a href="{% url 'qc:temporary_receipt_line_selection' receipt.pk %}" class="btn btn-success" style="padding: 4px 12px; font-size: 0.85rem; text-decoration: none; display: inline-block;">
+          ✓ {% trans "Approve Lines" %}
+        </a>
+        <form method="post" action="{% url 'qc:temporary_receipt_reject' receipt.pk %}" class="approval-form" onsubmit="return confirm('{% trans 'Are you sure you want to reject this receipt for QC?' %}');" style="display: inline-block;">
+          {% csrf_token %}
+          <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
+            <input type="text" name="rejection_notes" placeholder="{% trans 'Rejection notes (required)' %}" class="form-control approval-notes" style="display: inline-block;" required>
+            <button type="submit" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem;">
+              ✗ {% trans "Reject" %}
+            </button>
+          </div>
+        </form>
+      </div>
     {% endif %}
-
-    <span class="current">
-      {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
-    </span>
-
-    {% if page_obj.has_next %}
-      <a href="?page={{ page_obj.next_page_number }}">{% trans "Next" %}</a>
-      <a href="?page={{ page_obj.paginator.num_pages }}">{% trans "Last" %} &raquo;</a>
-    {% endif %}
-  </div>
-  {% endif %}
-</div>
+  </td>
+</tr>
+{% endfor %}
 {% endblock %}
-

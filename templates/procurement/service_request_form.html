@@ -1,0 +1,53 @@
+{% extends "shared/generic/generic_form.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block form_sections %}
+<div class="form-section">
+  <h3>{% trans "Service Request Information" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      {{ form.supplier.label_tag }}
+      {{ form.supplier }}
+      {{ form.supplier.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.priority.label_tag }}
+      {{ form.priority }}
+      {{ form.priority.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.needed_by_date.label_tag }}
+      {{ form.needed_by_date }}
+      {{ form.needed_by_date.errors }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-field full-width">
+      {{ form.service_description.label_tag }}
+      {{ form.service_description }}
+      {{ form.service_description.errors }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-field">
+      {{ form.estimated_cost.label_tag }}
+      {{ form.estimated_cost }}
+      {{ form.estimated_cost.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.approver.label_tag }}
+      {{ form.approver }}
+      {{ form.approver.errors }}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-field full-width">
+      {{ form.approval_notes.label_tag }}
+      {{ form.approval_notes }}
+      {{ form.approval_notes.errors }}
+    </div>
+  </div>
+</div>
+{% endblock %}
+

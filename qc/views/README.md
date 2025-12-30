@@ -9,15 +9,28 @@
 - **توضیح**: کلاس پایه (QCBaseView)
 
 ### inspections.py
+- **README**: [README_INSPECTIONS.md](README_INSPECTIONS.md)
 - **Views**: 
   - TemporaryReceiptQCListView: فهرست رسیدهای موقت در انتظار بازرسی
+  - TemporaryReceiptQCLineSelectionView: انتخاب خطوط و مقادیر برای تایید QC
   - TemporaryReceiptQCApproveView: تایید بازرسی رسید موقت
   - TemporaryReceiptQCRejectView: رد بازرسی رسید موقت
+  - TemporaryReceiptQCRejectionManagementView: مدیریت دلایل رد
+  - TemporaryReceiptQCRejectionManagementSaveView: ذخیره دلایل رد
 - **توضیح**: Views برای مدیریت بازرسی‌های QC
 
-#### TemporaryReceiptQCListView
+#### Template Migration Status
 
-**مهم**: این view از `select_related('supplier', 'created_by')` استفاده می‌کند. توجه داشته باشید که `ReceiptTemporary` یک header-only model است و `item` و `warehouse` در `ReceiptTemporaryLine` هستند، نه در خود `ReceiptTemporary`. بنابراین نمی‌توان از `select_related('item', 'warehouse')` استفاده کرد.
+**Generic Templates**:
+- **TemporaryReceiptQCListView**: 
+  - Template: `qc/temporary_receipts.html` extends `shared/generic/generic_list.html` ✅
+  - Context variable: `object_list` (changed from `receipts`)
+  - Overridden blocks: `breadcrumb_extra`, `before_table`, `table_headers`, `table_rows`
+
+**Special Pages** (نیازی به migration ندارند):
+- `TemporaryReceiptQCLineSelectionView`: TemplateView با ساختار خاص برای انتخاب خطوط
+- `TemporaryReceiptQCRejectionManagementView`: TemplateView با ساختار خاص برای مدیریت دلایل رد
+- Approval/Reject Actions: View های POST-only که نیاز به template ندارند
 
 ---
 
@@ -29,6 +42,7 @@
 2. **Company Filtering**: به صورت خودکار بر اساس `active_company_id` فیلتر می‌شوند
 3. **Permission Checking**: از `FeaturePermissionRequiredMixin` برای بررسی مجوزها استفاده می‌کنند
 4. **Workflow**: Approve/Reject views workflow تایید/رد دارند
+5. **Generic Templates**: List views از `shared/generic/generic_list.html` استفاده می‌کنند
 
 ---
 

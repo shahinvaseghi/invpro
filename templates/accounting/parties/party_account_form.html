@@ -1,0 +1,98 @@
+{% extends "shared/generic/generic_form.html" %}
+{% load i18n %}
+
+{% block breadcrumb_extra %}
+{% if breadcrumbs %}
+  {% for crumb in breadcrumbs %}
+    <span class="separator">/</span>
+    {% if crumb.url %}
+      <a href="{{ crumb.url }}">{{ crumb.label }}</a>
+    {% else %}
+      <span>{{ crumb.label }}</span>
+    {% endif %}
+  {% endfor %}
+{% else %}
+<span class="separator">/</span>
+<a href="{% url 'accounting:dashboard' %}">{% trans "حسابداری" %}</a>
+<span class="separator">/</span>
+<a href="{% url 'accounting:party_accounts' %}">{% trans "حساب‌های طرف حساب" %}</a>
+<span class="separator">/</span>
+<span>{{ form_title|default:"ایجاد حساب طرف حساب" }}</span>
+{% endif %}
+{% endblock %}
+
+{% block form_sections %}
+<div class="form-section">
+  <h3>{% trans "اطلاعات پایه" %}</h3>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.party.id_for_label }}">
+        {{ form.party.label }} *
+      </label>
+      {{ form.party }}
+      {% if form.party.errors %}
+        <span class="error">{{ form.party.errors.0 }}</span>
+      {% endif %}
+      {% if form.party.help_text %}
+        <small class="form-text">{{ form.party.help_text }}</small>
+      {% endif %}
+    </div>
+    
+    <div class="form-field">
+      <label for="{{ form.account.id_for_label }}">
+        {{ form.account.label }} *
+      </label>
+      {{ form.account }}
+      {% if form.account.errors %}
+        <span class="error">{{ form.account.errors.0 }}</span>
+      {% endif %}
+      {% if form.account.help_text %}
+        <small class="form-text">{{ form.account.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.is_primary.id_for_label }}">
+        {{ form.is_primary.label }}
+      </label>
+      {{ form.is_primary }}
+      {% if form.is_primary.errors %}
+        <span class="error">{{ form.is_primary.errors.0 }}</span>
+      {% endif %}
+      {% if form.is_primary.help_text %}
+        <small class="form-text">{{ form.is_primary.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-field full-width">
+      <label for="{{ form.notes.id_for_label }}">
+        {{ form.notes.label }}
+      </label>
+      {{ form.notes }}
+      {% if form.notes.errors %}
+        <span class="error">{{ form.notes.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if form.is_enabled %}
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.is_enabled.id_for_label }}">
+        {{ form.is_enabled.label }}
+      </label>
+      {{ form.is_enabled }}
+      {% if form.is_enabled.errors %}
+        <span class="error">{{ form.is_enabled.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

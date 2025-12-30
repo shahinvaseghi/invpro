@@ -15,14 +15,17 @@ from django.utils.translation import gettext_lazy as _
 from .base import InventoryBaseView
 from .. import models
 from .. import inventory_balance
+from shared.mixins import FeaturePermissionRequiredMixin
 
 
-class InventoryBalanceView(InventoryBaseView, TemplateView):
+class InventoryBalanceView(FeaturePermissionRequiredMixin, InventoryBaseView, TemplateView):
     """
     Display current inventory balances calculated from stocktaking baseline
     plus subsequent receipts and issues.
     """
     template_name = 'inventory/inventory_balance.html'
+    feature_code = 'inventory.balance'
+    required_action = 'view_own'
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Calculate and return inventory balances."""
@@ -90,12 +93,14 @@ class InventoryBalanceView(InventoryBaseView, TemplateView):
         return context
 
 
-class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
+class InventoryBalanceDetailsView(FeaturePermissionRequiredMixin, InventoryBaseView, TemplateView):
     """
     Display detailed transaction history (receipts and issues) for a specific item in a warehouse.
     Shows all movements from baseline date to as_of_date.
     """
     template_name = 'inventory/inventory_balance_details.html'
+    feature_code = 'inventory.balance'
+    required_action = 'view_own'
     
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Get transaction history for item in warehouse."""
@@ -187,6 +192,28 @@ class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
             document__document_date__lte=as_of_date,
             document__is_enabled=1,
         ).select_related('document', 'document__created_by', 'document__department_unit').order_by('document__document_date', 'id')
+        
+        # Get warehouse transfers: as issues from source_warehouse
+        warehouse_transfer_issues = models.IssueWarehouseTransferLine.objects.filter(
+            company_id=company_id,
+            source_warehouse_id=warehouse_id,
+            item_id=item_id,
+            document__document_date__gte=baseline_date,
+            document__document_date__lte=as_of_date,
+            document__is_locked=1,
+            document__is_enabled=1,
+        ).select_related('document', 'document__created_by', 'source_warehouse', 'destination_warehouse').order_by('document__document_date', 'id')
+        
+        # Get warehouse transfers: as receipts to destination_warehouse
+        warehouse_transfer_receipts = models.IssueWarehouseTransferLine.objects.filter(
+            company_id=company_id,
+            destination_warehouse_id=warehouse_id,
+            item_id=item_id,
+            document__document_date__gte=baseline_date,
+            document__document_date__lte=as_of_date,
+            document__is_locked=1,
+            document__is_enabled=1,
+        ).select_related('document', 'document__created_by', 'source_warehouse', 'destination_warehouse').order_by('document__document_date', 'id')
         
         # Get stocktaking surplus (positive movements)
         # Include surplus documents on or after baseline_date
@@ -355,6 +382,38 @@ class InventoryBalanceDetailsView(InventoryBaseView, TemplateView):
                 'unit': issue.unit,
                 'created_by': issue.document.created_by.username if issue.document.created_by else '—',
                 'source_destination': destination_info,
+            })
+        
+        # Add warehouse transfers as issues (from source_warehouse)
+        for transfer_line in warehouse_transfer_issues:
+            destination_info = transfer_line.destination_warehouse.name if transfer_line.destination_warehouse else '—'
+            transactions.append({
+                'date': transfer_line.document.document_date,
+                'type': 'issue',
+                'type_label': _('Warehouse Transfer'),
+                'document_code': transfer_line.document.document_code,
+                'document_id': transfer_line.document.pk,
+                'document_type': 'warehouse_transfer',
+                'quantity': transfer_line.quantity,
+                'unit': transfer_line.unit,
+                'created_by': transfer_line.document.created_by.username if transfer_line.document.created_by else '—',
+                'source_destination': destination_info,
+            })
+        
+        # Add warehouse transfers as receipts (to destination_warehouse)
+        for transfer_line in warehouse_transfer_receipts:
+            source_info = transfer_line.source_warehouse.name if transfer_line.source_warehouse else '—'
+            transactions.append({
+                'date': transfer_line.document.document_date,
+                'type': 'receipt',
+                'type_label': _('Warehouse Transfer'),
+                'document_code': transfer_line.document.document_code,
+                'document_id': transfer_line.document.pk,
+                'document_type': 'warehouse_transfer',
+                'quantity': transfer_line.quantity,
+                'unit': transfer_line.unit,
+                'created_by': transfer_line.document.created_by.username if transfer_line.document.created_by else '—',
+                'source_destination': source_info,
             })
         
         # Add stocktaking surplus (positive movements)

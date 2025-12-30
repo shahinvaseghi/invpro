@@ -1,0 +1,12 @@
+{% extends "shared/generic/generic_confirm_delete.html" %}
+{% load i18n %}
+
+{% block delete_details_extra %}
+{% if object.request_code %}
+<p><strong>{% trans "Request Code" %}:</strong> <code>{{ object.request_code }}</code></p>
+{% endif %}
+{% if object.service_description %}
+<p><strong>{% trans "Service Description" %}:</strong> {{ object.service_description|truncatewords:10 }}</p>
+{% endif %}
+{% endblock %}
+

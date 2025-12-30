@@ -2,12 +2,24 @@
 Forms package for shared module.
 
 This package contains all forms for the shared module, organized by functionality:
+- base.py: Base form classes (BaseModelForm, BaseFormset)
 - companies.py: Company and CompanyUnit forms
 - users.py: User and UserCompanyAccess forms
 - groups.py: Group forms
 - access_levels.py: AccessLevel forms
 """
 __all__ = []
+
+# Import base form classes
+from shared.forms.base import (
+    BaseModelForm,
+    BaseFormset,
+)
+
+__all__.extend([
+    'BaseModelForm',
+    'BaseFormset',
+])
 
 # Import company forms
 from shared.forms.companies import (

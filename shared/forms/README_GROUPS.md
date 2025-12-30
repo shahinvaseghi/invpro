@@ -19,7 +19,7 @@
 
 ## GroupForm
 
-**Type**: `forms.ModelForm`
+**Type**: `BaseModelForm` (از `shared.forms.base`)
 
 **Model**: `Group` (Django's built-in Group model)
 
@@ -37,10 +37,11 @@
 - `access_levels`: `ModelMultipleChoiceField` (not in Group model)
 
 **Widgets**:
+- BaseModelForm به صورت خودکار `form-control` class اضافه می‌کند
 - Text input برای name
 - Textarea برای description (3 rows)
 - Select برای is_enabled
-- CheckboxSelectMultiple برای access_levels
+- CheckboxSelectMultiple برای access_levels (BaseModelForm به صورت خودکار `form-check-input` class اضافه می‌کند)
 
 **Labels**:
 - تمام labels با `gettext_lazy` ترجمه شده‌اند
@@ -52,11 +53,15 @@
 **توضیح**: Initialize form با profile data.
 
 **منطق**:
-1. دریافت `profile` از `self.instance.profile` (اگر موجود باشد)
-2. تنظیم `access_levels` queryset: فقط enabled access levels
-3. اگر profile موجود باشد:
-   - Set initial values برای `description`, `is_enabled`, `access_levels` از profile
-4. در غیر این صورت:
+1. حذف `company_id` از kwargs (Groups company-scoped نیستند)
+2. فراخوانی `super().__init__()`
+3. دریافت `profile` از `getattr(self.instance, 'profile', None)`
+4. تنظیم `access_levels` queryset: `AccessLevel.objects.filter(is_enabled=1).order_by('code')`
+5. اگر profile موجود باشد:
+   - Set initial `description` از `profile.description`
+   - Set initial `is_enabled` از `profile.is_enabled`
+   - Set initial `access_levels` از `profile.access_levels.all()`
+6. در غیر این صورت:
    - Set `is_enabled` initial به 1
 
 **نکات مهم**:
@@ -99,17 +104,14 @@
 **منطق**:
 1. فراخوانی `super().save_m2m()` برای سایر M2M fields
 2. بررسی `_post_save_profile`:
-   - اگر `_post_save_profile` موجود باشد (از `commit=False` در `save()`):
+   - دریافت از `getattr(self, '_post_save_profile', None)`
+   - اگر موجود باشد (از `commit=False` در `save()`):
      - ذخیره profile با `profile.save()`
-     - Set access_levels M2M: `profile.access_levels.set(cleaned_data.get('access_levels') or [])`
+     - Set access_levels M2M: `profile.access_levels.set(self.cleaned_data.get('access_levels') or [])`
 
 **نکات مهم**:
 - `_post_save_profile` فقط زمانی تنظیم می‌شود که `commit=False` در `save()` باشد
 - Access levels در `save_m2m()` ذخیره می‌شوند (برای compatibility با Django's form workflow)
-   - Set access_levels M2M
-
-**نکات مهم**:
-- `save_m2m()` برای handle کردن commit=False case استفاده می‌شود
 - Access levels در profile ذخیره می‌شوند (نه در group)
 
 ---

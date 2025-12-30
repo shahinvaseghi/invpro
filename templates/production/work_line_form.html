@@ -1,354 +1,167 @@
-{% extends "base.html" %}
+{% extends "shared/generic/generic_form.html" %}
 {% load i18n %}
 
-{% block title %}{{ form_title }} - {{ block.super }}{% endblock %}
-
-{% block content %}
-<div class="production-module">
-  <div class="module-header">
-    <nav class="breadcrumb">
-      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
-      <span>/</span>
-      <a href="{% url 'production:work_lines' %}">{% trans "Work Lines" %}</a>
-      <span>/</span>
-      <span>{{ form_title }}</span>
-    </nav>
-    
-    <h1 class="page-title">{{ form_title }}</h1>
-  </div>
-
-  <div class="form-container">
-    {% if messages %}
-      {% for message in messages %}
-      <div class="alert alert-{{ message.tags }}">
-        {{ message }}
-      </div>
-      {% endfor %}
-    {% endif %}
-
-    {% if form.instance.pk and form.instance.public_code %}
-    <div class="info-banner">
-      <div><strong>{% trans "Code" %}:</strong> <code>{{ form.instance.public_code }}</code></div>
-    </div>
-    {% endif %}
-
-    <form method="post" class="entity-form">
-      {% csrf_token %}
-      
-      <div class="form-section">
-        {% if form.warehouse %}
-        <div class="form-field">
-          <label for="{{ form.warehouse.id_for_label }}">
-            {{ form.warehouse.label }}
-            {% if form.warehouse.field.required %}*{% endif %}
-          </label>
-          {{ form.warehouse }}
-          {% if form.warehouse.errors %}
-            <span class="error">{{ form.warehouse.errors.0 }}</span>
-          {% endif %}
-          {% if form.warehouse.help_text %}
-            <small class="form-text">{{ form.warehouse.help_text }}</small>
-          {% endif %}
-        </div>
-        {% endif %}
-
-        <div class="form-field">
-          <label for="{{ form.name.id_for_label }}">
-            {{ form.name.label }}
-            {% if form.name.field.required %}*{% endif %}
-          </label>
-          {{ form.name }}
-          {% if form.name.errors %}
-            <span class="error">{{ form.name.errors.0 }}</span>
-          {% endif %}
-          {% if form.name.help_text %}
-            <small class="form-text">{{ form.name.help_text }}</small>
-          {% endif %}
-        </div>
-
-        <div class="form-field">
-          <label for="{{ form.name_en.id_for_label }}">
-            {{ form.name_en.label }}
-            {% if form.name_en.field.required %}*{% endif %}
-          </label>
-          {{ form.name_en }}
-          {% if form.name_en.errors %}
-            <span class="error">{{ form.name_en.errors.0 }}</span>
-          {% endif %}
-          {% if form.name_en.help_text %}
-            <small class="form-text">{{ form.name_en.help_text }}</small>
-          {% endif %}
-        </div>
-
-        <div class="form-field">
-          <label for="{{ form.description.id_for_label }}">
-            {{ form.description.label }}
-            {% if form.description.field.required %}*{% endif %}
-          </label>
-          {{ form.description }}
-          {% if form.description.errors %}
-            <span class="error">{{ form.description.errors.0 }}</span>
-          {% endif %}
-          {% if form.description.help_text %}
-            <small class="form-text">{{ form.description.help_text }}</small>
-          {% endif %}
-        </div>
-
-        <div class="form-field">
-          <label for="{{ form.notes.id_for_label }}">
-            {{ form.notes.label }}
-            {% if form.notes.field.required %}*{% endif %}
-          </label>
-          {{ form.notes }}
-          {% if form.notes.errors %}
-            <span class="error">{{ form.notes.errors.0 }}</span>
-          {% endif %}
-          {% if form.notes.help_text %}
-            <small class="form-text">{{ form.notes.help_text }}</small>
-          {% endif %}
-        </div>
-
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.sort_order.id_for_label }}">
-              {{ form.sort_order.label }}
-              {% if form.sort_order.field.required %}*{% endif %}
-            </label>
-            {{ form.sort_order }}
-            {% if form.sort_order.errors %}
-              <span class="error">{{ form.sort_order.errors.0 }}</span>
-            {% endif %}
-            {% if form.sort_order.help_text %}
-              <small class="form-text">{{ form.sort_order.help_text }}</small>
-            {% endif %}
-          </div>
-
-          <div class="form-field">
-            <label for="{{ form.is_enabled.id_for_label }}">
-              {{ form.is_enabled.label }}
-              {% if form.is_enabled.field.required %}*{% endif %}
-            </label>
-            {{ form.is_enabled }}
-            {% if form.is_enabled.errors %}
-              <span class="error">{{ form.is_enabled.errors.0 }}</span>
-            {% endif %}
-            {% if form.is_enabled.help_text %}
-              <small class="form-text">{{ form.is_enabled.help_text }}</small>
-            {% endif %}
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.personnel.id_for_label }}">
-              {{ form.personnel.label }}
-              {% if form.personnel.field.required %}*{% endif %}
-            </label>
-            {{ form.personnel }}
-            {% if form.personnel.errors %}
-              <span class="error">{{ form.personnel.errors.0 }}</span>
-            {% endif %}
-            {% if form.personnel.help_text %}
-              <small class="form-text">{{ form.personnel.help_text }}</small>
-            {% endif %}
-            <small class="form-text">{% trans "برای انتخاب چند مورد، کلید Ctrl (یا Cmd در Mac) را نگه دارید و کلیک کنید" %}</small>
-          </div>
-
-          <div class="form-field">
-            <label for="{{ form.machines.id_for_label }}">
-              {{ form.machines.label }}
-              {% if form.machines.field.required %}*{% endif %}
-            </label>
-            {{ form.machines }}
-            {% if form.machines.errors %}
-              <span class="error">{{ form.machines.errors.0 }}</span>
-            {% endif %}
-            {% if form.machines.help_text %}
-              <small class="form-text">{{ form.machines.help_text }}</small>
-            {% endif %}
-            <small class="form-text">{% trans "برای انتخاب چند مورد، کلید Ctrl (یا Cmd در Mac) را نگه دارید و کلیک کنید" %}</small>
-          </div>
-        </div>
-      </div>
-
-      <div class="form-actions">
-        <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
-        <a href="{% url 'production:work_lines' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
-      </div>
-    </form>
-  </div>
-</div>
-
-<style>
-.production-module {
-  padding: 2rem;
-}
-
-.module-header {
-  margin-bottom: 2rem;
-}
-
-.breadcrumb {
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
-  color: #6b7280;
-}
-
-.breadcrumb a {
-  color: #3b82f6;
-  text-decoration: none;
-}
-
-.breadcrumb a:hover {
-  text-decoration: underline;
-}
-
-.breadcrumb span {
-  margin: 0 0.5rem;
-}
-
-.page-title {
-  font-size: 1.875rem;
-  font-weight: 700;
-  color: #1f2937;
-  margin: 0;
-}
-
-.form-container {
-  max-width: 1000px;
-  margin: 0 auto;
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.info-banner {
-  display: flex;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  background: #f8fafc;
-  color: #1f2937;
-  font-weight: 600;
-}
-
-.entity-form .form-section {
-  display: grid;
-  gap: 1.5rem;
-}
-
-.entity-form .form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-}
-
-.entity-form .form-field label {
-  display: block;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-  color: #374151;
-}
-
-.entity-form .form-control, 
-.entity-form select,
-.entity-form textarea,
-.entity-form input[type="text"],
-.entity-form input[type="number"],
-.entity-form input[type="email"] {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 1rem;
-}
-
-.entity-form select[multiple] {
-  min-height: 200px;
-  padding: 0.5rem;
-}
-
-.entity-form .form-control:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.entity-form textarea {
-  resize: vertical;
-}
-
-.entity-form .error {
-  display: block;
-  color: #dc2626;
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
-}
-
-.form-text {
-  display: block;
-  margin-top: 0.25rem;
-  color: #6b7280;
-  font-size: 0.875rem;
-}
-
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-start;
-  padding-top: 2rem;
-  margin-top: 2rem;
-  border-top: 1px solid #e5e7eb;
-}
-
-.alert {
-  padding: 1rem;
-  border-radius: 4px;
-  margin-bottom: 1.5rem;
-}
-
-.alert-success {
-  background: #d1fae5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
-}
-
-.alert-error {
-  background: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-}
-
-.btn {
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  text-decoration: none;
-  display: inline-block;
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-}
-
-.btn-primary {
-  background: #3b82f6;
-  color: white;
-}
-
-.btn-primary:hover {
-  background: #2563eb;
-}
-
-.btn-secondary {
-  background: #6b7280;
-  color: white;
-}
-
-.btn-secondary:hover {
-  background: #4b5563;
-}
-</style>
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Production" %}</span>
+<span class="separator">/</span>
+<a href="{% url 'production:work_lines' %}">{% trans "Work Lines" %}</a>
+<span class="separator">/</span>
+<span>{{ form_title }}</span>
 {% endblock %}
 
+{% block before_form %}
+{% if form.instance.pk and form.instance.public_code %}
+<div class="info-banner">
+  <div><strong>{% trans "Code" %}:</strong> <code>{{ form.instance.public_code }}</code></div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block form_sections %}
+<div class="form-section">
+  <h2>{% trans "Work Line Information" %}</h2>
+  
+  {% if form.warehouse %}
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.warehouse.id_for_label }}">
+        {{ form.warehouse.label }}
+        {% if form.warehouse.field.required %}*{% endif %}
+      </label>
+      {{ form.warehouse }}
+      {% if form.warehouse.errors %}
+        <span class="error">{{ form.warehouse.errors.0 }}</span>
+      {% endif %}
+      {% if form.warehouse.help_text %}
+        <small class="form-text">{{ form.warehouse.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.name.id_for_label }}">
+        {{ form.name.label }}
+        {% if form.name.field.required %}*{% endif %}
+      </label>
+      {{ form.name }}
+      {% if form.name.errors %}
+        <span class="error">{{ form.name.errors.0 }}</span>
+      {% endif %}
+      {% if form.name.help_text %}
+        <small class="form-text">{{ form.name.help_text }}</small>
+      {% endif %}
+    </div>
+
+    <div class="form-field">
+      <label for="{{ form.name_en.id_for_label }}">
+        {{ form.name_en.label }}
+        {% if form.name_en.field.required %}*{% endif %}
+      </label>
+      {{ form.name_en }}
+      {% if form.name_en.errors %}
+        <span class="error">{{ form.name_en.errors.0 }}</span>
+      {% endif %}
+      {% if form.name_en.help_text %}
+        <small class="form-text">{{ form.name_en.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-field full-width">
+      <label for="{{ form.description.id_for_label }}">
+        {{ form.description.label }}
+        {% if form.description.field.required %}*{% endif %}
+      </label>
+      {{ form.description }}
+      {% if form.description.errors %}
+        <span class="error">{{ form.description.errors.0 }}</span>
+      {% endif %}
+      {% if form.description.help_text %}
+        <small class="form-text">{{ form.description.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-field full-width">
+      <label for="{{ form.notes.id_for_label }}">
+        {{ form.notes.label }}
+        {% if form.notes.field.required %}*{% endif %}
+      </label>
+      {{ form.notes }}
+      {% if form.notes.errors %}
+        <span class="error">{{ form.notes.errors.0 }}</span>
+      {% endif %}
+      {% if form.notes.help_text %}
+        <small class="form-text">{{ form.notes.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.sort_order.id_for_label }}">
+        {{ form.sort_order.label }}
+        {% if form.sort_order.field.required %}*{% endif %}
+      </label>
+      {{ form.sort_order }}
+      {% if form.sort_order.errors %}
+        <span class="error">{{ form.sort_order.errors.0 }}</span>
+      {% endif %}
+      {% if form.sort_order.help_text %}
+        <small class="form-text">{{ form.sort_order.help_text }}</small>
+      {% endif %}
+    </div>
+
+    <div class="form-field">
+      <label for="{{ form.is_enabled.id_for_label }}">
+        {{ form.is_enabled.label }}
+        {% if form.is_enabled.field.required %}*{% endif %}
+      </label>
+      {{ form.is_enabled }}
+      {% if form.is_enabled.errors %}
+        <span class="error">{{ form.is_enabled.errors.0 }}</span>
+      {% endif %}
+      {% if form.is_enabled.help_text %}
+        <small class="form-text">{{ form.is_enabled.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.personnel.id_for_label }}">
+        {{ form.personnel.label }}
+        {% if form.personnel.field.required %}*{% endif %}
+      </label>
+      {{ form.personnel }}
+      {% if form.personnel.errors %}
+        <span class="error">{{ form.personnel.errors.0 }}</span>
+      {% endif %}
+      {% if form.personnel.help_text %}
+        <small class="form-text">{{ form.personnel.help_text }}</small>
+      {% endif %}
+      <small class="form-text">{% trans "برای انتخاب چند مورد، کلید Ctrl (یا Cmd در Mac) را نگه دارید و کلیک کنید" %}</small>
+    </div>
+
+    <div class="form-field">
+      <label for="{{ form.machines.id_for_label }}">
+        {{ form.machines.label }}
+        {% if form.machines.field.required %}*{% endif %}
+      </label>
+      {{ form.machines }}
+      {% if form.machines.errors %}
+        <span class="error">{{ form.machines.errors.0 }}</span>
+      {% endif %}
+      {% if form.machines.help_text %}
+        <small class="form-text">{{ form.machines.help_text }}</small>
+      {% endif %}
+      <small class="form-text">{% trans "برای انتخاب چند مورد، کلید Ctrl (یا Cmd در Mac) را نگه دارید و کلیک کنید" %}</small>
+    </div>
+  </div>
+</div>
+{% endblock %}

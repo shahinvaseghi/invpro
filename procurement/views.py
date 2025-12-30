@@ -4,6 +4,36 @@ Views for procurement module.
 from django.views.generic import TemplateView
 from shared.mixins import FeaturePermissionRequiredMixin
 
+# Import CRUD views
+from .views.purchase_order import (
+    PurchaseOrderListView,
+    PurchaseOrderCreateView,
+    PurchaseOrderDetailView,
+    PurchaseOrderUpdateView,
+    PurchaseOrderDeleteView,
+)
+from .views.purchase_invoice import (
+    PurchaseInvoiceListView,
+    PurchaseInvoiceCreateView,
+    PurchaseInvoiceDetailView,
+    PurchaseInvoiceUpdateView,
+    PurchaseInvoiceDeleteView,
+)
+from .views.service_request import (
+    ServiceRequestListView,
+    ServiceRequestCreateView,
+    ServiceRequestDetailView,
+    ServiceRequestUpdateView,
+    ServiceRequestDeleteView,
+)
+from .views.service_invoice import (
+    ServiceInvoiceListView,
+    ServiceInvoiceCreateView,
+    ServiceInvoiceDetailView,
+    ServiceInvoiceUpdateView,
+    ServiceInvoiceDeleteView,
+)
+
 
 class ProcurementDashboardView(FeaturePermissionRequiredMixin, TemplateView):
     """Dashboard view for procurement module."""
@@ -69,5 +99,57 @@ class BuyerAssignmentView(FeaturePermissionRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'procurement'
         context['page_title'] = 'تخصیص خریداران'
+        return context
+
+
+# Purchase Order Views - Imported from views.purchase_order
+from .views.purchase_order import (
+    PurchaseOrderListView,
+    PurchaseOrderCreateView,
+    PurchaseOrderDetailView,
+    PurchaseOrderUpdateView,
+    PurchaseOrderDeleteView,
+)
+
+
+# Purchase Invoice Views
+class PurchaseInvoiceListView(FeaturePermissionRequiredMixin, TemplateView):
+    """List view for purchase invoices."""
+    template_name = 'procurement/purchase_invoice_list.html'
+    feature_code = 'procurement.invoices.purchase'
+    required_action = 'view'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'procurement'
+        context['page_title'] = 'فاکتورهای خرید کالا'
+        return context
+
+
+# Service Request Views
+class ServiceRequestListView(FeaturePermissionRequiredMixin, TemplateView):
+    """List view for service requests."""
+    template_name = 'procurement/service_request_list.html'
+    feature_code = 'procurement.services.request'
+    required_action = 'view'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'procurement'
+        context['page_title'] = 'درخواست‌های خدمت'
+        return context
+
+
+# Service Invoice Views
+class ServiceInvoiceListView(FeaturePermissionRequiredMixin, TemplateView):
+    """List view for service invoices."""
+    template_name = 'procurement/service_invoice_list.html'
+    feature_code = 'procurement.invoices.service'
+    required_action = 'view'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'procurement'
+        context['page_title'] = 'فاکتورهای خرید خدمت'
         return context
 

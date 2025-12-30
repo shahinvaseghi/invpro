@@ -3,6 +3,7 @@ Process forms for production module.
 """
 from typing import Optional, Any
 from django import forms
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from production.models import Process, BOM, WorkLine
@@ -11,19 +12,10 @@ from production.models import Process, BOM, WorkLine
 class ProcessForm(forms.ModelForm):
     """Form for creating/editing production processes."""
     
-    work_lines = forms.ModelMultipleChoiceField(
-        queryset=None,  # Will be set in __init__
-        required=False,
-        label=_('خطوط کاری'),
-        widget=forms.SelectMultiple(attrs={'class': 'form-control', 'size': '10'}),
-        help_text=_('یک یا چند خط کاری را برای این فرایند انتخاب کنید'),
-    )
-    
     class Meta:
         model = Process
         fields = [
             'bom',  # Optional
-            'work_lines',
             'revision',  # Optional
             'description',
             'is_primary',
@@ -67,12 +59,6 @@ class ProcessForm(forms.ModelForm):
             self.fields['revision'].required = False  # Optional
             self.fields['is_primary'].required = False  # Optional
             
-            # Filter work lines by company
-            self.fields['work_lines'].queryset = WorkLine.objects.filter(
-                company_id=company_id,
-                is_enabled=1,
-            ).order_by('name')
-            
             # Filter approved_by (User) - only users with approve permission for production.processes
             from shared.models import UserCompanyAccess, AccessLevelPermission
             from django.contrib.auth import get_user_model
@@ -93,25 +79,24 @@ class ProcessForm(forms.ModelForm):
             ).values_list('user_id', flat=True))
             
             # Filter User queryset to show only users with approve permission
+            # Also include superusers automatically
             if approver_user_ids:
                 self.fields['approved_by'].queryset = User.objects.filter(
-                    id__in=approver_user_ids,
+                    Q(id__in=approver_user_ids) | Q(is_superuser=True),
                     is_active=True,
                 ).order_by('first_name', 'last_name', 'username')
             else:
-                # No approvers found, show empty queryset
-                self.fields['approved_by'].queryset = User.objects.none()
+                # If no approvers found, show only superusers
+                self.fields['approved_by'].queryset = User.objects.filter(
+                    is_superuser=True,
+                    is_active=True,
+                ).order_by('first_name', 'last_name', 'username')
         else:
             from django.contrib.auth import get_user_model
             User = get_user_model()
             
             self.fields['bom'].queryset = BOM.objects.none()
-            self.fields['work_lines'].queryset = WorkLine.objects.none()
             self.fields['approved_by'].queryset = User.objects.none()
-        
-        # Set initial values for edit mode
-        if self.instance.pk:
-            self.fields['work_lines'].initial = self.instance.work_lines.all()
     
     def save(self, commit: bool = True) -> Process:
         """Save process instance."""
@@ -124,6 +109,4 @@ class ProcessForm(forms.ModelForm):
     def save_m2m(self) -> None:
         """Save many-to-many relationships."""
         super().save_m2m()
-        if self.instance.pk:
-            self.instance.work_lines.set(self.cleaned_data['work_lines'])
 

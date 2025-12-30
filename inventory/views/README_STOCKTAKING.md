@@ -113,12 +113,16 @@
 
 **Type**: `InventoryBaseView, ListView`
 
-**Template**: `inventory/stocktaking_deficit.html`
+**Template**: `inventory/stocktaking_deficit.html` (extends `shared/generic/generic_list.html`)
+
+**Generic Templates**:
+- **List Template**: `inventory/stocktaking_deficit.html` extends `shared/generic/generic_list.html`
+  - Overrides: `breadcrumb_extra`, `page_actions`, `before_table` (styles), `table_headers`, `table_rows` (with rowspan for multi-line documents), `empty_state_title`, `empty_state_message`, `empty_state_icon`
 
 **Attributes**:
 - `model`: `StocktakingDeficit`
 - `template_name`: `'inventory/stocktaking_deficit.html'`
-- `context_object_name`: `'records'`
+- `context_object_name`: `'object_list'`
 - `paginate_by`: `50`
 
 **متدها**:
@@ -126,9 +130,6 @@
 #### `get_queryset(self) -> QuerySet`
 
 **توضیح**: queryset را با prefetch و فیلتر permissions آماده می‌کند.
-
-**مقدار بازگشتی**:
-- `QuerySet`: queryset فیلتر شده و بهینه شده
 
 **منطق**:
 1. queryset را از `super().get_queryset()` دریافت می‌کند (از `InventoryBaseView` - فیلتر شده بر اساس company)
@@ -143,14 +144,26 @@
 
 #### `get_context_data(self, **kwargs) -> Dict[str, Any]`
 
-**توضیح**: context variables را برای template اضافه می‌کند.
+**توضیح**: context variables را برای generic list template آماده می‌کند.
 
-**Context Variables اضافه شده**:
+**Context Variables برای Generic Template**:
+- `page_title`: `_('Deficit Records')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
 - `create_url`: `reverse_lazy('inventory:stocktaking_deficit_create')`
+- `create_button_text`: `_('Create Deficit Record')`
+- `show_actions`: `True`
+
+**Context Variables برای Stocktaking Deficit-Specific Features**:
 - `edit_url_name`: `'inventory:stocktaking_deficit_edit'`
 - `delete_url_name`: `'inventory:stocktaking_deficit_delete'`
 - `lock_url_name`: `'inventory:stocktaking_deficit_lock'`
+- `empty_state_title`: `_('No Deficit Records Found')`
+- `empty_state_message`: `_('Deficit records are created during stocktaking when counted quantity is less than expected.')`
+- `empty_state_icon`: `'📉'`
+
+**Context Variables برای Permissions**:
 - `can_delete_own`, `can_delete_other`: از `add_delete_permissions_to_context()`
+- `user`: کاربر فعلی (برای permission checks در template)
 
 **URL**: `/inventory/stocktaking/deficit/`
 
@@ -247,20 +260,50 @@
 
 ### StocktakingDeficitDeleteView
 
-**Type**: `DocumentDeleteViewBase`
+**Type**: `InventoryBaseView, BaseDeleteView`
 
-**Template**: `inventory/stocktaking_deficit_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
+
+**Generic Templates**:
+- **Delete Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `inventory:stocktaking_deficit`
 
 **Attributes**:
 - `model`: `StocktakingDeficit`
-- `template_name`: `'inventory/stocktaking_deficit_confirm_delete.html'`
+- `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('inventory:stocktaking_deficit')`
 - `feature_code`: `'inventory.stocktaking.deficit'`
-- `required_action`: `'delete_own'`
-- `allow_own_scope`: `True`
 - `success_message`: `_('سند کسری موجودی با موفقیت حذف شد.')`
+- `owner_field`: `'created_by'`
+
+**متدها**:
+
+#### `dispatch(self, request, *args, **kwargs) -> HttpResponse`
+
+**توضیح**: بررسی permissions قبل از اجازه دادن به حذف.
+
+**پارامترهای ورودی**:
+- `request`: HTTP request
+- `*args`, `**kwargs`: آرگومان‌های اضافی
+
+**مقدار بازگشتی**:
+- `HttpResponse`: response از `super().dispatch()` یا `PermissionDenied` exception
+
+**منطق**: مشابه `IssuePermanentDeleteView.dispatch()` با feature code `'inventory.stocktaking.deficit'`
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic delete template آماده می‌کند.
+
+**Context Variables برای Generic Template**:
+- `delete_title`: `_('Delete Deficit Record')`
+- `confirmation_message`: `_('Do you really want to delete this deficit record?')`
+- `object_details`: لیست جزئیات record (Document Code, Document Date, Created By)
+- `cancel_url`: `reverse_lazy('inventory:stocktaking_deficit')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
 
 **URL**: `/inventory/stocktaking/deficit/<pk>/delete/`
 
@@ -287,12 +330,16 @@
 
 **Type**: `InventoryBaseView, ListView`
 
-**Template**: `inventory/stocktaking_surplus.html`
+**Template**: `inventory/stocktaking_surplus.html` (extends `shared/generic/generic_list.html`)
+
+**Generic Templates**:
+- **List Template**: `inventory/stocktaking_surplus.html` extends `shared/generic/generic_list.html`
+  - Overrides: `breadcrumb_extra`, `page_actions`, `before_table` (styles), `table_headers`, `table_rows` (with rowspan for multi-line documents), `empty_state_title`, `empty_state_message`, `empty_state_icon`
 
 **Attributes**:
 - `model`: `StocktakingSurplus`
 - `template_name`: `'inventory/stocktaking_surplus.html'`
-- `context_object_name`: `'records'`
+- `context_object_name`: `'object_list'`
 - `paginate_by`: `50`
 
 **متدها**:
@@ -300,9 +347,6 @@
 #### `get_queryset(self) -> QuerySet`
 
 **توضیح**: queryset را با prefetch و فیلتر permissions آماده می‌کند.
-
-**مقدار بازگشتی**:
-- `QuerySet`: queryset فیلتر شده و بهینه شده
 
 **منطق**:
 1. queryset را از `super().get_queryset()` دریافت می‌کند (از `InventoryBaseView` - فیلتر شده بر اساس company)
@@ -317,14 +361,26 @@
 
 #### `get_context_data(self, **kwargs) -> Dict[str, Any]`
 
-**توضیح**: context variables را برای template اضافه می‌کند.
+**توضیح**: context variables را برای generic list template آماده می‌کند.
 
-**Context Variables اضافه شده**:
+**Context Variables برای Generic Template**:
+- `page_title`: `_('Surplus Records')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
 - `create_url`: `reverse_lazy('inventory:stocktaking_surplus_create')`
+- `create_button_text`: `_('Create Surplus Record')`
+- `show_actions`: `True`
+
+**Context Variables برای Stocktaking Surplus-Specific Features**:
 - `edit_url_name`: `'inventory:stocktaking_surplus_edit'`
 - `delete_url_name`: `'inventory:stocktaking_surplus_delete'`
 - `lock_url_name`: `'inventory:stocktaking_surplus_lock'`
+- `empty_state_title`: `_('No Surplus Records Found')`
+- `empty_state_message`: `_('Surplus records are created during stocktaking when counted quantity is more than expected.')`
+- `empty_state_icon`: `'📈'`
+
+**Context Variables برای Permissions**:
 - `can_delete_own`, `can_delete_other`: از `add_delete_permissions_to_context()`
+- `user`: کاربر فعلی (برای permission checks در template)
 
 **URL**: `/inventory/stocktaking/surplus/`
 
@@ -412,20 +468,50 @@
 
 ### StocktakingSurplusDeleteView
 
-**Type**: `DocumentDeleteViewBase`
+**Type**: `InventoryBaseView, BaseDeleteView`
 
-**Template**: `inventory/stocktaking_surplus_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
+
+**Generic Templates**:
+- **Delete Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `inventory:stocktaking_surplus`
 
 **Attributes**:
 - `model`: `StocktakingSurplus`
-- `template_name`: `'inventory/stocktaking_surplus_confirm_delete.html'`
+- `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('inventory:stocktaking_surplus')`
 - `feature_code`: `'inventory.stocktaking.surplus'`
-- `required_action`: `'delete_own'`
-- `allow_own_scope`: `True`
 - `success_message`: `_('سند مازاد موجودی با موفقیت حذف شد.')`
+- `owner_field`: `'created_by'`
+
+**متدها**:
+
+#### `dispatch(self, request, *args, **kwargs) -> HttpResponse`
+
+**توضیح**: بررسی permissions قبل از اجازه دادن به حذف.
+
+**پارامترهای ورودی**:
+- `request`: HTTP request
+- `*args`, `**kwargs`: آرگومان‌های اضافی
+
+**مقدار بازگشتی**:
+- `HttpResponse`: response از `super().dispatch()` یا `PermissionDenied` exception
+
+**منطق**: مشابه `IssuePermanentDeleteView.dispatch()` با feature code `'inventory.stocktaking.surplus'`
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic delete template آماده می‌کند.
+
+**Context Variables برای Generic Template**:
+- `delete_title`: `_('Delete Surplus Record')`
+- `confirmation_message`: `_('Do you really want to delete this surplus record?')`
+- `object_details`: لیست جزئیات record (Document Code, Document Date, Created By)
+- `cancel_url`: `reverse_lazy('inventory:stocktaking_surplus')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
 
 **URL**: `/inventory/stocktaking/surplus/<pk>/delete/`
 
@@ -452,27 +538,29 @@
 
 **Type**: `InventoryBaseView, ListView`
 
-**Template**: `inventory/stocktaking_records.html`
+**Template**: `inventory/stocktaking_records.html` (extends `shared/generic/generic_list.html`)
+
+**Generic Templates**:
+- **List Template**: `inventory/stocktaking_records.html` extends `shared/generic/generic_list.html`
+  - Overrides: `breadcrumb_extra`, `page_actions`, `before_table` (styles), `table_headers`, `table_rows`, `empty_state_title`, `empty_state_message`, `empty_state_icon`
 
 **Attributes**:
 - `model`: `StocktakingRecord`
 - `template_name`: `'inventory/stocktaking_records.html'`
-- `context_object_name`: `'records'`
+- `context_object_name`: `'object_list'`
 - `paginate_by`: `50`
 
 **متدها**:
 
 #### `get_queryset(self) -> QuerySet`
 
-**توضیح**: queryset را با فیلتر permissions آماده می‌کند.
-
-**مقدار بازگشتی**:
-- `QuerySet`: queryset فیلتر شده
+**توضیح**: queryset را با فیلتر permissions و prefetch آماده می‌کند.
 
 **منطق**:
 1. queryset را از `super().get_queryset()` دریافت می‌کند (از `InventoryBaseView` - فیلتر شده بر اساس company)
 2. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.stocktaking.records', 'created_by')`
-3. queryset را برمی‌گرداند
+3. `select_related('confirmed_by', 'created_by')` را اعمال می‌کند
+4. queryset را برمی‌گرداند
 
 **نکته**: این متد از `filter_queryset_by_permissions` در `InventoryBaseView` استفاده می‌کند که بر اساس permissions کاربر (view_all, view_own) queryset را فیلتر می‌کند.
 
@@ -480,14 +568,26 @@
 
 #### `get_context_data(self, **kwargs) -> Dict[str, Any]`
 
-**توضیح**: context variables را برای template اضافه می‌کند.
+**توضیح**: context variables را برای generic list template آماده می‌کند.
 
-**Context Variables اضافه شده**:
+**Context Variables برای Generic Template**:
+- `page_title`: `_('Stocktaking Records')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
 - `create_url`: `reverse_lazy('inventory:stocktaking_record_create')`
+- `create_button_text`: `_('Create Stocktaking Record')`
+- `show_actions`: `True`
+
+**Context Variables برای Stocktaking Record-Specific Features**:
 - `edit_url_name`: `'inventory:stocktaking_record_edit'`
 - `delete_url_name`: `'inventory:stocktaking_record_delete'`
 - `lock_url_name`: `'inventory:stocktaking_record_lock'`
+- `empty_state_title`: `_('No Stocktaking Records Found')`
+- `empty_state_message`: `_('Stocktaking records confirm the accuracy of inventory counts.')`
+- `empty_state_icon`: `'📋'`
+
+**Context Variables برای Permissions**:
 - `can_delete_own`, `can_delete_other`: از `add_delete_permissions_to_context()`
+- `user`: کاربر فعلی (برای permission checks در template)
 
 **URL**: `/inventory/stocktaking/records/`
 
@@ -541,13 +641,57 @@
 - `form_class`: `StocktakingRecordForm`
 - `template_name`: `'inventory/stocktaking_form.html'`
 - `success_url`: `reverse_lazy('inventory:stocktaking_records')`
+- `feature_code`: `'inventory.stocktaking.records'`
+- `success_message`: `_('سند نهایی انبارگردانی با موفقیت بروزرسانی شد.')`
 - `form_title`: `_('ویرایش سند نهایی انبارگردانی')`
 - `list_url_name`: `'inventory:stocktaking_records'`
 - `lock_url_name`: `'inventory:stocktaking_record_lock'`
 
-**متدها**: مشابه `StocktakingDeficitUpdateView`
+**متدها**:
 
-**Fieldsets**: مشابه `StocktakingRecordCreateView`
+#### `get_queryset(self) -> QuerySet`
+
+**توضیح**: queryset را بر اساس permissions کاربر فیلتر می‌کند.
+
+**مقدار بازگشتی**:
+- `QuerySet`: queryset فیلتر شده بر اساس permissions
+
+**منطق**:
+1. queryset را از `super().get_queryset()` دریافت می‌کند
+2. فیلتر بر اساس permissions با `self.filter_queryset_by_permissions(queryset, 'inventory.stocktaking.records', 'created_by')`
+3. نتیجه فیلتر شده را برمی‌گرداند
+
+---
+
+#### `form_valid(self, form) -> HttpResponseRedirect`
+
+**توضیح**: سند را ذخیره می‌کند و `created_by` را تنظیم می‌کند اگر تنظیم نشده باشد.
+
+**پارامترهای ورودی**:
+- `form`: فرم معتبر `StocktakingRecordForm`
+
+**مقدار بازگشتی**:
+- `HttpResponseRedirect`: redirect به `success_url`
+
+**منطق**:
+1. بررسی می‌کند که آیا `form.instance.created_by_id` تنظیم شده است یا نه
+2. اگر تنظیم نشده باشد، `form.instance.created_by` را به `request.user` تنظیم می‌کند
+3. `super().form_valid(form)` را فراخوانی می‌کند
+
+---
+
+#### `get_fieldsets(self) -> list`
+
+**توضیح**: تنظیمات fieldsets را برای template برمی‌گرداند.
+
+**مقدار بازگشتی**:
+- `list`: لیست tuples شامل (title, fields)
+
+**Fieldsets**:
+- `(_('اطلاعات سند'), ['stocktaking_session_id'])`
+- `(_('تأیید موجودی'), ['confirmed_by', 'confirmation_notes'])`
+- `(_('وضعیت تایید'), ['approver', 'approval_status', 'approver_notes'])`
+- `(_('خلاصه موجودی'), ['final_inventory_value'])`
 
 **URL**: `/inventory/stocktaking/records/<pk>/edit/`
 
@@ -555,20 +699,50 @@
 
 ### StocktakingRecordDeleteView
 
-**Type**: `DocumentDeleteViewBase`
+**Type**: `InventoryBaseView, BaseDeleteView`
 
-**Template**: `inventory/stocktaking_record_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
+
+**Generic Templates**:
+- **Delete Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `inventory:stocktaking_records`
 
 **Attributes**:
 - `model`: `StocktakingRecord`
-- `template_name`: `'inventory/stocktaking_record_confirm_delete.html'`
+- `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('inventory:stocktaking_records')`
 - `feature_code`: `'inventory.stocktaking.records'`
-- `required_action`: `'delete_own'`
-- `allow_own_scope`: `True`
 - `success_message`: `_('سند شمارش موجودی با موفقیت حذف شد.')`
+- `owner_field`: `'created_by'`
+
+**متدها**:
+
+#### `dispatch(self, request, *args, **kwargs) -> HttpResponse`
+
+**توضیح**: بررسی permissions قبل از اجازه دادن به حذف.
+
+**پارامترهای ورودی**:
+- `request`: HTTP request
+- `*args`, `**kwargs`: آرگومان‌های اضافی
+
+**مقدار بازگشتی**:
+- `HttpResponse`: response از `super().dispatch()` یا `PermissionDenied` exception
+
+**منطق**: مشابه `IssuePermanentDeleteView.dispatch()` با feature code `'inventory.stocktaking.records'`
+
+---
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+
+**توضیح**: context variables را برای generic delete template آماده می‌کند.
+
+**Context Variables برای Generic Template**:
+- `delete_title`: `_('Delete Stocktaking Record')`
+- `confirmation_message`: `_('Do you really want to delete this stocktaking record?')`
+- `object_details`: لیست جزئیات record (Document Code, Document Date, Session ID, Created By)
+- `cancel_url`: `reverse_lazy('inventory:stocktaking_records')`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
 
 **URL**: `/inventory/stocktaking/records/<pk>/delete/`
 

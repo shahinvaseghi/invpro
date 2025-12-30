@@ -1,0 +1,155 @@
+{% extends "shared/generic/generic_list.html" %}
+{% load i18n %}
+{% load jalali_tags %}
+{% load generic_tags %}
+
+{% block page_actions %}
+<div class="page-actions">
+  {% if create_url %}
+    <a href="{{ create_url }}" class="btn btn-primary">
+      + {{ create_button_text|default:"Create New" }}
+    </a>
+  {% endif %}
+  {% if print_enabled %}
+    <button class="btn btn-secondary btn-print" data-action="print" data-table-id="mainTable" data-print-title="{% trans 'اسناد حسابداری' %}">
+      {% trans "چاپ" %}
+    </button>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block table_headers %}
+{% for header in table_headers %}
+  <th>{{ header.label }}</th>
+{% endfor %}
+{% if show_actions %}
+  <th>{% trans "عملیات" %}</th>
+{% endif %}
+{% endblock %}
+
+{% block table_rows %}
+{% for document in object_list %}
+<tr>
+  {% for header in table_headers %}
+    <td>
+      {% if header.field %}
+        {% if header.field == 'document_number' %}
+          <code>{{ document.document_number }}</code>
+        {% elif header.field == 'document_date' %}
+          {{ document.document_date|jalali_date }}
+        {% elif header.field == 'document_type' %}
+          {{ document.document_type_display }}
+        {% elif header.field == 'status' %}
+          {% if document.status == 'DRAFT' %}
+            <span class="badge badge-draft">{% trans "پیش نویس" %}</span>
+          {% elif document.status == 'POSTED' %}
+            <span class="badge badge-active">{% trans "ثبت شده" %}</span>
+          {% elif document.status == 'LOCKED' %}
+            <span class="badge badge-locked">{% trans "قفل شده" %}</span>
+          {% elif document.status == 'REVERSED' %}
+            <span class="badge badge-reversed">{% trans "برگشت شده" %}</span>
+          {% elif document.status == 'CANCELLED' %}
+            <span class="badge badge-inactive">{% trans "لغو شده" %}</span>
+          {% else %}
+            <span class="badge">{{ document.status_display }}</span>
+          {% endif %}
+        {% elif header.field == 'total_debit' %}
+          {{ document.total_debit|floatformat:2 }}
+        {% elif header.field == 'total_credit' %}
+          {{ document.total_credit|floatformat:2 }}
+        {% elif header.field == 'description' %}
+          {{ document.description|default:"-" }}
+        {% else %}
+          {{ document|getattr:header.field|default:"-" }}
+        {% endif %}
+      {% else %}
+        {{ header.custom_content|default:"-" }}
+      {% endif %}
+    </td>
+  {% endfor %}
+  {% if show_actions %}
+  <td>
+    <div class="row-actions">
+      {# Lock/Unlock button #}
+      {% if document.is_locked %}
+        <button class="btn btn-action btn-warning btn-toggle-lock" 
+                data-document-id="{{ document.pk }}" 
+                data-locked="true"
+                title="{% trans 'Unlock Document' %}">
+          🔓 {% trans "Unlock" %}
+        </button>
+      {% else %}
+        <button class="btn btn-action btn-success btn-toggle-lock" 
+                data-document-id="{{ document.pk }}" 
+                data-locked="false"
+                title="{% trans 'Lock Document' %}">
+          🔒 {% trans "Lock" %}
+        </button>
+      {% endif %}
+      
+      {# Reversal button #}
+      <button class="btn btn-action btn-info btn-reversal" 
+              data-document-id="{{ document.pk }}"
+              title="{% trans 'Create Reversal Document' %}">
+        ↩️ {% trans "برگشتی" %}
+      </button>
+      
+      {# Standard actions #}
+      {% include 'shared/partials/row_actions.html' with object=document feature_code=feature_code detail_url_name=detail_url_name edit_url_name=edit_url_name delete_url_name=delete_url_name %}
+    </div>
+  </td>
+  {% endif %}
+</tr>
+{% endfor %}
+{% endblock %}
+
+{% block empty_state_title %}{{ empty_state_title|default:"هیچ سند حسابداری یافت نشد" }}{% endblock %}
+{% block empty_state_message %}{{ empty_state_message|default:"با ایجاد اولین سند حسابداری شروع کنید." }}{% endblock %}
+{% block empty_state_icon %}📄{% endblock %}
+
+{% block after_table %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Handle lock/unlock button click
+    $('.btn-toggle-lock').on('click', function(e) {
+        e.preventDefault();
+        const button = $(this);
+        const documentId = button.data('document-id');
+        const isLocked = button.data('locked');
+        
+        // Disable button during request
+        button.prop('disabled', true);
+        
+        // Send AJAX request
+        $.ajax({
+            url: '{% url "accounting:api_toggle_document_lock" %}',
+            type: 'POST',
+            data: {
+                document_id: documentId,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Show success message
+                    alert(response.message);
+                    
+                    // Reload page to update UI
+                    window.location.reload();
+                } else {
+                    alert(response.error || '{% trans "An error occurred" %}');
+                    button.prop('disabled', false);
+                }
+            },
+            error: function(xhr) {
+                const error = xhr.responseJSON && xhr.responseJSON.error 
+                    ? xhr.responseJSON.error 
+                    : '{% trans "An error occurred" %}';
+                alert(error);
+                button.prop('disabled', false);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

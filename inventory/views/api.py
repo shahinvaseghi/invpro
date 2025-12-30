@@ -19,53 +19,33 @@ logger = logging.getLogger('inventory.views.api')
 @login_required
 def get_item_allowed_units(request: HttpRequest) -> JsonResponse:
     """API endpoint to get allowed units for an item."""
-    logger.info("=" * 80)
-    logger.info("get_item_allowed_units: Request received")
-    logger.info(f"  User: {request.user.username}")
-    logger.info(f"  Method: {request.method}")
-    logger.info(f"  GET params: {dict(request.GET)}")
-    
     if not request.user.is_authenticated:
-        logger.warning("get_item_allowed_units: Unauthorized request")
         return JsonResponse({'error': 'Unauthorized'}, status=401)
     
     item_id = request.GET.get('item_id')
-    logger.info(f"get_item_allowed_units: item_id from request: {item_id}")
     
     if not item_id:
-        logger.error("get_item_allowed_units: item_id is missing")
         return JsonResponse({'error': 'item_id is required'}, status=400)
     
     try:
         company_id = request.session.get('active_company_id')
-        logger.info(f"get_item_allowed_units: company_id from session: {company_id}")
         
         if not company_id:
-            logger.error("get_item_allowed_units: No active company in session")
             return JsonResponse({'error': 'No active company'}, status=400)
         
         # Try to get item - if not found with is_enabled=1, try without is_enabled filter
         # This handles cases where item is in formset initial but might be disabled
-        logger.info(f"get_item_allowed_units: Looking for item pk={item_id}, company_id={company_id}, is_enabled=1")
         try:
             item = models.Item.objects.get(pk=item_id, company_id=company_id, is_enabled=1)
-            logger.info(f"get_item_allowed_units: Item found (enabled): {item.name} ({item.item_code})")
         except models.Item.DoesNotExist:
             # If item not found with is_enabled=1, try without is_enabled filter
             # This allows loading units/warehouses for items that are in formset initial
-            logger.warning(f"get_item_allowed_units: Item not found with is_enabled=1, trying without filter")
             try:
                 item = models.Item.objects.get(pk=item_id, company_id=company_id)
-                logger.warning(f"get_item_allowed_units: Item found (disabled): {item.name} ({item.item_code}), is_enabled={item.is_enabled}, allowing anyway")
             except models.Item.DoesNotExist:
-                logger.error(f"get_item_allowed_units: Item {item_id} not found in company {company_id}")
                 return JsonResponse({'error': 'Item not found'}, status=404)
         
         # Get allowed units
-        logger.info(f"get_item_allowed_units: Getting allowed units for item {item.name}")
-        logger.info(f"  Default unit: {item.default_unit}")
-        logger.info(f"  Primary unit: {item.primary_unit}")
-        
         codes: List[str] = []
         def add(code: str) -> None:
             if code and code not in codes:
@@ -77,26 +57,15 @@ def get_item_allowed_units(request: HttpRequest) -> JsonResponse:
         
         # Add units from ItemUnit conversions
         item_units = models.ItemUnit.objects.filter(item=item, company_id=item.company_id)
-        logger.info(f"get_item_allowed_units: Found {item_units.count()} ItemUnit conversions")
         for unit in item_units:
-            logger.info(f"  Conversion: {unit.from_unit} -> {unit.to_unit}")
             add(unit.from_unit)
             add(unit.to_unit)
-        
-        logger.info(f"get_item_allowed_units: Total unique unit codes: {len(codes)}")
-        logger.info(f"  Codes: {codes}")
         
         # Map to labels
         label_map = {value: str(label) for value, label in UNIT_CHOICES}
         units = [{'value': code, 'label': label_map.get(code, code)} for code in codes if code]
         
-        logger.info(f"get_item_allowed_units: Returning {len(units)} units")
-        for unit in units:
-            logger.info(f"  Unit: {unit['value']} -> {unit['label']}")
-        
         response_data = {'units': units, 'default_unit': item.default_unit}
-        logger.info(f"get_item_allowed_units: Response: {response_data}")
-        logger.info("=" * 80)
         
         return JsonResponse(response_data)
     except Exception as e:
@@ -107,7 +76,7 @@ def get_item_allowed_units(request: HttpRequest) -> JsonResponse:
 @require_http_methods(["GET"])
 @login_required
 def get_filtered_categories(request: HttpRequest) -> JsonResponse:
-    """API endpoint to get categories that have items of specific type."""
+    """API endpoint to get all categories (optionally filtered by type)."""
     company_id = request.session.get('active_company_id')
     if not company_id:
         return JsonResponse({'error': 'No active company'}, status=400)
@@ -115,31 +84,21 @@ def get_filtered_categories(request: HttpRequest) -> JsonResponse:
     try:
         type_id = request.GET.get('type_id')
 
-        # Get categories that have at least one item
-        categories_with_items = models.ItemCategory.objects.filter(
+        # Get all enabled categories for the company
+        categories_qs = models.ItemCategory.objects.filter(
             company_id=company_id,
             is_enabled=1
         )
         
-        if type_id:
-            # Filter to only categories that have items of this type
-            categories_with_items = categories_with_items.filter(
-                items__type_id=type_id,
-                items__is_enabled=1,
-                items__company_id=company_id
-            ).distinct()
-        else:
-            # Get all categories that have any items
-            categories_with_items = categories_with_items.filter(
-                items__is_enabled=1,
-                items__company_id=company_id
-            ).distinct()
-
-        categories_with_items = categories_with_items.order_by('name')
+        # Note: We return all categories regardless of type_id
+        # because categories are independent of types in the current schema
+        # If filtering by type is needed in the future, it can be added here
+        
+        categories_qs = categories_qs.order_by('name')
 
         categories_data = [
             {'value': str(cat.pk), 'label': cat.name}
-            for cat in categories_with_items
+            for cat in categories_qs
         ]
 
         return JsonResponse({'categories': categories_data})
@@ -203,12 +162,18 @@ def get_filtered_items(request: HttpRequest) -> JsonResponse:
         search_term = request.GET.get('search', '').strip()
         # Allow including specific item_id even if user doesn't have permission (for initial data)
         include_item_id = request.GET.get('include_item_id')
+        # Filter by sellable items only (for sales module)
+        sellable_only = request.GET.get('sellable_only', 'false').lower() == 'true'
 
         # Start with all enabled items in company
         items = models.Item.objects.filter(
             company_id=company_id,
             is_enabled=1
         ).select_related('type', 'category', 'subcategory')
+        
+        # Filter by sellable items if requested
+        if sellable_only:
+            items = items.filter(is_sellable=1)
 
         # Apply permission filter (own vs all) - but allow superuser to see all
         if not request.user.is_superuser:
@@ -235,7 +200,6 @@ def get_filtered_items(request: HttpRequest) -> JsonResponse:
                 if not items.filter(pk=include_item_id).exists():
                     # Add it to queryset using union
                     items = items.union(models.Item.objects.filter(pk=include_item_id))
-                    logger.info(f"get_filtered_items: Including item_id={include_item_id} even though it doesn't match filters")
             except models.Item.DoesNotExist:
                 pass
 
@@ -257,9 +221,8 @@ def get_filtered_items(request: HttpRequest) -> JsonResponse:
 
         items = items.order_by('name')
 
-        # Log total count for debugging
+        # Get total count
         total_count = items.count()
-        logger.info(f"get_filtered_items: Found {total_count} items for company {company_id}")
 
         items_data = [
             {
@@ -272,7 +235,6 @@ def get_filtered_items(request: HttpRequest) -> JsonResponse:
             for item in items
         ]
 
-        logger.info(f"get_filtered_items: Returning {len(items_data)} items")
         return JsonResponse({'items': items_data, 'total_count': total_count})
     except Exception as e:
         logger.error(f"get_filtered_items: Error: {e}", exc_info=True)
@@ -336,54 +298,33 @@ def get_item_units(request: HttpRequest) -> JsonResponse:
 @login_required
 def get_item_allowed_warehouses(request: HttpRequest) -> JsonResponse:
     """API endpoint to get allowed warehouses for an item."""
-    logger.info("=" * 80)
-    logger.info("get_item_allowed_warehouses: Request received")
-    logger.info(f"  User: {request.user.username if request.user.is_authenticated else 'Anonymous'}")
-    logger.info(f"  Method: {request.method}")
-    logger.info(f"  GET params: {dict(request.GET)}")
-    
     item_id = request.GET.get('item_id')
-    logger.info(f"get_item_allowed_warehouses: item_id from request: {item_id}")
     
     if not item_id:
-        logger.error("get_item_allowed_warehouses: item_id is missing")
         return JsonResponse({'error': 'item_id parameter required'}, status=400)
-
+    
     try:
         company_id = request.session.get('active_company_id')
-        logger.info(f"get_item_allowed_warehouses: company_id from session: {company_id}")
         
         if not company_id:
-            logger.error("get_item_allowed_warehouses: No active company in session")
             return JsonResponse({'error': 'No active company'}, status=400)
-
+        
         # Try to get item - if not found with is_enabled=1, try without is_enabled filter
         # This handles cases where item is in formset initial but might be disabled
-        logger.info(f"get_item_allowed_warehouses: Looking for item pk={item_id}, company_id={company_id}, is_enabled=1")
         try:
             item = models.Item.objects.get(pk=item_id, company_id=company_id, is_enabled=1)
-            logger.info(f"get_item_allowed_warehouses: Item found (enabled): {item.name} ({item.item_code})")
         except models.Item.DoesNotExist:
             # If item not found with is_enabled=1, try without is_enabled filter
             # This allows loading warehouses for items that are in formset initial
-            logger.warning(f"get_item_allowed_warehouses: Item not found with is_enabled=1, trying without filter")
             try:
                 item = models.Item.objects.get(pk=item_id, company_id=company_id)
-                logger.warning(f"get_item_allowed_warehouses: Item found (disabled): {item.name} ({item.item_code}), is_enabled={item.is_enabled}, allowing anyway")
             except models.Item.DoesNotExist:
-                logger.error(f"get_item_allowed_warehouses: Item {item_id} not found in company {company_id}")
                 return JsonResponse({'error': 'Item not found'}, status=404)
-
+        
         # Get allowed warehouses
-        logger.info(f"get_item_allowed_warehouses: Getting allowed warehouses for item {item.name}")
         relations = item.warehouses.select_related('warehouse').filter(is_enabled=1)
-        logger.info(f"get_item_allowed_warehouses: Found {relations.count()} ItemWarehouse relations")
         
         warehouses = [rel.warehouse for rel in relations if rel.warehouse and rel.warehouse.is_enabled == 1]
-        logger.info(f"get_item_allowed_warehouses: Filtered to {len(warehouses)} enabled warehouses")
-        
-        for w in warehouses:
-            logger.info(f"  Warehouse: {w.public_code} - {w.name} (pk={w.pk})")
 
         # IMPORTANT: If no warehouses configured, this means the item CANNOT be received anywhere
         # Only return warehouses if explicitly configured
@@ -393,14 +334,8 @@ def get_item_allowed_warehouses(request: HttpRequest) -> JsonResponse:
             {'value': str(w.pk), 'label': f"{w.public_code} - {w.name}"}
             for w in warehouses
         ]
-        
-        logger.info(f"get_item_allowed_warehouses: Returning {len(warehouses_data)} warehouses")
-        for w_data in warehouses_data:
-            logger.info(f"  Warehouse data: {w_data}")
 
         response_data = {'warehouses': warehouses_data}
-        logger.info(f"get_item_allowed_warehouses: Response: {response_data}")
-        logger.info("=" * 80)
         
         return JsonResponse(response_data)
     except Exception as e:
@@ -433,7 +368,7 @@ def get_temporary_receipt_data(request: HttpRequest) -> JsonResponse:
             is_enabled=1,
             is_qc_approved=1,
             qc_approved_quantity__isnull=False
-        )
+        ).select_related('item', 'warehouse', 'supplier')
         
         if not approved_lines.exists():
             # Log for debugging
@@ -451,11 +386,12 @@ def get_temporary_receipt_data(request: HttpRequest) -> JsonResponse:
         # And include all approved lines in a 'lines' array
         first_line = approved_lines.first()
         
-        # Supplier info is stored on the temporary receipt header
-        supplier = temp_receipt.supplier
-        supplier_id = supplier.pk if supplier else None
-        supplier_code = supplier.public_code if supplier else None
-        supplier_name = supplier.name if supplier else None
+        # Supplier info is stored at line level (each line can have its own supplier)
+        # For backward compatibility, use first line's supplier for main data
+        first_line_supplier = first_line.supplier
+        supplier_id = first_line_supplier.pk if first_line_supplier else None
+        supplier_code = first_line_supplier.public_code if first_line_supplier else None
+        supplier_name = first_line_supplier.name if first_line_supplier else None
 
         # Return temporary receipt data for auto-filling
         # Use QC-approved quantities instead of original quantities
@@ -487,9 +423,9 @@ def get_temporary_receipt_data(request: HttpRequest) -> JsonResponse:
                     'entered_quantity': str(line.qc_approved_quantity),  # Use approved quantity
                     'unit': line.unit,
                     'entered_unit': line.entered_unit if line.entered_unit else line.unit,
-                    'supplier_id': supplier_id,
-                    'supplier_code': supplier_code,
-                    'supplier_name': supplier_name,
+                    'supplier_id': line.supplier.pk if line.supplier else None,
+                    'supplier_code': line.supplier.public_code if line.supplier else None,
+                    'supplier_name': line.supplier.name if line.supplier else None,
                 }
                 for line in approved_lines
             ],

@@ -62,7 +62,7 @@ Contains all inventory-related entities. Major groups:
       - **`IssueConsumptionLine`**: فیلد `consumption_type` می‌تواند واحد کاری (`company_unit`) یا خط کاری (`work_line`) باشد که از طریق `destination_type_choice` در فرم انتخاب می‌شود.
       - **`IssueConsignmentLine`**: فیلد `destination_type` به صورت اختیاری واحد کاری (`CompanyUnit`) را نگه می‌دارد.
     - `ReceiptPermanentLine`, `ReceiptConsignmentLine`: ردیف‌های رسید که شامل کالا، انبار، مقدار، واحد و اطلاعات قیمت‌گذاری هستند.
-    - `ReceiptTemporaryLine`: ردیف‌های رسید موقت که فقط اطلاعات کالا، انبار، مقدار و واحد را ذخیره می‌کنند. اطلاعات تأمین‌کننده در سطح سربرگ (`ReceiptTemporary`) نگه‌داری می‌شود و این مدل عمداً فیلد `supplier` ندارد؛ هر کدی که به داده‌های تأمین‌کننده نیاز دارد باید از خود سند موقت استفاده کند.
+    - `ReceiptTemporaryLine`: ردیف‌های رسید موقت که شامل اطلاعات کالا، انبار، مقدار، واحد و تأمین‌کننده هستند. هر ردیف می‌تواند تأمین‌کننده مستقل خود را داشته باشد (فیلد `supplier` در سطح خط). اطلاعات تأمین‌کننده قبلاً در سطح سربرگ (`ReceiptTemporary`) نگه‌داری می‌شد اما اکنون به سطح خط منتقل شده‌اند.
   - هر Line می‌تواند **چندین سریال** داشته باشد (از طریق `ManyToManyField` به `ItemSerial`). سریال‌ها در سطح Line مدیریت می‌شوند، نه در سطح سند.
   - برای هر Line که کالای آن `has_lot_tracking=1` دارد، یک دکمه «Assign Serials» یا «Manage Serials» در فرم سند نمایش داده می‌شود که کاربر را به صفحه اختصاصی مدیریت سریال آن Line می‌برد.
 

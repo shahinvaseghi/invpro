@@ -6,8 +6,8 @@ from django import template
 register = template.Library()
 
 
-@register.filter
-def getattr(obj, attr):
+@register.filter(name='getattr')
+def get_attr(obj, attr):
     """
     Get attribute from object, supports nested attributes.
     
@@ -61,5 +61,5 @@ def get_field_value(obj, field_path):
     Usage:
         {{ object|get_field_value:"type.name" }}
     """
-    return getattr(obj, field_path)
+    return get_attr(obj, field_path)
 

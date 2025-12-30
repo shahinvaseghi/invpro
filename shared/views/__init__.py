@@ -14,6 +14,12 @@ __all__ = []
 
 # Import base mixins
 from shared.views.base import UserAccessFormsetMixin, AccessLevelPermissionMixin, EditLockProtectedMixin
+from shared.views.base_additional import (
+    TransferRequestCreationMixin,
+    BaseMultipleFormsetCreateView,
+    BaseMultipleFormsetUpdateView,
+    BaseMultipleDocumentCreateView,
+)
 
 # Import auth views
 from shared.views.auth import set_active_company, custom_login
@@ -22,6 +28,7 @@ from shared.views.auth import set_active_company, custom_login
 from shared.views.companies import (
     CompanyListView,
     CompanyCreateView,
+    CompanyDetailView,
     CompanyUpdateView,
     CompanyDeleteView,
 )
@@ -30,6 +37,7 @@ from shared.views.companies import (
 from shared.views.company_units import (
     CompanyUnitListView,
     CompanyUnitCreateView,
+    CompanyUnitDetailView,
     CompanyUnitUpdateView,
     CompanyUnitDeleteView,
 )
@@ -38,6 +46,7 @@ from shared.views.company_units import (
 from shared.views.users import (
     UserListView,
     UserCreateView,
+    UserDetailView,
     UserUpdateView,
     UserDeleteView,
 )
@@ -46,6 +55,7 @@ from shared.views.users import (
 from shared.views.groups import (
     GroupListView,
     GroupCreateView,
+    GroupDetailView,
     GroupUpdateView,
     GroupDeleteView,
 )
@@ -54,6 +64,7 @@ from shared.views.groups import (
 from shared.views.access_levels import (
     AccessLevelListView,
     AccessLevelCreateView,
+    AccessLevelDetailView,
     AccessLevelUpdateView,
     AccessLevelDeleteView,
 )
@@ -62,6 +73,7 @@ from shared.views.access_levels import (
 from shared.views.smtp_server import (
     SMTPServerListView,
     SMTPServerCreateView,
+    SMTPServerDetailView,
     SMTPServerUpdateView,
     SMTPServerDeleteView,
 )
@@ -77,31 +89,37 @@ __all__ = [
     # Company views
     'CompanyListView',
     'CompanyCreateView',
+    'CompanyDetailView',
     'CompanyUpdateView',
     'CompanyDeleteView',
     # Company unit views
     'CompanyUnitListView',
     'CompanyUnitCreateView',
+    'CompanyUnitDetailView',
     'CompanyUnitUpdateView',
     'CompanyUnitDeleteView',
     # User views
     'UserListView',
     'UserCreateView',
+    'UserDetailView',
     'UserUpdateView',
     'UserDeleteView',
     # Group views
     'GroupListView',
     'GroupCreateView',
+    'GroupDetailView',
     'GroupUpdateView',
     'GroupDeleteView',
     # Access level views
     'AccessLevelListView',
     'AccessLevelCreateView',
+    'AccessLevelDetailView',
     'AccessLevelUpdateView',
     'AccessLevelDeleteView',
     # SMTP server views
     'SMTPServerListView',
     'SMTPServerCreateView',
+    'SMTPServerDetailView',
     'SMTPServerUpdateView',
     'SMTPServerDeleteView',
 ]

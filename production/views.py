@@ -28,6 +28,7 @@ from production.views import (
     ProcessDeleteView,
     TransferToLineRequestListView,
     PerformanceRecordListView,
+    TrackingIdentificationView,
 )
 
 __all__ = [
@@ -53,4 +54,5 @@ __all__ = [
     'ProcessDeleteView',
     'TransferToLineRequestListView',
     'PerformanceRecordListView',
+    'TrackingIdentificationView',
 ]

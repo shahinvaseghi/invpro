@@ -7,12 +7,14 @@ all inventory views.
 from typing import Optional, Dict, Any
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic import View
-from django.http import HttpResponseRedirect
+from django.views.generic import View, TemplateView
+from django.http import HttpResponseRedirect, Http404
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.shortcuts import get_object_or_404
+from decimal import Decimal, InvalidOperation
+from shared.mixins import FeaturePermissionRequiredMixin
 from .. import models
 from .. import forms
 from ..services import serials as serial_service
@@ -39,20 +41,212 @@ class InventoryBaseView(LoginRequiredMixin):
         context['active_module'] = 'inventory'
         return context
     
-    def add_delete_permissions_to_context(self, context: Dict[str, Any], feature_code: str) -> Dict[str, Any]:
+    def add_delete_permissions_to_context(self, context: Dict[str, Any], feature_code: str, resource_owner=None) -> Dict[str, Any]:
         """Helper method to add delete permission checks to context."""
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission, are_users_in_same_primary_group
+        company_id = self.request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(self.request.user, company_id)
+        
+        # Superuser can always delete
+        is_superuser = self.request.user.is_superuser
+        
+        # Check permissions
+        can_delete_own = is_superuser or has_feature_permission(
+            permissions, feature_code, 'delete_own', allow_own_scope=True,
+            current_user=self.request.user, resource_owner=resource_owner
+        )
+        can_delete_other = is_superuser or has_feature_permission(
+            permissions, feature_code, 'delete_other', allow_own_scope=False,
+            current_user=self.request.user, resource_owner=resource_owner
+        )
+        can_delete_same_group = is_superuser or (
+            has_feature_permission(
+                permissions, feature_code, 'delete_same_group', allow_own_scope=False,
+                current_user=self.request.user, resource_owner=resource_owner
+            ) if resource_owner else False
+        )
+        
+        context['can_delete_own'] = can_delete_own
+        context['can_delete_other'] = can_delete_other
+        context['can_delete_same_group'] = can_delete_same_group
+        context['user'] = self.request.user  # Make user available in template
+        return context
+    
+    def add_view_edit_permissions_to_context(self, context: Dict[str, Any], feature_code: str) -> Dict[str, Any]:
+        """
+        Helper method to add view and edit permission checks to context.
+        This is used in ListView to determine which buttons to show for each object.
+        
+        Args:
+            context: The context dictionary to update
+            feature_code: Feature code for permission checking (e.g., 'inventory.receipts.temporary')
+        
+        Returns:
+            Updated context dictionary with permission flags
+        """
         from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
         company_id = self.request.session.get('active_company_id')
         permissions = get_user_feature_permissions(self.request.user, company_id)
-        # Superuser can always delete
-        context['can_delete_own'] = self.request.user.is_superuser or has_feature_permission(
-            permissions, feature_code, 'delete_own', allow_own_scope=True
+        
+        # Superuser can always view and edit
+        is_superuser = self.request.user.is_superuser
+        
+        # Check view permissions
+        can_view_own = is_superuser or has_feature_permission(
+            permissions, feature_code, 'view_own', allow_own_scope=True,
+            current_user=self.request.user, resource_owner=None
         )
-        context['can_delete_other'] = self.request.user.is_superuser or has_feature_permission(
-            permissions, feature_code, 'delete_other', allow_own_scope=False
+        can_view_all = is_superuser or has_feature_permission(
+            permissions, feature_code, 'view_all', allow_own_scope=False,
+            current_user=self.request.user, resource_owner=None
         )
+        can_view_same_group = is_superuser or has_feature_permission(
+            permissions, feature_code, 'view_same_group', allow_own_scope=False,
+            current_user=self.request.user, resource_owner=None
+        )
+        
+        # Check edit permissions
+        can_edit_own = is_superuser or has_feature_permission(
+            permissions, feature_code, 'edit_own', allow_own_scope=True,
+            current_user=self.request.user, resource_owner=None
+        )
+        can_edit_other = is_superuser or has_feature_permission(
+            permissions, feature_code, 'edit_other', allow_own_scope=False,
+            current_user=self.request.user, resource_owner=None
+        )
+        can_edit_same_group = is_superuser or has_feature_permission(
+            permissions, feature_code, 'edit_same_group', allow_own_scope=False,
+            current_user=self.request.user, resource_owner=None
+        )
+        
+        # Add to context
+        context['can_view_own'] = can_view_own
+        context['can_view_all'] = can_view_all
+        context['can_view_same_group'] = can_view_same_group
+        context['can_edit_own'] = can_edit_own
+        context['can_edit_other'] = can_edit_other
+        context['can_edit_same_group'] = can_edit_same_group
+        context['feature_code'] = feature_code  # Store feature code for per-object checks
         context['user'] = self.request.user  # Make user available in template
+        
         return context
+    
+    def can_view_object(self, obj, feature_code: str) -> bool:
+        """
+        Check if current user can view a specific object.
+        
+        Args:
+            obj: The object to check
+            feature_code: Feature code for permission checking
+        
+        Returns:
+            True if user can view the object, False otherwise
+        """
+        if self.request.user.is_superuser:
+            return True
+        
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission, are_users_in_same_primary_group
+        company_id = self.request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(self.request.user, company_id)
+        
+        # Get resource owner
+        resource_owner = None
+        if hasattr(obj, 'created_by'):
+            resource_owner = obj.created_by
+        elif hasattr(obj, 'owner'):
+            resource_owner = obj.owner
+        elif hasattr(obj, 'user'):
+            resource_owner = obj.user
+        
+        # Check view permissions
+        can_view_all = has_feature_permission(
+            permissions, feature_code, 'view_all', allow_own_scope=False,
+            current_user=self.request.user, resource_owner=resource_owner
+        )
+        if can_view_all:
+            return True
+        
+        # Check if user is owner
+        is_owner = resource_owner == self.request.user if resource_owner else False
+        if is_owner:
+            can_view_own = has_feature_permission(
+                permissions, feature_code, 'view_own', allow_own_scope=True,
+                current_user=self.request.user, resource_owner=resource_owner
+            )
+            if can_view_own:
+                return True
+        
+        # Check same group permission
+        if resource_owner:
+            can_view_same_group = has_feature_permission(
+                permissions, feature_code, 'view_same_group', allow_own_scope=False,
+                current_user=self.request.user, resource_owner=resource_owner
+            )
+            if can_view_same_group and are_users_in_same_primary_group(self.request.user, resource_owner):
+                return True
+        
+        return False
+    
+    def can_edit_object(self, obj, feature_code: str) -> bool:
+        """
+        Check if current user can edit a specific object.
+        Also checks if object is locked.
+        
+        Args:
+            obj: The object to check
+            feature_code: Feature code for permission checking
+        
+        Returns:
+            True if user can edit the object and it's not locked, False otherwise
+        """
+        # Check if object is locked
+        if getattr(obj, 'is_locked', 0):
+            return False
+        
+        if self.request.user.is_superuser:
+            return True
+        
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission, are_users_in_same_primary_group
+        company_id = self.request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(self.request.user, company_id)
+        
+        # Get resource owner
+        resource_owner = None
+        if hasattr(obj, 'created_by'):
+            resource_owner = obj.created_by
+        elif hasattr(obj, 'owner'):
+            resource_owner = obj.owner
+        elif hasattr(obj, 'user'):
+            resource_owner = obj.user
+        
+        # Check edit permissions
+        can_edit_other = has_feature_permission(
+            permissions, feature_code, 'edit_other', allow_own_scope=False,
+            current_user=self.request.user, resource_owner=resource_owner
+        )
+        if can_edit_other:
+            return True
+        
+        # Check if user is owner
+        is_owner = resource_owner == self.request.user if resource_owner else False
+        if is_owner:
+            can_edit_own = has_feature_permission(
+                permissions, feature_code, 'edit_own', allow_own_scope=True,
+                current_user=self.request.user, resource_owner=resource_owner
+            )
+            if can_edit_own:
+                return True
+        
+        # Check same group permission
+        if resource_owner:
+            can_edit_same_group = has_feature_permission(
+                permissions, feature_code, 'edit_same_group', allow_own_scope=False,
+                current_user=self.request.user, resource_owner=resource_owner
+            )
+            if can_edit_same_group and are_users_in_same_primary_group(self.request.user, resource_owner):
+                return True
+        
+        return False
     
     def filter_queryset_by_permissions(self, queryset, feature_code: str, owner_field: str = 'created_by'):
         """
@@ -70,26 +264,51 @@ class InventoryBaseView(LoginRequiredMixin):
         if self.request.user.is_superuser:
             return queryset
         
-        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission, are_users_in_same_primary_group
+        from django.db.models import Q
         company_id = self.request.session.get('active_company_id')
         permissions = get_user_feature_permissions(self.request.user, company_id)
         
         # Check view scope
         can_view_all = has_feature_permission(permissions, feature_code, 'view_all', allow_own_scope=False)
         can_view_own = has_feature_permission(permissions, feature_code, 'view_own', allow_own_scope=True)
+        can_view_same_group = has_feature_permission(permissions, feature_code, 'view_same_group', allow_own_scope=False)
         
         # If user can view all, return queryset as is
         if can_view_all:
             return queryset
         
-        # If user can only view own records, filter by owner
-        if can_view_own:
-            # Check if model has the owner field
-            if hasattr(queryset.model, owner_field):
-                return queryset.filter(**{owner_field: self.request.user})
+        # Build filter conditions
+        filter_conditions = Q()
         
-        # If user has no view permission, return empty queryset
-        return queryset.none()
+        # If user can view own records, add own records to filter
+        if can_view_own:
+            if hasattr(queryset.model, owner_field):
+                filter_conditions |= Q(**{owner_field: self.request.user})
+        
+        # If user can view same group records, add same group records to filter
+        if can_view_same_group:
+            if hasattr(queryset.model, owner_field):
+                # Get current user's primary groups
+                current_user_primary_groups = set(self.request.user.primary_groups.all().values_list('id', flat=True))
+                
+                if current_user_primary_groups:
+                    # Get users who share at least one primary group with current user
+                    from django.contrib.auth import get_user_model
+                    User = get_user_model()
+                    same_group_users = User.objects.filter(
+                        primary_groups__id__in=current_user_primary_groups
+                    ).distinct()
+                    
+                    # Add same group records to filter
+                    filter_conditions |= Q(**{f'{owner_field}__in': same_group_users})
+        
+        # If no permissions, return empty queryset
+        if not filter_conditions:
+            return queryset.none()
+        
+        # Apply filter
+        return queryset.filter(filter_conditions).distinct()
 
 
 class DocumentLockProtectedMixin:
@@ -114,8 +333,30 @@ class DocumentLockProtectedMixin:
                 owner = getattr(obj, self.owner_field, None)
                 owner_id = getattr(owner, 'id', None) if owner else None
                 if owner_id and owner_id != request.user.id:
-                    messages.error(request, self.owner_error_message)
-                    return HttpResponseRedirect(self._get_lock_redirect_url())
+                    # Check if user has permission to edit same group or other
+                    from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
+                    company_id = request.session.get('active_company_id')
+                    permissions = get_user_feature_permissions(request.user, company_id)
+                    
+                    # Get feature code from view
+                    feature_code = getattr(self, 'feature_code', None)
+                    if feature_code:
+                        can_edit_same_group = has_feature_permission(
+                            permissions, feature_code, 'edit_same_group', allow_own_scope=False,
+                            current_user=request.user, resource_owner=owner
+                        )
+                        can_edit_other = has_feature_permission(
+                            permissions, feature_code, 'edit_other', allow_own_scope=False,
+                            current_user=request.user, resource_owner=owner
+                        )
+                        
+                        if not can_edit_same_group and not can_edit_other:
+                            messages.error(request, self.owner_error_message)
+                            return HttpResponseRedirect(self._get_lock_redirect_url())
+                    else:
+                        # If no feature_code, use default behavior
+                        messages.error(request, self.owner_error_message)
+                        return HttpResponseRedirect(self._get_lock_redirect_url())
         return super().dispatch(request, *args, **kwargs)
 
     def _get_lock_redirect_url(self) -> str:
@@ -276,13 +517,14 @@ class LineFormsetMixin:
     formset_class = None
     formset_prefix: str = 'lines'
     
-    def build_line_formset(self, data=None, instance=None, company_id: Optional[int] = None, request=None):
+    def build_line_formset(self, data=None, instance=None, company_id: Optional[int] = None, request=None, initial=None):
         """Build line formset for the document."""
         logger.info("=" * 80)
         logger.info("LineFormsetMixin.build_line_formset() called")
         logger.info(f"data is None: {data is None}")
         logger.info(f"instance: {instance}")
         logger.info(f"company_id: {company_id}")
+        logger.info(f"initial: {initial}")
         if instance is None:
             instance = getattr(self, "object", None)
             logger.info(f"Instance from self.object: {instance}")
@@ -310,6 +552,9 @@ class LineFormsetMixin:
         if data is not None:
             kwargs['data'] = data
             logger.info(f"Data provided, keys: {list(data.keys())[:10]}...")
+        if initial is not None:
+            kwargs['initial'] = initial
+            logger.info(f"Initial data provided: {initial}")
         logger.info(f"Formset kwargs: instance={instance}, prefix={self.formset_prefix}, company_id={company_id}")
         formset = self.formset_class(**kwargs)
         logger.info(f"Formset created, forms count: {len(formset.forms)}")
@@ -330,7 +575,10 @@ class LineFormsetMixin:
         context = super().get_context_data(**kwargs)
         logger.info(f"Context keys before formset: {list(context.keys())}")
         if 'lines_formset' not in context:
-            if self.request.method == 'POST':
+            if 'lines_formset' in kwargs:
+                # Preserve formset from kwargs
+                context['lines_formset'] = kwargs['lines_formset']
+            elif self.request.method == 'POST':
                 logger.info("Building formset with POST data")
                 context['lines_formset'] = self.get_line_formset(data=self.request.POST)
             else:
@@ -384,10 +632,15 @@ class LineFormsetMixin:
             
             # Save the instance
             instance = form.save(commit=False)
-            instance.company = self.object.company
             instance.document = self.object
+            # Set company - use company_id first to avoid RelatedObjectDoesNotExist error
             if not hasattr(instance, 'company_id') or not instance.company_id:
                 instance.company_id = self.object.company_id
+            # Then set company object if company_id is set
+            if instance.company_id:
+                # Don't set company object directly - Django will load it automatically from company_id
+                # Setting it directly can cause RelatedObjectDoesNotExist if company is not loaded
+                pass
             instance.save()
             form.save_m2m()  # Save ManyToMany relationships (serials)
             
@@ -504,18 +757,100 @@ class ItemUnitFormsetMixin:
 
     def _save_unit_formset(self, formset) -> None:
         """Save unit formset instances."""
+        import logging
+        logger = logging.getLogger('inventory.views.base')
+        
+        logger.info(f"=== SAVING UNIT FORMSET FOR ITEM {self.object.pk} ===")
+        logger.info(f"Total forms in formset: {len(formset.forms)}")
+        
+        # CRITICAL: deleted_objects is only available after save() is called
+        # So we need to manually identify deleted forms before calling save()
+        deleted_count = 0
+        
+        # First, identify forms marked for deletion
+        forms_to_delete = []
+        for idx, form in enumerate(formset.forms):
+            logger.info(f"Form {idx}: has_cleaned_data={bool(form.cleaned_data)}, instance_pk={form.instance.pk if form.instance and form.instance.pk else None}")
+            if form.cleaned_data:
+                logger.info(f"  cleaned_data keys: {list(form.cleaned_data.keys())}")
+                logger.info(f"  DELETE flag: {form.cleaned_data.get('DELETE')}")
+                if form.cleaned_data.get('DELETE'):
+                    if form.instance and form.instance.pk:
+                        forms_to_delete.append(form.instance)
+                        logger.info(f"  Marked for deletion: {form.instance.pk}")
+        
+        # Delete identified objects
+        for obj in forms_to_delete:
+            logger.info(f"Deleting unit {obj.pk}")
+            obj.delete()
+            deleted_count += 1
+        
+        # Now save new and updated instances
+        logger.info("Calling formset.save(commit=False)...")
         instances = formset.save(commit=False)
-        for unit in instances:
+        logger.info(f"formset.save() returned {len(instances)} instances")
+        
+        saved_count = 0
+        for idx, unit in enumerate(instances):
+            logger.info(f"Processing instance {idx}: from_unit={unit.from_unit}, to_unit={unit.to_unit}, from_quantity={unit.from_quantity}, to_quantity={unit.to_quantity}")
+            
+            # Skip if essential fields are missing
             if not unit.from_unit or not unit.to_unit:
+                logger.warning(f"  Skipping: missing from_unit or to_unit")
                 continue
+            # Skip if quantities are not set or zero
+            if not unit.from_quantity or not unit.to_quantity:
+                logger.warning(f"  Skipping: missing from_quantity or to_quantity")
+                continue
+            
             unit.company = self.object.company
             unit.item = self.object
             unit.item_code = self.object.item_code
             if not unit.public_code:
                 unit.public_code = self._generate_unit_code(self.object.company)
-            unit.save()
-        for obj in formset.deleted_objects:
-            obj.delete()
+            
+            # Check for duplicate conversion before saving
+            # Unique constraint: (company, item, from_unit, to_unit)
+            existing_unit = models.ItemUnit.objects.filter(
+                company=unit.company,
+                item=unit.item,
+                from_unit=unit.from_unit,
+                to_unit=unit.to_unit
+            ).exclude(pk=unit.pk if unit.pk else None).first()
+            
+            if existing_unit:
+                logger.warning(f"  Skipping: duplicate conversion already exists (pk={existing_unit.pk}): {unit.from_unit} -> {unit.to_unit}")
+                from django.contrib import messages
+                from django.utils.translation import gettext_lazy as _
+                messages.warning(
+                    self.request,
+                    _("Unit conversion from '{from_unit}' to '{to_unit}' already exists and was skipped.").format(
+                        from_unit=unit.from_unit,
+                        to_unit=unit.to_unit
+                    )
+                )
+                continue
+            
+            try:
+                logger.info(f"  Saving unit: from_unit={unit.from_unit}, to_unit={unit.to_unit}, from_quantity={unit.from_quantity}, to_quantity={unit.to_quantity}")
+                unit.save()
+                saved_count += 1
+                logger.info(f"  Unit saved successfully (pk={unit.pk})")
+            except Exception as e:
+                logger.error(f"  Error saving unit: {str(e)}")
+                from django.contrib import messages
+                from django.utils.translation import gettext_lazy as _
+                messages.error(
+                    self.request,
+                    _("Error saving unit conversion from '{from_unit}' to '{to_unit}': {error}").format(
+                        from_unit=unit.from_unit,
+                        to_unit=unit.to_unit,
+                        error=str(e)
+                    )
+                )
+                continue
+        
+        logger.info(f"=== FINAL RESULT: Saved {saved_count} unit(s), deleted {deleted_count} unit(s) ===")
 
     def _sync_item_warehouses(self, item, warehouses, user) -> None:
         """Sync item-warehouse relationships."""
@@ -564,4 +899,246 @@ class ItemUnitFormsetMixin:
             if warehouse not in ordered:
                 ordered.append(warehouse)
         return ordered
+
+
+class BaseCreateDocumentFromRequestView(FeaturePermissionRequiredMixin, InventoryBaseView, TemplateView):
+    """
+    Base view for creating documents (receipts/issues) from requests (purchase/warehouse).
+    
+    This base class handles the common flow of:
+    1. Getting the request object (PurchaseRequest or WarehouseRequest)
+    2. Displaying a selection form (for multi-line requests) or quantity form (for single-line requests)
+    3. Processing the form submission and storing data in session
+    4. Redirecting to the document creation view
+    
+    Subclasses should define:
+    - `document_type`: 'receipt' or 'issue'
+    - `document_subtype`: 'temporary', 'permanent', 'consignment', 'consumption'
+    - `request_model`: The request model class (PurchaseRequest or WarehouseRequest)
+    - `is_multi_line`: True for PurchaseRequest (has lines), False for WarehouseRequest (single line)
+    - `template_name`: Template to render
+    - `feature_code`: Feature code for permissions
+    - `required_action`: Required action for permissions
+    
+    Hook methods:
+    - `get_request_object(pk)`: Get and validate the request object
+    - `get_request_status_filter()`: Get the status filter for the request (e.g., 'approved')
+    - `get_context_data(**kwargs)`: Add context data (can override)
+    - `process_multi_line_post(request, request_obj)`: Process POST for multi-line requests
+    - `process_single_line_post(request, request_obj)`: Process POST for single-line requests
+    - `get_redirect_url(request_obj)`: Get the redirect URL after processing
+    - `get_session_key(request_obj)`: Get the session key for storing data
+    - `get_type_name()`: Get the display name for the document type
+    """
+    
+    document_type = None  # 'receipt' or 'issue'
+    document_subtype = None  # 'temporary', 'permanent', 'consignment', 'consumption'
+    request_model = None  # PurchaseRequest or WarehouseRequest
+    is_multi_line = None  # True for PurchaseRequest, False for WarehouseRequest
+    template_name = None
+    required_action = None
+    
+    def get_company_id(self):
+        """Get active company ID from session."""
+        company_id = self.request.session.get('active_company_id')
+        if not company_id:
+            raise Http404(_('شرکت فعال مشخص نشده است.'))
+        return company_id
+    
+    def get_request_status_filter(self):
+        """Get the status filter for the request. Override in subclasses."""
+        return 'approved'
+    
+    def get_request_object(self, pk: int):
+        """Get request object and check permissions. Override for custom logic."""
+        company_id = self.get_company_id()
+        status_filter = self.get_request_status_filter()
+        
+        filter_kwargs = {
+            'pk': pk,
+            'company_id': company_id,
+            'is_enabled': 1
+        }
+        
+        if status_filter:
+            if hasattr(self.request_model, 'Status'):
+                # For PurchaseRequest with Status enum
+                filter_kwargs['status'] = getattr(self.request_model.Status, status_filter.upper())
+            else:
+                # For WarehouseRequest with string status
+                filter_kwargs['request_status'] = status_filter
+        
+        return get_object_or_404(self.request_model, **filter_kwargs)
+    
+    def get_type_name(self):
+        """Get display name for document type. Override in subclasses."""
+        type_names = {
+            'receipt': {
+                'temporary': _('رسید موقت'),
+                'permanent': _('رسید دائم'),
+                'consignment': _('رسید امانی'),
+            },
+            'issue': {
+                'permanent': _('حواله دائم'),
+                'consumption': _('حواله مصرف'),
+                'consignment': _('حواله امانی'),
+            },
+        }
+        return type_names.get(self.document_type, {}).get(self.document_subtype, '')
+    
+    def get_session_key(self, request_obj):
+        """Get session key for storing data. Override in subclasses."""
+        if self.document_type == 'receipt':
+            return f'purchase_request_{request_obj.pk}_receipt_{self.document_subtype}_lines'
+        elif self.document_type == 'issue':
+            return f'warehouse_request_{request_obj.pk}_issue_{self.document_subtype}_data'
+        return None
+    
+    def get_redirect_url(self, request_obj):
+        """Get redirect URL after processing. Override in subclasses."""
+        if self.document_type == 'receipt':
+            url_names = {
+                'temporary': 'inventory:receipt_temporary_create_from_request',
+                'permanent': 'inventory:receipt_permanent_create_from_request',
+                'consignment': 'inventory:receipt_consignment_create_from_request',
+            }
+        elif self.document_type == 'issue':
+            url_names = {
+                'permanent': 'inventory:issue_permanent_create_from_warehouse_request',
+                'consumption': 'inventory:issue_consumption_create_from_warehouse_request',
+                'consignment': 'inventory:issue_consignment_create_from_warehouse_request',
+            }
+        else:
+            return None
+        
+        url_name = url_names.get(self.document_subtype)
+        if url_name:
+            return reverse(url_name, kwargs={'pk': request_obj.pk})
+        return None
+    
+    def get_context_data(self, **kwargs):
+        """Display form to select lines/quantity from request."""
+        context = super().get_context_data(**kwargs)
+        request_obj = self.get_request_object(kwargs['pk'])
+        
+        context[f'{self.document_type}_type'] = self.document_subtype
+        context[f'{self.document_type}_type_name'] = self.get_type_name()
+        
+        if self.is_multi_line:
+            # For PurchaseRequest: get lines
+            lines = request_obj.lines.filter(is_enabled=1).order_by('sort_order', 'id')
+            context['lines'] = lines
+            context['purchase_request'] = request_obj
+        else:
+            # For WarehouseRequest: calculate remaining quantity
+            context['warehouse_request'] = request_obj
+            remaining_quantity = request_obj.quantity_requested
+            if hasattr(request_obj, 'quantity_issued') and request_obj.quantity_issued:
+                remaining_quantity = request_obj.quantity_requested - request_obj.quantity_issued
+            context['remaining_quantity'] = remaining_quantity
+            context['default_quantity'] = remaining_quantity
+        
+        return context
+    
+    def process_multi_line_post(self, request, request_obj):
+        """Process POST for multi-line requests (PurchaseRequest)."""
+        selected_lines = []
+        for line in request_obj.lines.filter(is_enabled=1):
+            line_id = str(line.pk)
+            quantity_key = f'quantity_{line_id}'
+            selected_key = f'selected_{line_id}'
+            
+            if request.POST.get(selected_key) == 'on':
+                quantity = request.POST.get(quantity_key, '0')
+                try:
+                    quantity = Decimal(str(quantity))
+                    if quantity > 0:
+                        remaining = getattr(line, 'quantity_remaining', line.quantity_requested)
+                        if quantity > remaining:
+                            quantity = remaining
+                        selected_lines.append({
+                            'line': line,
+                            'quantity': quantity,
+                        })
+                except (ValueError, InvalidOperation):
+                    pass
+        
+        if not selected_lines:
+            messages.error(request, _('لطفاً حداقل یک ردیف را انتخاب کنید.'))
+            return None
+        
+        # Store in session
+        session_key = self.get_session_key(request_obj)
+        session_data = [
+            {
+                'line_id': item['line'].pk,
+                'quantity': str(item['quantity']),
+            }
+            for item in selected_lines
+        ]
+        request.session[session_key] = session_data
+        return True
+    
+    def process_single_line_post(self, request, request_obj):
+        """Process POST for single-line requests (WarehouseRequest)."""
+        quantity_key = 'quantity'
+        quantity_value = request.POST.get(quantity_key, '0')
+        
+        try:
+            quantity = Decimal(str(quantity_value))
+            
+            # Calculate remaining quantity
+            remaining_quantity = request_obj.quantity_requested
+            if hasattr(request_obj, 'quantity_issued') and request_obj.quantity_issued:
+                remaining_quantity = request_obj.quantity_requested - request_obj.quantity_issued
+            
+            if quantity <= 0:
+                messages.error(request, _('مقدار باید بیشتر از صفر باشد.'))
+                return None
+            
+            if quantity > remaining_quantity:
+                quantity = remaining_quantity
+                messages.warning(request, _('مقدار بیشتر از مقدار باقیمانده بود و به مقدار باقیمانده تنظیم شد.'))
+            
+            # Get optional notes
+            notes = request.POST.get('notes', '').strip()
+            
+            # Store in session
+            session_key = self.get_session_key(request_obj)
+            session_data = {
+                'warehouse_request_id': request_obj.pk,
+                'quantity': str(quantity),
+                'notes': notes,
+            }
+            request.session[session_key] = session_data
+            return True
+            
+        except (ValueError, InvalidOperation):
+            messages.error(request, _('مقدار وارد شده معتبر نیست.'))
+            return None
+    
+    def post(self, request, *args, **kwargs):
+        """Process selected lines/quantity and redirect to document creation."""
+        request_obj = self.get_request_object(kwargs['pk'])
+        
+        if self.is_multi_line:
+            result = self.process_multi_line_post(request, request_obj)
+        else:
+            result = self.process_single_line_post(request, request_obj)
+        
+        if result is None:
+            # Error occurred, re-render form
+            return self.get(request, *args, **kwargs)
+        
+        # Redirect to document creation
+        redirect_url = self.get_redirect_url(request_obj)
+        if redirect_url:
+            return HttpResponseRedirect(redirect_url)
+        
+        # Fallback: redirect to request list
+        if self.document_type == 'receipt':
+            return HttpResponseRedirect(reverse('inventory:purchase_requests'))
+        elif self.document_type == 'issue':
+            return HttpResponseRedirect(reverse('inventory:warehouse_requests'))
+        return HttpResponseRedirect(reverse('inventory:index'))
 

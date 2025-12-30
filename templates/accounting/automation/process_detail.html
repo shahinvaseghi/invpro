@@ -1,0 +1,225 @@
+{% extends "shared/generic/generic_detail.html" %}
+{% load i18n jalali_tags %}
+
+{% block detail_sections %}
+{{ block.super }}
+
+<div class="form-section">
+  <h3>{% trans "Process Information" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Trigger Module" %}</label>
+      <div class="readonly-field">{{ object.trigger_module }}</div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Trigger Document Type" %}</label>
+      <div class="readonly-field">{{ object.trigger_document_type }}</div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Trigger Model" %}</label>
+      <div class="readonly-field"><code>{{ object.trigger_model }}</code></div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Status" %}</label>
+      <div class="readonly-field">
+        {% if object.is_active %}
+          <span class="badge badge-success">{% trans "Active" %}</span>
+        {% else %}
+          <span class="badge badge-secondary">{% trans "Inactive" %}</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if object.description %}
+<div class="form-section">
+  <h3>{% trans "Description" %}</h3>
+  <div class="form-row">
+    <div class="form-field full-width">
+      <div class="readonly-field">{{ object.description|linebreaks }}</div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="form-section">
+  <h3>{% trans "Conditions" %}</h3>
+  {% if conditions %}
+    <div class="table-responsive">
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>{% trans "Type" %}</th>
+            <th>{% trans "Category" %}</th>
+            <th>{% trans "Field" %}</th>
+            <th>{% trans "Operator" %}</th>
+            <th>{% trans "Value" %}</th>
+            <th>{% trans "Logical" %}</th>
+            <th>{% trans "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for condition in conditions %}
+          <tr>
+            <td>{{ condition.get_filter_type_display }}</td>
+            <td>{{ condition.get_filter_category_display }}</td>
+            <td>{{ condition.field_name|default:"-" }}</td>
+            <td>{{ condition.get_operator_display }}</td>
+            <td><code>{{ condition.value|truncatewords:10 }}</code></td>
+            <td>{{ condition.logical_operator }}</td>
+            <td>
+              <a href="{% url 'accounting:automation_condition_edit' condition.pk %}" class="btn btn-sm btn-outline-secondary">
+                {% trans "Edit" %}
+              </a>
+              <a href="{% url 'accounting:automation_condition_delete' condition.pk %}" class="btn btn-sm btn-outline-danger">
+                {% trans "Delete" %}
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="text-muted">{% trans "No conditions defined." %}</p>
+  {% endif %}
+  <div class="mt-3">
+    <a href="{% url 'accounting:automation_condition_create' object.pk %}" class="btn btn-sm btn-primary">
+      {% trans "Add Condition" %}
+    </a>
+  </div>
+</div>
+
+<div class="form-section">
+  <h3>{% trans "Variables" %}</h3>
+  {% if variables %}
+    <div class="table-responsive">
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>{% trans "Name" %}</th>
+            <th>{% trans "Display Name" %}</th>
+            <th>{% trans "Source Type" %}</th>
+            <th>{% trans "Field Path" %}</th>
+            <th>{% trans "Data Type" %}</th>
+            <th>{% trans "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for variable in variables %}
+          <tr>
+            <td><code>{{ variable.name }}</code></td>
+            <td>{{ variable.display_name }}</td>
+            <td>{{ variable.get_source_type_display }}</td>
+            <td><code>{{ variable.field_path }}</code></td>
+            <td>{{ variable.get_data_type_display }}</td>
+            <td>
+              <a href="{% url 'accounting:automation_variable_edit' variable.pk %}" class="btn btn-sm btn-outline-secondary">
+                {% trans "Edit" %}
+              </a>
+              <a href="{% url 'accounting:automation_variable_delete' variable.pk %}" class="btn btn-sm btn-outline-danger">
+                {% trans "Delete" %}
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="text-muted">{% trans "No variables defined." %}</p>
+  {% endif %}
+  <div class="mt-3">
+    <a href="{% url 'accounting:automation_variable_create' object.pk %}" class="btn btn-sm btn-primary">
+      {% trans "Add Variable" %}
+    </a>
+  </div>
+</div>
+
+<div class="form-section">
+  <h3>{% trans "Document Steps" %}</h3>
+  {% if document_steps %}
+    <div class="table-responsive">
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>{% trans "Step" %}</th>
+            <th>{% trans "Document Type" %}</th>
+            <th>{% trans "Requires Approval" %}</th>
+            <th>{% trans "Wait for Previous" %}</th>
+            <th>{% trans "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for step in document_steps %}
+          <tr>
+            <td>{{ step.step_number }}</td>
+            <td>{{ step.get_document_type_display }}</td>
+            <td>{{ step.get_requires_approval_display }}</td>
+            <td>
+              {% if step.wait_for_previous_approval %}
+                <span class="badge badge-info">{% trans "Yes" %}</span>
+              {% else %}
+                <span class="badge badge-secondary">{% trans "No" %}</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{% url 'accounting:automation_document_step_detail' object.pk step.pk %}" class="btn btn-sm btn-info">
+                {% trans "View" %}
+              </a>
+              <a href="{% url 'accounting:automation_document_step_edit' step.pk %}" class="btn btn-sm btn-outline-secondary">
+                {% trans "Edit" %}
+              </a>
+              <a href="{% url 'accounting:automation_document_step_delete' step.pk %}" class="btn btn-sm btn-outline-danger">
+                {% trans "Delete" %}
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="text-muted">{% trans "No document steps defined." %}</p>
+  {% endif %}
+  <div class="mt-3">
+    <a href="{% url 'accounting:automation_document_step_create' object.pk %}" class="btn btn-sm btn-primary">
+      {% trans "Add Document Step" %}
+    </a>
+  </div>
+</div>
+
+{% if object.created_at or object.edited_at or object.created_by or object.edited_by %}
+<div class="form-section">
+  <h3>{% trans "Audit Information" %}</h3>
+  <div class="form-row">
+    {% if object.created_by %}
+    <div class="form-field">
+      <label>{% trans "Created By" %}</label>
+      <div class="readonly-field">{{ object.created_by.get_full_name|default:object.created_by.username }}</div>
+    </div>
+    {% endif %}
+    {% if object.created_at %}
+    <div class="form-field">
+      <label>{% trans "Created At" %}</label>
+      <div class="readonly-field">{{ object.created_at|jalali_date:"%Y/%m/%d %H:%M" }}</div>
+    </div>
+    {% endif %}
+    {% if object.edited_by %}
+    <div class="form-field">
+      <label>{% trans "Edited By" %}</label>
+      <div class="readonly-field">{{ object.edited_by.get_full_name|default:object.edited_by.username }}</div>
+    </div>
+    {% endif %}
+    {% if object.edited_at %}
+    <div class="form-field">
+      <label>{% trans "Last Updated" %}</label>
+      <div class="readonly-field">{{ object.edited_at|jalali_date:"%Y/%m/%d %H:%M" }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+

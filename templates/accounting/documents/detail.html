@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load jalali_tags %}
+{% load humanize %}
+
+{% block title %}{{ document.document_number }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="section-header">
+        <nav class="breadcrumb">
+            {% for crumb in breadcrumbs %}
+                {% if crumb.url %}
+                    <a href="{{ crumb.url }}">{{ crumb.label }}</a>
+                    <span class="separator">/</span>
+                {% else %}
+                    <span>{{ crumb.label }}</span>
+                {% endif %}
+            {% endfor %}
+        </nav>
+        <h1>{% trans "مشاهده سند حسابداری" %}</h1>
+    </div>
+
+    <!-- Document Header -->
+    <div class="document-header-section" style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 1.5rem;">
+        <div class="row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+            <div class="form-group">
+                <label style="font-weight: 600; color: #6b7280; font-size: 0.875rem; display: block; margin-bottom: 0.5rem;">{% trans "شماره سند:" %}</label>
+                <div style="padding: 0.5rem; background: #f9fafb; border-radius: 4px; font-size: 1rem;">{{ document.document_number }}</div>
+            </div>
+            <div class="form-group">
+                <label style="font-weight: 600; color: #6b7280; font-size: 0.875rem; display: block; margin-bottom: 0.5rem;">{% trans "تاریخ سند:" %}</label>
+                <div style="padding: 0.5rem; background: #f9fafb; border-radius: 4px; font-size: 1rem;">{{ document.document_date|jalali_date }}</div>
+            </div>
+            <div class="form-group">
+                <label style="font-weight: 600; color: #6b7280; font-size: 0.875rem; display: block; margin-bottom: 0.5rem;">{% trans "نوع سند:" %}</label>
+                <div style="padding: 0.5rem; background: #f9fafb; border-radius: 4px; font-size: 1rem;">{{ document.get_document_type_display }}</div>
+            </div>
+            <div class="form-group">
+                <label style="font-weight: 600; color: #6b7280; font-size: 0.875rem; display: block; margin-bottom: 0.5rem;">{% trans "وضعیت:" %}</label>
+                <div style="padding: 0.5rem; background: #f9fafb; border-radius: 4px; font-size: 1rem;">
+                    {% if document.status == 'DRAFT' %}
+                        <span style="color: #f59e0b;">{% trans "موقت" %}</span>
+                    {% elif document.status == 'APPROVED' %}
+                        <span style="color: #10b981;">{% trans "تایید شده" %}</span>
+                    {% elif document.status == 'LOCKED' %}
+                        <span style="color: #ef4444;">{% trans "قفل شده" %}</span>
+                    {% else %}
+                        {{ document.get_status_display }}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% if document.description %}
+        <div class="form-group" style="margin-top: 1rem;">
+            <label style="font-weight: 600; color: #6b7280; font-size: 0.875rem; display: block; margin-bottom: 0.5rem;">{% trans "شرح:" %}</label>
+            <div style="padding: 0.5rem; background: #f9fafb; border-radius: 4px; font-size: 1rem;">{{ document.description }}</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Document Lines -->
+    <div class="document-lines-section" style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <h3 style="margin-bottom: 1rem; font-size: 1.125rem; font-weight: 600;">{% trans "جزئیات سند" %}</h3>
+        
+        <div class="table-responsive" style="overflow-x: auto;">
+            <table class="table table-bordered" style="width: 100%; border-collapse: collapse;">
+                <thead style="background: #f9fafb;">
+                    <tr>
+                        <th style="padding: 0.75rem; text-align: center; border: 1px solid #e5e7eb; font-size: 0.875rem;">#</th>
+                        <th style="padding: 0.75rem; text-align: right; border: 1px solid #e5e7eb; font-size: 0.875rem;">{% trans "سند کل" %}</th>
+                        <th style="padding: 0.75rem; text-align: right; border: 1px solid #e5e7eb; font-size: 0.875rem;">{% trans "معین" %}</th>
+                        <th style="padding: 0.75rem; text-align: right; border: 1px solid #e5e7eb; font-size: 0.875rem;">{% trans "تفصیلی" %}</th>
+                        <th style="padding: 0.75rem; text-align: right; border: 1px solid #e5e7eb; font-size: 0.875rem;">{% trans "عنوان" %}</th>
+                        <th style="padding: 0.75rem; text-align: right; border: 1px solid #e5e7eb; font-size: 0.875rem;">{% trans "بدهکار" %}</th>
+                        <th style="padding: 0.75rem; text-align: right; border: 1px solid #e5e7eb; font-size: 0.875rem;">{% trans "بستانکار" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for line in document.lines.all %}
+                    <tr>
+                        <td style="text-align: center; padding: 0.75rem; border: 1px solid #e5e7eb; font-size: 0.875rem;">{{ forloop.counter }}</td>
+                        <td style="padding: 0.75rem; border: 1px solid #e5e7eb; font-size: 0.875rem;">
+                            {% if line.gl_account %}{{ line.gl_account.account_code }} - {{ line.gl_account.account_name }}{% endif %}
+                        </td>
+                        <td style="padding: 0.75rem; border: 1px solid #e5e7eb; font-size: 0.875rem;">
+                            {% if line.sub_account %}{{ line.sub_account.account_code }} - {{ line.sub_account.account_name }}{% endif %}
+                        </td>
+                        <td style="padding: 0.75rem; border: 1px solid #e5e7eb; font-size: 0.875rem;">
+                            {% if line.tafsili_account %}{{ line.tafsili_account.account_code }} - {{ line.tafsili_account.account_name }}{% endif %}
+                        </td>
+                        <td style="padding: 0.75rem; border: 1px solid #e5e7eb; font-size: 0.875rem;">{{ line.description|default:"-" }}</td>
+                        <td style="padding: 0.75rem; border: 1px solid #e5e7eb; font-size: 0.875rem; text-align: left;">
+                            {% if line.debit %}{{ line.debit|floatformat:0|intcomma }}{% else %}-{% endif %}
+                        </td>
+                        <td style="padding: 0.75rem; border: 1px solid #e5e7eb; font-size: 0.875rem; text-align: left;">
+                            {% if line.credit %}{{ line.credit|floatformat:0|intcomma }}{% else %}-{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr style="background: {% if document.total_debit == document.total_credit %}#d1fae5{% else %}#fee2e2{% endif %}; font-weight: 600;">
+                        <td colspan="5" style="text-align: right; padding: 0.75rem; border: 1px solid #e5e7eb; font-size: 0.875rem;">{% trans "جمع کل:" %}</td>
+                        <td style="padding: 0.75rem; border: 1px solid #e5e7eb; font-size: 0.875rem; text-align: left;">{{ document.total_debit|floatformat:0|intcomma }}</td>
+                        <td style="padding: 0.75rem; border: 1px solid #e5e7eb; font-size: 0.875rem; text-align: left;">{{ document.total_credit|floatformat:0|intcomma }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="form-actions" style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: flex-start;">
+        <a href="{% url 'accounting:document_list' %}" class="btn btn-secondary" style="padding: 0.5rem 1.5rem; background: #6b7280; color: white; border: none; border-radius: 4px; text-decoration: none; display: inline-block;">
+            {% trans "بازگشت به لیست" %}
+        </a>
+    </div>
+</section>
+{% endblock %}
+

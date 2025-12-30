@@ -8,7 +8,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from .. import models
 from ..forms.templates import (
@@ -19,81 +19,55 @@ from ..forms.templates import (
 )
 from .base import TicketingBaseView
 from shared.mixins import FeaturePermissionRequiredMixin
-from shared.views.base import EditLockProtectedMixin
+from shared.views.base import (
+    BaseListView,
+    BaseDetailView,
+    BaseDeleteView,
+    EditLockProtectedMixin,
+)
+from shared.views.base_additional import (
+    BaseMultipleFormsetCreateView,
+    BaseMultipleFormsetUpdateView,
+)
 
 
-class TicketTemplateListView(FeaturePermissionRequiredMixin, TicketingBaseView, ListView):
+class TicketTemplateListView(BaseListView):
     """List view for ticket templates."""
 
     model = models.TicketTemplate
     template_name = "ticketing/templates_list.html"
-    context_object_name = "templates"
+    context_object_name = "object_list"
     paginate_by = 50
     feature_code = "ticketing.management.templates"
     required_action = "view_all"
+    active_module = "ticketing"
+    default_order_by = ["sort_order", "template_code", "name"]
+
+    def get_base_queryset(self):
+        """Filter templates by company."""
+        company_id = self.request.session.get("active_company_id")
+        if company_id:
+            return models.TicketTemplate.objects.filter(company_id=company_id)
+        return models.TicketTemplate.objects.none()
+
+    def get_search_fields(self) -> list:
+        """Return list of fields to search in."""
+        return ["name", "template_code", "description"]
 
     def get_queryset(self):
-        """Filter templates by company and search."""
-        company_id = self.request.session.get("active_company_id")
-        
-        # Debug: Log company_id and all templates
-        print("=" * 80)
-        print(f"🔵 [TEMPLATE_LIST] Company ID from session: {company_id}")
-        print(f"🔵 [TEMPLATE_LIST] User: {self.request.user.username}")
-        print(f"🔵 [TEMPLATE_LIST] Session keys: {list(self.request.session.keys())}")
-        
-        # Check all templates in database (for debugging)
-        all_templates_in_db = models.TicketTemplate.objects.all()
-        print(f"🔵 [TEMPLATE_LIST] Total templates in DB: {all_templates_in_db.count()}")
-        for t in all_templates_in_db:
-            print(f"🔵 [TEMPLATE_LIST]   - ID={t.pk}, Code={t.template_code}, Name={t.name}, Company={t.company_id}, Enabled={t.is_enabled}")
-        
-        # Filter by company
-        if company_id:
-            queryset = models.TicketTemplate.objects.filter(company_id=company_id)
-            print(f"🔵 [TEMPLATE_LIST] Templates for company {company_id}: {queryset.count()}")
-        else:
-            print("🔵 [TEMPLATE_LIST] WARNING: No company_id in session!")
-            queryset = models.TicketTemplate.objects.none()
-
-        search = self.request.GET.get("search", "")
-        if search:
-            queryset = queryset.filter(
-                Q(name__icontains=search)
-                | Q(template_code__icontains=search)
-                | Q(description__icontains=search)
-            )
+        """Filter templates by company, search, and category filter."""
+        queryset = super().get_queryset()
 
         # Filter by category
         category_id = self.request.GET.get("category", "")
         if category_id:
             queryset = queryset.filter(category_id=category_id)
 
-        final_queryset = queryset.order_by("sort_order", "template_code", "name")
-        print(f"🔵 [TEMPLATE_LIST] Final queryset count: {final_queryset.count()}")
-        print("=" * 80)
-        
-        return final_queryset
+        return queryset
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context data."""
         context = super().get_context_data(**kwargs)
-        context["page_title"] = _("Ticket Templates")
-
-        # Debug: Log context data
-        print("=" * 80)
-        print("🔵 [TEMPLATE_LIST_CONTEXT] Context keys:", list(context.keys()))
-        print(f"🔵 [TEMPLATE_LIST_CONTEXT] 'templates' in context: {'templates' in context}")
-        if 'templates' in context:
-            templates_list = context['templates']
-            print(f"🔵 [TEMPLATE_LIST_CONTEXT] Templates type: {type(templates_list)}")
-            if hasattr(templates_list, '__len__'):
-                print(f"🔵 [TEMPLATE_LIST_CONTEXT] Templates count: {len(templates_list)}")
-                for idx, t in enumerate(templates_list):
-                    print(f"🔵 [TEMPLATE_LIST_CONTEXT]   Template {idx}: {t.template_code} - {t.name}")
-        print(f"🔵 [TEMPLATE_LIST_CONTEXT] is_paginated: {context.get('is_paginated', 'NOT IN CONTEXT')}")
-        print(f"🔵 [TEMPLATE_LIST_CONTEXT] page_obj: {context.get('page_obj', 'NOT IN CONTEXT')}")
-        print("=" * 80)
 
         # Get all categories for filter
         company_id = self.request.session.get("active_company_id")
@@ -102,12 +76,53 @@ class TicketTemplateListView(FeaturePermissionRequiredMixin, TicketingBaseView, 
                 company_id=company_id, is_enabled=1
             ).order_by("name")
 
-        context["search_term"] = self.request.GET.get("search", "")
-        context["selected_category"] = self.request.GET.get("category", "")
         return context
 
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _("Ticket Templates")
 
-class TicketTemplateCreateView(FeaturePermissionRequiredMixin, TicketingBaseView, CreateView):
+    def get_breadcrumbs(self) -> list:
+        """Return breadcrumbs list."""
+        return [
+            {"label": _("Ticket Management"), "url": None},
+            {"label": _("Templates"), "url": None},
+        ]
+
+    def get_create_url(self):
+        """Return create URL."""
+        return reverse_lazy("ticketing:template_create")
+
+    def get_create_button_text(self) -> str:
+        """Return create button text."""
+        return _("Create Template")
+
+    def get_detail_url_name(self) -> str:
+        """Return detail URL name."""
+        return "ticketing:template_detail"
+
+    def get_edit_url_name(self) -> str:
+        """Return edit URL name."""
+        return "ticketing:template_edit"
+
+    def get_delete_url_name(self) -> str:
+        """Return delete URL name."""
+        return "ticketing:template_delete"
+
+    def get_empty_state_title(self) -> str:
+        """Return empty state title."""
+        return _("No Templates Found")
+
+    def get_empty_state_message(self) -> str:
+        """Return empty state message."""
+        return _("Start by creating your first template.")
+
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon."""
+        return "📋"
+
+
+class TicketTemplateCreateView(BaseMultipleFormsetCreateView):
     """View for creating a new ticket template."""
 
     model = models.TicketTemplate
@@ -116,6 +131,18 @@ class TicketTemplateCreateView(FeaturePermissionRequiredMixin, TicketingBaseView
     success_url = reverse_lazy("ticketing:templates")
     feature_code = "ticketing.management.templates"
     required_action = "create"
+    active_module = "ticketing"
+    success_message = _("Template created successfully.")
+    formsets = {
+        "fields": TicketTemplateFieldFormSet,
+        "permissions": TicketTemplatePermissionFormSet,
+        "events": TicketTemplateEventFormSet,
+    }
+    formset_prefixes = {
+        "fields": "fields",
+        "permissions": "permissions",
+        "events": "events",
+    }
 
     def get_form_kwargs(self):
         """Add request to form kwargs."""
@@ -123,28 +150,32 @@ class TicketTemplateCreateView(FeaturePermissionRequiredMixin, TicketingBaseView
         kwargs["request"] = self.request
         return kwargs
 
+    def get_formset_kwargs(self, formset_name: str) -> Dict[str, Any]:
+        """Return kwargs for a specific formset."""
+        kwargs = super().get_formset_kwargs(formset_name)
+        if not kwargs.get("instance"):
+            kwargs["instance"] = models.TicketTemplate()
+        return kwargs
+
+    def get_breadcrumbs(self) -> list:
+        """Return breadcrumbs list."""
+        return [
+            {"label": _("Ticket Management"), "url": None},
+            {"label": _("Templates"), "url": reverse_lazy("ticketing:templates")},
+            {"label": _("Create"), "url": None},
+        ]
+
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy("ticketing:templates")
+
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _("Create Template")
+
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context data including formsets."""
         context = super().get_context_data(**kwargs)
-        context["page_title"] = _("Create Template")
-
-        # Create formsets for new template
-        if self.request.method == "POST":
-            field_formset = TicketTemplateFieldFormSet(self.request.POST, instance=self.object or models.TicketTemplate())
-            permission_formset = TicketTemplatePermissionFormSet(
-                self.request.POST, instance=self.object or models.TicketTemplate()
-            )
-            event_formset = TicketTemplateEventFormSet(
-                self.request.POST, instance=self.object or models.TicketTemplate()
-            )
-        else:
-            field_formset = TicketTemplateFieldFormSet(instance=self.object or models.TicketTemplate())
-            permission_formset = TicketTemplatePermissionFormSet(instance=self.object or models.TicketTemplate())
-            event_formset = TicketTemplateEventFormSet(instance=self.object or models.TicketTemplate())
-
-        context["field_formset"] = field_formset
-        context["permission_formset"] = permission_formset
-        context["event_formset"] = event_formset
 
         # Get categories and priorities for form
         company_id = self.request.session.get("active_company_id")
@@ -158,7 +189,20 @@ class TicketTemplateCreateView(FeaturePermissionRequiredMixin, TicketingBaseView
 
         return context
 
-    @transaction.atomic
+    def process_formset(self, formset_name: str, formset) -> list:
+        """Process formset before saving."""
+        company_id = self.request.session.get("active_company_id")
+        if company_id:
+            instances = formset.save(commit=False)
+            for instance in instances:
+                instance.company_id = company_id
+                if hasattr(instance, "template") and instance.template:
+                    if hasattr(instance, "template_code"):
+                        instance.template_code = instance.template.template_code
+                instance.save()
+            return instances
+        return None
+
     def form_valid(self, form):
         """Save template and all formsets."""
         # Set company_id before saving
@@ -166,80 +210,11 @@ class TicketTemplateCreateView(FeaturePermissionRequiredMixin, TicketingBaseView
         if company_id:
             form.instance.company_id = company_id
 
-        print("=" * 80)
-        print("🟢 [TEMPLATE_CREATE] Saving new template...")
-        print(f"🟢 [TEMPLATE_CREATE] Company ID from session: {company_id}")
-        print(f"🟢 [TEMPLATE_CREATE] User: {self.request.user.username}")
-        print(f"🟢 [TEMPLATE_CREATE] Template name: {form.instance.name}")
-        print(f"🟢 [TEMPLATE_CREATE] Template code: {form.instance.template_code}")
-        print(f"🟢 [TEMPLATE_CREATE] Is enabled: {form.instance.is_enabled}")
-        print(f"🟢 [TEMPLATE_CREATE] Company ID on instance (before save): {form.instance.company_id}")
-
-        response = super().form_valid(form)
-        
-        print(f"🟢 [TEMPLATE_CREATE] Template saved with ID: {self.object.pk}")
-        print(f"🟢 [TEMPLATE_CREATE] Template code after save: {self.object.template_code}")
-        print(f"🟢 [TEMPLATE_CREATE] Company ID on instance (after save): {self.object.company_id}")
-        
-        # Verify it's in database
-        from_db = models.TicketTemplate.objects.filter(pk=self.object.pk).first()
-        if from_db:
-            print(f"🟢 [TEMPLATE_CREATE] Verified in DB: Code={from_db.template_code}, Company={from_db.company_id}, Enabled={from_db.is_enabled}")
-        else:
-            print("🟢 [TEMPLATE_CREATE] ERROR: Template not found in DB after save!")
-        print("=" * 80)
-
-        # Save field formset
-        field_formset = TicketTemplateFieldFormSet(self.request.POST, instance=self.object)
-        if field_formset.is_valid():
-            fields = field_formset.save(commit=False)
-            for field in fields:
-                field.company_id = company_id
-                if field.template:
-                    field.template_code = field.template.template_code
-                field.save()
-            field_formset.save()
-        else:
-            # If field formset is invalid, return form with errors
-            return self.form_invalid(form)
-
-        # Save permission formset
-        permission_formset = TicketTemplatePermissionFormSet(
-            self.request.POST, instance=self.object
-        )
-        if permission_formset.is_valid():
-            permissions = permission_formset.save(commit=False)
-            for permission in permissions:
-                permission.company_id = company_id
-                if permission.template:
-                    permission.template_code = permission.template.template_code
-                permission.save()
-            permission_formset.save()
-        else:
-            # If permission formset is invalid, return form with errors
-            return self.form_invalid(form)
-
-        # Save event formset
-        event_formset = TicketTemplateEventFormSet(
-            self.request.POST, instance=self.object
-        )
-        if event_formset.is_valid():
-            events = event_formset.save(commit=False)
-            for event in events:
-                event.company_id = company_id
-                if event.template:
-                    event.template_code = event.template.template_code
-                event.save()
-            event_formset.save()
-        else:
-            # If event formset is invalid, return form with errors
-            return self.form_invalid(form)
-
-        messages.success(self.request, _("Template created successfully."))
-        return response
+        # Save using parent's form_valid which handles multiple formsets
+        return super().form_valid(form)
 
 
-class TicketTemplateUpdateView(EditLockProtectedMixin, FeaturePermissionRequiredMixin, TicketingBaseView, UpdateView):
+class TicketTemplateUpdateView(BaseMultipleFormsetUpdateView, EditLockProtectedMixin):
     """View for editing an existing ticket template."""
 
     model = models.TicketTemplate
@@ -248,6 +223,18 @@ class TicketTemplateUpdateView(EditLockProtectedMixin, FeaturePermissionRequired
     success_url = reverse_lazy("ticketing:templates")
     feature_code = "ticketing.management.templates"
     required_action = "edit_own"
+    active_module = "ticketing"
+    success_message = _("Template updated successfully.")
+    formsets = {
+        "fields": TicketTemplateFieldFormSet,
+        "permissions": TicketTemplatePermissionFormSet,
+        "events": TicketTemplateEventFormSet,
+    }
+    formset_prefixes = {
+        "fields": "fields",
+        "permissions": "permissions",
+        "events": "events",
+    }
 
     def get_form_kwargs(self):
         """Add request to form kwargs."""
@@ -260,43 +247,25 @@ class TicketTemplateUpdateView(EditLockProtectedMixin, FeaturePermissionRequired
         company_id = self.request.session.get("active_company_id")
         return models.TicketTemplate.objects.filter(company_id=company_id)
 
+    def get_breadcrumbs(self) -> list:
+        """Return breadcrumbs list."""
+        return [
+            {"label": _("Ticket Management"), "url": None},
+            {"label": _("Templates"), "url": reverse_lazy("ticketing:templates")},
+            {"label": _("Edit"), "url": None},
+        ]
+
+    def get_cancel_url(self):
+        """Return cancel URL."""
+        return reverse_lazy("ticketing:templates")
+
+    def get_form_title(self) -> str:
+        """Return form title."""
+        return _("Edit Template")
+
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context data including formsets."""
         context = super().get_context_data(**kwargs)
-        context["page_title"] = _("Edit Template")
-
-        # Create formsets for existing template
-        if self.request.method == "POST":
-            field_formset = TicketTemplateFieldFormSet(self.request.POST, instance=self.object)
-            permission_formset = TicketTemplatePermissionFormSet(
-                self.request.POST, instance=self.object
-            )
-            event_formset = TicketTemplateEventFormSet(
-                self.request.POST, instance=self.object
-            )
-        else:
-            field_formset = TicketTemplateFieldFormSet(instance=self.object)
-            permission_formset = TicketTemplatePermissionFormSet(instance=self.object)
-            event_formset = TicketTemplateEventFormSet(instance=self.object)
-            
-            # Log field_config values for debugging
-            print("=" * 80)
-            print("🟣 [VIEW] Loading template for edit...")
-            if self.object:
-                print(f"🟣 [VIEW] Template ID: {self.object.pk}")
-                fields = self.object.fields.all()
-                for idx, field in enumerate(fields):
-                    print(f"🟣 [VIEW] Field {idx}: field_key={field.field_key}, field_type={field.field_type}")
-                    print(f"🟣 [VIEW] Field {idx} field_config type: {type(field.field_config)}")
-                    print(f"🟣 [VIEW] Field {idx} field_config value: {field.field_config}")
-                    import json
-                    if isinstance(field.field_config, dict):
-                        json_str = json.dumps(field.field_config, ensure_ascii=False)
-                        print(f"🟣 [VIEW] Field {idx} field_config as JSON string: {json_str}")
-
-        context["field_formset"] = field_formset
-        context["permission_formset"] = permission_formset
-        context["event_formset"] = event_formset
 
         # Get categories and priorities for form
         company_id = self.request.session.get("active_company_id")
@@ -310,100 +279,185 @@ class TicketTemplateUpdateView(EditLockProtectedMixin, FeaturePermissionRequired
 
         return context
 
-    @transaction.atomic
+    def process_formset(self, formset_name: str, formset) -> list:
+        """Process formset before saving."""
+        company_id = self.request.session.get("active_company_id")
+        if company_id:
+            instances = formset.save(commit=False)
+            for instance in instances:
+                instance.company_id = company_id
+                if hasattr(instance, "template") and instance.template:
+                    if hasattr(instance, "template_code"):
+                        instance.template_code = instance.template.template_code
+                instance.save()
+            return instances
+        return None
+
     def form_valid(self, form):
         """Save template and all formsets."""
-        response = super().form_valid(form)
+        # Save using parent's form_valid which handles multiple formsets
+        return super().form_valid(form)
 
+
+class TicketTemplateDetailView(BaseDetailView):
+    """Detail view for viewing ticket templates (read-only)."""
+    model = models.TicketTemplate
+    template_name = "shared/generic/generic_detail.html"
+    context_object_name = "object"
+    feature_code = "ticketing.management.templates"
+    required_action = "view_all"
+    active_module = "ticketing"
+    
+    def get_queryset(self):
+        """Filter by company and optimize queries."""
         company_id = self.request.session.get("active_company_id")
-
-        # Save field formset
-        field_formset = TicketTemplateFieldFormSet(self.request.POST, instance=self.object)
-        
-        # Log field_config values from POST data
-        print("=" * 80)
-        print("🟣 [VIEW] Saving template fields...")
-        for key, value in self.request.POST.items():
-            if 'field_config' in key:
-                print(f"🟣 [VIEW] POST field_config found: {key} = {value}")
-        
-        if field_formset.is_valid():
-            fields = field_formset.save(commit=False)
-            for idx, field in enumerate(fields):
-                print(f"🟣 [VIEW] Field {idx}: field_key={field.field_key}, field_type={field.field_type}")
-                print(f"🟣 [VIEW] Field {idx} field_config (before save): {field.field_config}")
-                
-                field.company_id = company_id
-                if field.template:
-                    field.template_code = field.template.template_code
-                field.save()
-                
-                print(f"🟣 [VIEW] Field {idx} field_config (after save): {field.field_config}")
-            field_formset.save()
-        else:
-            print("🟣 [VIEW] Field formset is INVALID!")
-            print(f"🟣 [VIEW] Errors: {field_formset.errors}")
-            # If field formset is invalid, return form with errors
-            return self.form_invalid(form)
-
-        # Save permission formset
-        permission_formset = TicketTemplatePermissionFormSet(
-            self.request.POST, instance=self.object
+        if not company_id:
+            return models.TicketTemplate.objects.none()
+        queryset = models.TicketTemplate.objects.filter(company_id=company_id)
+        queryset = queryset.select_related(
+            'category',
+            'subcategory',
+            'default_priority',
+            'created_by',
+            'edited_by',
+        ).prefetch_related(
+            'fields',
+            'permissions',
         )
-        if permission_formset.is_valid():
-            permissions = permission_formset.save(commit=False)
-            for permission in permissions:
-                permission.company_id = company_id
-                if permission.template:
-                    permission.template_code = permission.template.template_code
-                permission.save()
-            permission_formset.save()
-        else:
-            # If permission formset is invalid, return form with errors
-            return self.form_invalid(form)
+        return queryset
+    
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('View Ticket Template')
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add detail view context data."""
+        context = super().get_context_data(**kwargs)
+        template = self.object
+        
+        context['detail_title'] = self.get_page_title()
+        context['info_banner'] = [
+            {'label': _('Template Code'), 'value': template.template_code, 'type': 'code'},
+            {'label': _('Status'), 'value': template.is_enabled, 'type': 'badge'},
+        ]
+        
+        # Basic Information section
+        basic_fields = [
+            {'label': _('Name'), 'value': template.name},
+        ]
+        if template.category:
+            basic_fields.append({
+                'label': _('Category'),
+                'value': template.category.name,
+            })
+        if template.subcategory:
+            basic_fields.append({
+                'label': _('Subcategory'),
+                'value': template.subcategory.name,
+            })
+        if template.default_priority:
+            basic_fields.append({
+                'label': _('Default Priority'),
+                'value': template.default_priority.name,
+            })
+        if template.description:
+            basic_fields.append({'label': _('Description'), 'value': template.description})
+        
+        detail_sections = [
+            {
+                'title': _('Basic Information'),
+                'fields': basic_fields,
+            },
+        ]
+        
+        # Template Fields section (table)
+        if template.fields.exists():
+            headers = [
+                _('Field Name'),
+                _('Field Type'),
+                _('Required'),
+                _('Order'),
+            ]
+            data = []
+            for field in template.fields.all():
+                data.append([
+                    field.field_name,
+                    field.get_field_type_display(),
+                    _('Yes') if field.is_required else _('No'),
+                    str(field.field_order),
+                ])
+            
+            detail_sections.append({
+                'title': _('Template Fields'),
+                'type': 'table',
+                'headers': headers,
+                'data': data,
+            })
+        
+        context['detail_sections'] = detail_sections
+        return context
+    
+    def get_list_url(self):
+        """Return list URL."""
+        return reverse_lazy("ticketing:templates")
+    
+    def get_edit_url(self):
+        """Return edit URL."""
+        return reverse_lazy("ticketing:template_edit", kwargs={"pk": self.object.pk})
+    
+    def can_edit_object(self, obj=None, feature_code=None) -> bool:
+        """Check if object can be edited."""
+        check_obj = obj if obj is not None else self.object
+        if hasattr(check_obj, "is_locked"):
+            return not bool(check_obj.is_locked)
+        return True
 
-        # Save event formset
-        event_formset = TicketTemplateEventFormSet(
-            self.request.POST, instance=self.object
-        )
-        if event_formset.is_valid():
-            events = event_formset.save(commit=False)
-            for event in events:
-                event.company_id = company_id
-                if event.template:
-                    event.template_code = event.template.template_code
-                event.save()
-            event_formset.save()
-        else:
-            # If event formset is invalid, return form with errors
-            return self.form_invalid(form)
 
-        messages.success(self.request, _("Template updated successfully."))
-        return response
-
-
-class TicketTemplateDeleteView(FeaturePermissionRequiredMixin, TicketingBaseView, DeleteView):
+class TicketTemplateDeleteView(BaseDeleteView):
     """View for deleting a ticket template."""
 
     model = models.TicketTemplate
-    template_name = "ticketing/template_confirm_delete.html"
+    template_name = "shared/generic/generic_confirm_delete.html"
     success_url = reverse_lazy("ticketing:templates")
     feature_code = "ticketing.management.templates"
     required_action = "delete_own"
+    active_module = "ticketing"
+    success_message = _("Template deleted successfully.")
 
     def get_queryset(self):
         """Filter by company."""
         company_id = self.request.session.get("active_company_id")
         return models.TicketTemplate.objects.filter(company_id=company_id)
 
-    def delete(self, request, *args, **kwargs):
-        """Delete template and show success message."""
-        messages.success(self.request, _("Template deleted successfully."))
-        return super().delete(request, *args, **kwargs)
+    def get_delete_title(self) -> str:
+        """Return delete title."""
+        return _("Delete Template")
+
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message."""
+        return _("Are you sure you want to delete this template?")
+
+    def get_object_details(self) -> list:
+        """Return object details for confirmation."""
+        details = [
+            {"label": _("Template Code"), "value": f"<code>{self.object.template_code}</code>"},
+            {"label": _("Template Name"), "value": self.object.name},
+        ]
+        if self.object.description:
+            details.append({"label": _("Description"), "value": self.object.description})
+        return details
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         """Add context data."""
         context = super().get_context_data(**kwargs)
-        context["page_title"] = _("Delete Template")
+        context["warning_message"] = _("Warning: This action cannot be undone. All associated fields, permissions, and events will also be deleted.")
         return context
+
+    def get_breadcrumbs(self) -> list:
+        """Return breadcrumbs list."""
+        return [
+            {"label": _("Ticket Management"), "url": None},
+            {"label": _("Templates"), "url": reverse_lazy("ticketing:templates")},
+            {"label": _("Delete"), "url": None},
+        ]
 

@@ -1,0 +1,918 @@
+{% load i18n access_tags %}
+<!-- Modules Mega Menu -->
+<div class="mega-menu" id="menu-modules">
+  <div class="mega-menu-content">
+    
+    <!-- Shared Module Section -->
+    <div class="mega-menu-section collapsed">
+      <button type="button" class="mega-menu-section-toggle" data-section="shared-section">
+        <span class="menu-icon icon-settings"></span>
+        <span>{% trans "Shared" %}</span>
+        <span class="mega-menu-section-arrow">▼</span>
+      </button>
+      <div class="mega-menu-section-content" id="shared-section">
+        <ul>
+        {% if user_feature_permissions|feature_allowed:'shared.companies' %}
+          <li><a href="{% url 'shared:companies' %}"><span class="menu-icon icon-building"></span>{% trans "Companies" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'shared.company_units' %}
+          <li><a href="{% url 'shared:company_units' %}"><span class="menu-icon icon-factory"></span>{% trans "Company Units" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'shared.smtp_servers' or user.is_superuser %}
+          <li><a href="{% url 'shared:smtp_servers' %}"><span class="menu-icon icon-email"></span>{% trans "SMTP Servers" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'shared.users' or user_feature_permissions|feature_allowed:'shared.groups' or user_feature_permissions|feature_allowed:'shared.access_levels' %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="shared-users">
+              <span class="menu-icon icon-users"></span>
+              <span>{% trans "Users" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="shared-users">
+              {% if user_feature_permissions|feature_allowed:'shared.users' %}
+                <li><a href="{% url 'shared:users' %}"><span class="menu-icon icon-users"></span>{% trans "Users" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'shared.groups' %}
+                <li><a href="{% url 'shared:groups' %}"><span class="menu-icon icon-user"></span>{% trans "Groups" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'shared.access_levels' %}
+                <li><a href="{% url 'shared:access_levels' %}"><span class="menu-icon icon-lock"></span>{% trans "Access Levels" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
+        {% if user.is_superuser or user.is_staff %}
+          <li><a href="{% url 'admin_panel' %}" target="_blank"><span class="menu-icon icon-settings"></span>{% trans "Django Admin" %}</a></li>
+        {% endif %}
+        </ul>
+      </div>
+    </div>
+
+    <!-- Inventory Module Section -->
+    <div class="mega-menu-section collapsed">
+      <button type="button" class="mega-menu-section-toggle" data-section="inventory-section">
+        <span class="menu-icon icon-package"></span>
+        <span>{% trans "Inventory" %}</span>
+        <span class="mega-menu-section-arrow">▼</span>
+      </button>
+      <div class="mega-menu-section-content" id="inventory-section">
+        <ul>
+        {% if user_feature_permissions|feature_allowed:'inventory.master.items' or user_feature_permissions|feature_allowed:'inventory.master.item_serials' or user_feature_permissions|feature_allowed:'inventory.balance' %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="inventory-items">
+              <span class="menu-icon icon-clipboard"></span>
+              <span>{% trans "Items" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="inventory-items">
+              {% if user_feature_permissions|feature_allowed:'inventory.master.items' %}
+                <li><a href="{% url 'inventory:items' %}"><span class="menu-icon icon-clipboard"></span>{% trans "Edit Items" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'inventory.master.item_serials' %}
+                <li><a href="{% url 'inventory:item_serials' %}"><span class="menu-icon icon-numbers"></span>{% trans "Item Serials" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'inventory.balance' %}
+                <li><a href="{% url 'inventory:inventory_balance' %}"><span class="menu-icon icon-chart"></span>{% trans "Inventory Balance" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'inventory.master.warehouses' %}
+          <li><a href="{% url 'inventory:warehouses' %}"><span class="menu-icon icon-store"></span>{% trans "Warehouses" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'inventory.suppliers.categories' or user_feature_permissions|feature_allowed:'inventory.suppliers.list' %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="inventory-suppliers">
+              <span class="menu-icon icon-truck"></span>
+              <span>{% trans "Suppliers" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="inventory-suppliers">
+              {% if user_feature_permissions|feature_allowed:'inventory.suppliers.categories' %}
+                <li><a href="{% url 'inventory:supplier_categories' %}"><span class="menu-icon icon-folder"></span>{% trans "Supplier Categories" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'inventory.suppliers.list' %}
+                <li><a href="{% url 'inventory:suppliers' %}"><span class="menu-icon icon-truck"></span>{% trans "Supplier List" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'inventory.receipts.temporary' or user_feature_permissions|feature_allowed:'inventory.receipts.permanent' or user_feature_permissions|feature_allowed:'inventory.receipts.consignment' %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="inventory-receipts">
+              <span class="menu-icon icon-download"></span>
+              <span>{% trans "Receipts" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="inventory-receipts">
+              {% if user_feature_permissions|feature_allowed:'inventory.receipts.temporary' %}
+                <li><a href="{% url 'inventory:receipt_temporary' %}"><span class="menu-icon icon-download"></span>{% trans "Temporary Receipts" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'inventory.receipts.permanent' %}
+                <li><a href="{% url 'inventory:receipt_permanent' %}"><span class="menu-icon icon-check"></span>{% trans "Permanent Receipts" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'inventory.receipts.consignment' %}
+                <li><a href="{% url 'inventory:receipt_consignment' %}"><span class="menu-icon icon-package"></span>{% trans "Consignment Receipts" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'inventory.issues.permanent' or user_feature_permissions|feature_allowed:'inventory.issues.consumption' or user_feature_permissions|feature_allowed:'inventory.issues.consignment' or user_feature_permissions|feature_allowed:'inventory.issues.warehouse_transfer' %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="inventory-issues">
+              <span class="menu-icon icon-upload"></span>
+              <span>{% trans "Issues" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="inventory-issues">
+              {% if user_feature_permissions|feature_allowed:'inventory.issues.permanent' %}
+                <li><a href="{% url 'inventory:issue_permanent' %}"><span class="menu-icon icon-upload"></span>{% trans "Permanent Issues" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'inventory.issues.consumption' %}
+                <li><a href="{% url 'inventory:issue_consumption' %}"><span class="menu-icon icon-fire"></span>{% trans "Consumption Issues" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'inventory.issues.consignment' %}
+                <li><a href="{% url 'inventory:issue_consignment' %}"><span class="menu-icon icon-package"></span>{% trans "Consignment Issues" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'inventory.issues.warehouse_transfer' or request.user.is_superuser %}
+                <li><a href="{% url 'inventory:issue_warehouse_transfer' %}"><span class="menu-icon icon-refresh"></span>{% trans "حواله انتقال بین انبارها" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.deficit' or user_feature_permissions|feature_allowed:'inventory.stocktaking.surplus' or user_feature_permissions|feature_allowed:'inventory.stocktaking.records' %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="inventory-stocktaking">
+              <span class="menu-icon icon-chart"></span>
+              <span>{% trans "Stocktaking" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="inventory-stocktaking">
+              {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.deficit' %}
+                <li><a href="{% url 'inventory:stocktaking_deficit' %}"><span class="menu-icon icon-trend-down"></span>{% trans "Deficit Records" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.surplus' %}
+                <li><a href="{% url 'inventory:stocktaking_surplus' %}"><span class="menu-icon icon-trend-up"></span>{% trans "Surplus Records" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'inventory.stocktaking.records' %}
+                <li><a href="{% url 'inventory:stocktaking_records' %}"><span class="menu-icon icon-chart"></span>{% trans "Stocktaking Records" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
+        </ul>
+      </div>
+    </div>
+
+    <!-- Production Module Section -->
+    {% if user_feature_permissions|feature_allowed:'production.personnel' or user_feature_permissions|feature_allowed:'production.machines' or user_feature_permissions|feature_allowed:'production.work_lines' or user_feature_permissions|feature_allowed:'production.bom' or user_feature_permissions|feature_allowed:'production.processes' or user_feature_permissions|feature_allowed:'production.product_orders' or user_feature_permissions|feature_allowed:'production.tracking_identification' or request.user.is_superuser %}
+    <div class="mega-menu-section collapsed">
+      <button type="button" class="mega-menu-section-toggle" data-section="production-section">
+        <span class="menu-icon icon-gear"></span>
+        <span>{% trans "Production" %}</span>
+        <span class="mega-menu-section-arrow">▼</span>
+      </button>
+      <div class="mega-menu-section-content" id="production-section">
+        <ul>
+        {% if user_feature_permissions|feature_allowed:'production.personnel' %}
+          <li><a href="{% url 'production:personnel' %}"><span class="menu-icon icon-worker"></span>{% trans "Personnel" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'production.machines' %}
+          <li><a href="{% url 'production:machines' %}"><span class="menu-icon icon-gear"></span>{% trans "Machines" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'production.work_lines' %}
+          <li><a href="{% url 'production:work_lines' %}"><span class="menu-icon icon-ruler"></span>{% trans "Work Lines" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'production.bom' or request.user.is_superuser %}
+          <li><a href="{% url 'production:bom_list' %}"><span class="menu-icon icon-clipboard"></span>{% trans "BOM" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'production.processes' or request.user.is_superuser %}
+          <li><a href="{% url 'production:processes' %}"><span class="menu-icon icon-refresh"></span>{% trans "Processes" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'production.product_orders' or request.user.is_superuser %}
+          <li><a href="{% url 'production:product_orders' %}"><span class="menu-icon icon-package"></span>{% trans "Product Orders" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'production.transfer_requests' or request.user.is_superuser %}
+          <li><a href="{% url 'production:transfer_requests' %}"><span class="menu-icon icon-truck"></span>{% trans "Transfer to Line Requests" %}</a></li>
+        {% endif %}
+        {% if request.user.is_superuser %}
+          <li><a href="{% url 'production:performance_records' %}"><span class="menu-icon icon-chart"></span>{% trans "Performance Records" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'production.qc_operations' or request.user.is_superuser %}
+          <li><a href="{% url 'production:qc_operations' %}"><span class="menu-icon icon-lab"></span>{% trans "QC Operations" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'production.rework' or request.user.is_superuser %}
+          <li><a href="{% url 'production:rework_document_list' %}"><span class="menu-icon icon-refresh"></span>{% trans "Rework" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'production.tracking_identification' or request.user.is_superuser %}
+          <li><a href="{% url 'production:tracking_identification' %}"><span class="menu-icon icon-search"></span>{% trans "شناسایی و ردیابی" %}</a></li>
+        {% endif %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Quality Control Module Section -->
+    {% if request.user.is_superuser %}
+    <div class="mega-menu-section collapsed">
+      <button type="button" class="mega-menu-section-toggle" data-section="qc-section">
+        <span class="menu-icon icon-lab"></span>
+        <span>{% trans "Quality Control" %}</span>
+        <span class="mega-menu-section-arrow">▼</span>
+      </button>
+      <div class="mega-menu-section-content" id="qc-section">
+        <ul>
+          <li><a href="{% url 'qc:temporary_receipts' %}"><span class="menu-icon icon-search"></span>{% trans "Inspections" %}</a></li>
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Ticketing Module Section -->
+    {% if request.user.is_superuser %}
+    <div class="mega-menu-section collapsed">
+      <button type="button" class="mega-menu-section-toggle" data-section="ticketing-section">
+        <span class="menu-icon icon-ticket"></span>
+        <span>{% trans "Ticketing" %}</span>
+        <span class="mega-menu-section-arrow">▼</span>
+      </button>
+      <div class="mega-menu-section-content" id="ticketing-section">
+        <ul>
+        <li><a href="{% url 'ticketing:ticket_create' %}"><span class="menu-icon icon-plus"></span>{% trans "Create Ticket" %}</a></li>
+        <li><a href="{% url 'ticketing:ticket_respond' %}" class="dropdown-item-sub"><span class="menu-icon icon-message"></span>{% trans "Respond to Ticket" %}</a></li>
+        <li><a href="{% url 'ticketing:templates' %}"><span class="menu-icon icon-edit"></span>{% trans "Templates" %}</a></li>
+        <li><a href="{% url 'ticketing:categories' %}" class="dropdown-item-sub"><span class="menu-icon icon-folder-open"></span>{% trans "Categories" %}</a></li>
+        <li><a href="{% url 'ticketing:subcategories' %}" class="dropdown-item-sub"><span class="menu-icon icon-folder"></span>{% trans "Subcategories" %}</a></li>
+          <li><a href="{% url 'ticketing:auto_response' %}"><span class="menu-icon icon-robot"></span>{% trans "Auto Response" %}</a></li>
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Accounting Module Section -->
+    {% if user_feature_permissions|feature_allowed:'accounting.dashboard' or request.user.is_superuser %}
+    <div class="mega-menu-section collapsed">
+      <button type="button" class="mega-menu-section-toggle" data-section="accounting-section">
+        <span class="menu-icon icon-money"></span>
+        <span>{% trans "Accounting" %}</span>
+        <span class="mega-menu-section-arrow">▼</span>
+      </button>
+      <div class="mega-menu-section-content" id="accounting-section">
+        <ul>
+        {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.fiscal_years' or user_feature_permissions|feature_allowed:'accounting.base.accounts' or user_feature_permissions|feature_allowed:'accounting.base.gl' or user_feature_permissions|feature_allowed:'accounting.base.sub' or user_feature_permissions|feature_allowed:'accounting.base.tafsili' or user_feature_permissions|feature_allowed:'accounting.base.tafsili_hierarchy' or user_feature_permissions|feature_allowed:'accounting.base.cost_centers' or user_feature_permissions|feature_allowed:'accounting.base.income_expense_categories' or user_feature_permissions|feature_allowed:'accounting.base.parties' or user_feature_permissions|feature_allowed:'accounting.base.party_accounts' or request.user.is_superuser %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="accounting-base">
+              <span class="menu-icon icon-settings"></span>
+              <span>{% trans "تعاریف پایه" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="accounting-base">
+              {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.fiscal_years' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:fiscal_years' %}"><span class="menu-icon icon-calendar"></span>{% trans "سال مالی" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.accounts' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:accounts' %}"><span class="menu-icon icon-chart"></span>{% trans "چارت حساب‌ها" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.gl' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:gl_accounts' %}"><span class="menu-icon icon-clipboard"></span>{% trans "تعریف حساب کل" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.sub' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:sub_accounts' %}"><span class="menu-icon icon-clipboard"></span>{% trans "تعریف حساب معین" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.tafsili' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:tafsili_accounts' %}"><span class="menu-icon icon-clipboard"></span>{% trans "تعریف حساب تفصیلی" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.tafsili_hierarchy' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:tafsili_hierarchy_list' %}"><span class="menu-icon icon-chart"></span>{% trans "تفصیلی چندسطحی" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.cost_centers' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:cost_centers' %}"><span class="menu-icon icon-building"></span>{% trans "مراکز هزینه" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.income_expense_categories' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:income_expense_categories' %}"><span class="menu-icon icon-chart"></span>{% trans "دسته‌بندی درآمد و هزینه" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.parties' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:parties' %}"><span class="menu-icon icon-users"></span>{% trans "طرف حساب‌ها" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.treasury.accounts' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:treasury_accounts' %}"><span class="menu-icon icon-money"></span>{% trans "حساب‌های نقدی و بانکی" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'accounting.documents.create' or user_feature_permissions|feature_allowed:'accounting.documents.list' or user_feature_permissions|feature_allowed:'accounting.documents.status' or user_feature_permissions|feature_allowed:'accounting.documents.movements' or user_feature_permissions|feature_allowed:'accounting.documents.tafsili_movements' or user_feature_permissions|feature_allowed:'accounting.documents.trial_balance' or user_feature_permissions|feature_allowed:'accounting.reports.balance_sheet' or user_feature_permissions|feature_allowed:'accounting.reports.income_statement' or request.user.is_superuser %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="accounting-documents">
+              <span class="menu-icon icon-edit"></span>
+              <span>{% trans "اسناد حسابداری" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="accounting-documents">
+              {% if user_feature_permissions|feature_allowed:'accounting.documents.create' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:document_create' %}"><span class="menu-icon icon-edit"></span>{% trans "ثبت سند حسابداری" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.documents.list' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:document_list' %}"><span class="menu-icon icon-clipboard"></span>{% trans "لیست اسناد حسابداری" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.documents.status' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:document_status' %}"><span class="menu-icon icon-check"></span>{% trans "سندهای باز، قطعی، برگشتی" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.documents.movements' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:report_account_movements' %}"><span class="menu-icon icon-chart"></span>{% trans "گردش حساب" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.documents.tafsili_movements' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:tafsili_movements' %}"><span class="menu-icon icon-chart"></span>{% trans "گردش تفصیلی" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.documents.trial_balance' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:report_trial_balance' %}"><span class="menu-icon icon-chart"></span>{% trans "تراز آزمایشی" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.reports.balance_sheet' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:report_balance_sheet' %}"><span class="menu-icon icon-chart"></span>{% trans "ترازنامه" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.reports.income_statement' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:report_income_statement' %}"><span class="menu-icon icon-chart"></span>{% trans "صورت سود و زیان" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'accounting.treasury.receive' or user_feature_permissions|feature_allowed:'accounting.treasury.pay' or user_feature_permissions|feature_allowed:'accounting.treasury.transactions' or user_feature_permissions|feature_allowed:'accounting.treasury.transfer' or user_feature_permissions|feature_allowed:'accounting.treasury.accounts' or user_feature_permissions|feature_allowed:'accounting.treasury.checks' or user_feature_permissions|feature_allowed:'accounting.treasury.reconciliation' or user_feature_permissions|feature_allowed:'accounting.treasury.cash_report' or user_feature_permissions|feature_allowed:'accounting.income_expense.cost_allocation' or user_feature_permissions|feature_allowed:'accounting.income_expense.income_report' or user_feature_permissions|feature_allowed:'accounting.income_expense.expense_report' or user_feature_permissions|feature_allowed:'accounting.income_expense.cost_center_report' or request.user.is_superuser %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="accounting-treasury">
+              <span class="menu-icon icon-money"></span>
+              <span>{% trans "خزانه‌داری" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="accounting-treasury">
+              {% if user_feature_permissions|feature_allowed:'accounting.treasury.receive' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:treasury_receive' %}"><span class="menu-icon icon-money"></span>{% trans "دریافت" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.treasury.pay' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:treasury_pay' %}"><span class="menu-icon icon-money-out"></span>{% trans "پرداخت" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.treasury.transactions' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:treasury_transactions' %}"><span class="menu-icon icon-chart"></span>{% trans "تراکنش‌های خزانه" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.treasury.transfer' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:treasury_transfer' %}"><span class="menu-icon icon-refresh"></span>{% trans "انتقال بین حساب‌ها" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.treasury.accounts' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:treasury_accounts' %}"><span class="menu-icon icon-money"></span>{% trans "حساب‌های نقدی و بانکی" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.treasury.checks' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:treasury_checks' %}"><span class="menu-icon icon-check"></span>{% trans "مدیریت چک‌ها" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.treasury.reconciliation' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:treasury_reconciliation' %}"><span class="menu-icon icon-check"></span>{% trans "تطبیق بانکی" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.treasury.cash_report' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:treasury_cash_report' %}"><span class="menu-icon icon-chart"></span>{% trans "گزارش وجوه نقد و بانک‌ها" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.payment_requests.list' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:payment_requests' %}"><span class="menu-icon icon-money"></span>{% trans "درخواست‌های پرداخت" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.income_expense.cost_allocation' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:cost_allocation' %}"><span class="menu-icon icon-chart"></span>{% trans "تخصیص مرکز هزینه" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.income_expense.income_report' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:income_report' %}"><span class="menu-icon icon-chart"></span>{% trans "گزارش درآمد" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.income_expense.expense_report' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:expense_report' %}"><span class="menu-icon icon-chart"></span>{% trans "گزارش هزینه" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.income_expense.cost_center_report' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:cost_center_report' %}"><span class="menu-icon icon-chart"></span>{% trans "گزارش مراکز هزینه" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'accounting.parties.list' or user_feature_permissions|feature_allowed:'accounting.parties.accounts' or user_feature_permissions|feature_allowed:'accounting.parties.movements' or user_feature_permissions|feature_allowed:'accounting.parties.balance_report' or request.user.is_superuser %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="accounting-parties">
+              <span class="menu-icon icon-users"></span>
+              <span>{% trans "طرف حساب‌ها" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="accounting-parties">
+              {% if user_feature_permissions|feature_allowed:'accounting.parties.list' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:parties' %}"><span class="menu-icon icon-users"></span>{% trans "لیست طرف حساب‌ها" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.parties.movements' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:party_movements' %}"><span class="menu-icon icon-chart"></span>{% trans "گردش طرف حساب" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.parties.balance_report' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:party_balance_report' %}"><span class="menu-icon icon-chart"></span>{% trans "گزارش مانده طرف حساب‌ها" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'accounting.payroll.payment' or user_feature_permissions|feature_allowed:'accounting.payroll.insurance_tax' or user_feature_permissions|feature_allowed:'accounting.payroll.document' or user_feature_permissions|feature_allowed:'accounting.payroll.bank_transfer' or request.user.is_superuser %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="accounting-payroll">
+              <span class="menu-icon icon-dollar"></span>
+              <span>{% trans "حقوق و دستمزد" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="accounting-payroll">
+              {% if user_feature_permissions|feature_allowed:'accounting.payroll.payment' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:payroll_payment' %}"><span class="menu-icon icon-dollar"></span>{% trans "پرداخت حقوق و دستمزد" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.payroll.insurance_tax' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:payroll_insurance_tax' %}"><span class="menu-icon icon-settings"></span>{% trans "تنظیمات بیمه و مالیات" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.payroll.document' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:payroll_document' %}"><span class="menu-icon icon-upload"></span>{% trans "بارگذاری اسناد حقوق و دستمزد" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.payroll.bank_transfer' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:payroll_bank_transfer' %}"><span class="menu-icon icon-download"></span>{% trans "خروجی حقوق و دستمزد برای بانک" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'accounting.tax.vat' or user_feature_permissions|feature_allowed:'accounting.tax.vat_report' or user_feature_permissions|feature_allowed:'accounting.tax.seasonal' or user_feature_permissions|feature_allowed:'accounting.tax.validation' or user_feature_permissions|feature_allowed:'accounting.tax.discrepancy_report' or request.user.is_superuser %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="accounting-tax">
+              <span class="menu-icon icon-settings"></span>
+              <span>{% trans "مالیات و مقررات" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="accounting-tax">
+              {% if user_feature_permissions|feature_allowed:'accounting.tax.vat' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:tax_vat' %}"><span class="menu-icon icon-settings"></span>{% trans "مدیریت VAT" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.tax.moadian_settings' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:tax_moadian_settings' %}"><span class="menu-icon icon-settings"></span>{% trans "تنظیمات سامانه مودیان" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.tax.vat_report' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:report_vat' %}"><span class="menu-icon icon-chart"></span>{% trans "گزارش VAT" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.tax.seasonal' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:tax_seasonal' %}"><span class="menu-icon icon-chart"></span>{% trans "گزارش فصلی (TTMS / ماده 169)" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.tax.validation' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:tax_validation' %}"><span class="menu-icon icon-check"></span>{% trans "اعتبارسنجی اسناد برای ارسال به سامانه مودیان" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.tax.discrepancy_report' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:tax_discrepancy_report' %}"><span class="menu-icon icon-chart"></span>{% trans "گزارش مغایرت مالیاتی" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'accounting.reports.trial_balance' or user_feature_permissions|feature_allowed:'accounting.reports.balance_sheet' or user_feature_permissions|feature_allowed:'accounting.reports.income_statement' or user_feature_permissions|feature_allowed:'accounting.reports.cash_flow' or user_feature_permissions|feature_allowed:'accounting.reports.account_report' or user_feature_permissions|feature_allowed:'accounting.reports.tafsili_cost_center' or user_feature_permissions|feature_allowed:'accounting.reports.check_report' or user_feature_permissions|feature_allowed:'accounting.reports.treasury_report' or user_feature_permissions|feature_allowed:'accounting.reports.party_report' or user_feature_permissions|feature_allowed:'accounting.reports.vat' or user_feature_permissions|feature_allowed:'accounting.reports.monthly' or request.user.is_superuser %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="accounting-reports">
+              <span class="menu-icon icon-chart"></span>
+              <span>{% trans "گزارشات مالی" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="accounting-reports">
+              {% if user_feature_permissions|feature_allowed:'accounting.reports.trial_balance' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:report_trial_balance' %}"><span class="menu-icon icon-chart"></span>{% trans "تراز آزمایشی" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.reports.balance_sheet' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:report_balance_sheet' %}"><span class="menu-icon icon-chart"></span>{% trans "ترازنامه" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.reports.income_statement' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:report_income_statement' %}"><span class="menu-icon icon-chart"></span>{% trans "سود و زیان" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.reports.cash_flow' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:report_cash_flow' %}"><span class="menu-icon icon-chart"></span>{% trans "جریان وجوه نقد" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.reports.account_report' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:report_account_movements' %}"><span class="menu-icon icon-chart"></span>{% trans "گزارش حساب‌ها" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.reports.tafsili_cost_center' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:report_tafsili_cost_center' %}"><span class="menu-icon icon-chart"></span>{% trans "گزارش تفصیلی و مراکز هزینه" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.reports.check_report' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:report_checks' %}"><span class="menu-icon icon-chart"></span>{% trans "گزارش چک‌ها" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.reports.treasury_report' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:report_treasury' %}"><span class="menu-icon icon-chart"></span>{% trans "گزارش خزانه" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.reports.party_report' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:report_party_statement' %}"><span class="menu-icon icon-chart"></span>{% trans "گزارش طرف حساب" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.reports.vat' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:report_vat' %}"><span class="menu-icon icon-chart"></span>{% trans "گزارش VAT" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.reports.monthly' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:report_monthly' %}"><span class="menu-icon icon-chart"></span>{% trans "گزارش عملیات ماهانه" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'accounting.attachments.upload' or user_feature_permissions|feature_allowed:'accounting.attachments.manage' or user_feature_permissions|feature_allowed:'accounting.attachments.attach_to_document' or request.user.is_superuser %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="accounting-attachments">
+              <span class="menu-icon icon-upload"></span>
+              <span>{% trans "اسناد و فایل‌ها" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="accounting-attachments">
+              {% if user_feature_permissions|feature_allowed:'accounting.attachments.upload' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:attachment_upload' %}"><span class="menu-icon icon-upload"></span>{% trans "بارگذاری اسناد" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.attachments.manage' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:attachment_list' %}"><span class="menu-icon icon-clipboard"></span>{% trans "مدیریت اسناد پیوست" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.attachments.attach_to_document' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:attachment_attach' %}"><span class="menu-icon icon-link"></span>{% trans "پیوست به سند" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'accounting.automation.processes' or user_feature_permissions|feature_allowed:'accounting.automation.logs' or request.user.is_superuser %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="accounting-automation">
+              <span class="menu-icon icon-gear"></span>
+              <span>{% trans "خودکارسازی" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="accounting-automation">
+              {% if user_feature_permissions|feature_allowed:'accounting.automation.processes' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:automation_processes' %}"><span class="menu-icon icon-gear"></span>{% trans "فرایندهای خودکار" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.automation.logs' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:automation_execution_logs' %}"><span class="menu-icon icon-chart"></span>{% trans "لاگ اجرا" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'accounting.utils.close_temp' or user_feature_permissions|feature_allowed:'accounting.utils.opening' or user_feature_permissions|feature_allowed:'accounting.utils.closing' or user_feature_permissions|feature_allowed:'accounting.utils.integration' or user_feature_permissions|feature_allowed:'accounting.utils.backup' or request.user.is_superuser %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="accounting-utils">
+              <span class="menu-icon icon-gear"></span>
+              <span>{% trans "ابزارها و عملیات تکمیلی" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="accounting-utils">
+              {% if user_feature_permissions|feature_allowed:'accounting.utils.close_temp' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:close_temp_accounts' %}"><span class="menu-icon icon-check"></span>{% trans "بستن حساب‌های موقت" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.utils.opening' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:opening_entry' %}"><span class="menu-icon icon-calendar"></span>{% trans "افتتاحیه خودکار" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.utils.closing' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:closing_entry' %}"><span class="menu-icon icon-calendar"></span>{% trans "اختتامیه" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.utils.integration' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:integration' %}"><span class="menu-icon icon-link"></span>{% trans "یکپارچه‌سازی اطلاعات" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.utils.backup' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:backup_restore' %}"><span class="menu-icon icon-download"></span>{% trans "پشتیبان‌گیری و بازیابی" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
+        <li class="mega-menu-submenu-item">
+          <button type="button" class="mega-menu-toggle" data-submenu="accounting-warehouse">
+            <span class="menu-icon icon-store"></span>
+            <span>{% trans "حسابداری انبار" %}</span>
+            <span class="mega-menu-arrow">▼</span>
+          </button>
+          <ul class="mega-menu-submenu" id="accounting-warehouse">
+            {% if user_feature_permissions|feature_allowed:'accounting.warehouse.expense' or request.user.is_superuser %}
+              <li><a href="{% url 'accounting:warehouse_expense' %}"><span class="menu-icon icon-money-out"></span>{% trans "سند هزینه انبار" %}</a></li>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.warehouse.income' or request.user.is_superuser %}
+              <li><a href="{% url 'accounting:warehouse_income' %}"><span class="menu-icon icon-money"></span>{% trans "سند درآمد انبار" %}</a></li>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.warehouse.opening_closing' or request.user.is_superuser %}
+              <li><a href="{% url 'accounting:warehouse_opening_closing' %}"><span class="menu-icon icon-calendar"></span>{% trans "افتتاحیه و اختتامیه" %}</a></li>
+            {% endif %}
+            {% if user_feature_permissions|feature_allowed:'accounting.warehouse.settings' or request.user.is_superuser %}
+              <li><a href="{% url 'accounting:warehouse_settings' %}"><span class="menu-icon icon-settings"></span>{% trans "تنظیمات حسابداری انبار" %}</a></li>
+            {% endif %}
+          </ul>
+        </li>
+        {% if user_feature_permissions|feature_allowed:'accounting.settings' or user_feature_permissions|feature_allowed:'accounting.settings.treasury' or user_feature_permissions|feature_allowed:'accounting.settings.tax' or request.user.is_superuser %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="accounting-settings">
+              <span class="menu-icon icon-settings"></span>
+              <span>{% trans "تنظیمات" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="accounting-settings">
+              {% if user_feature_permissions|feature_allowed:'accounting.settings' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:settings' %}"><span class="menu-icon icon-settings"></span>{% trans "تنظیمات حسابداری" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.settings.treasury' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:settings_treasury' %}"><span class="menu-icon icon-money"></span>{% trans "تنظیمات خزانه" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'accounting.settings.tax' or request.user.is_superuser %}
+                <li><a href="{% url 'accounting:settings_tax' %}"><span class="menu-icon icon-settings"></span>{% trans "تنظیمات مالیات" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
+        {% comment %}
+        <li class="mega-menu-submenu-item">
+          <button type="button" class="mega-menu-toggle" data-submenu="accounting-automation">
+            <span class="menu-icon icon-robot"></span>
+            <span>{% trans "خودکار سازی" %}</span>
+            <span class="mega-menu-arrow">▼</span>
+          </button>
+          <ul class="mega-menu-submenu" id="accounting-automation">
+            <li><a href="{% url 'accounting:automation_process_create' %}"><span class="menu-icon icon-gear"></span>{% trans "ایجاد فرایند خودکار" %}</a></li>
+            <li><a href="{% url 'accounting:automation_process_connection' %}"><span class="menu-icon icon-link"></span>{% trans "اتصال فرایند به بخش‌ها" %}</a></li>
+          </ul>
+        </li>
+        {% endcomment %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Sales Module Section -->
+    {% if user_feature_permissions|feature_allowed:'sales.dashboard' or request.user.is_superuser %}
+    <div class="mega-menu-section collapsed">
+      <button type="button" class="mega-menu-section-toggle" data-section="sales-section">
+        <span class="menu-icon icon-cart"></span>
+        <span>{% trans "Sales" %}</span>
+        <span class="mega-menu-section-arrow">▼</span>
+      </button>
+      <div class="mega-menu-section-content" id="sales-section">
+        <ul>
+        <li><a href="{% url 'sales:dashboard' %}"><span class="menu-icon icon-chart"></span>{% trans "Dashboard" %}</a></li>
+        {% if user_feature_permissions|feature_allowed:'sales.price_card' or request.user.is_superuser %}
+          <li><a href="{% url 'sales:price_card_list' %}"><span class="menu-icon icon-list"></span>{% trans "Item Price Cards" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'sales.invoice' %}
+          <li><a href="{% url 'sales:invoice_create' %}"><span class="menu-icon icon-receipt"></span>{% trans "Sales Invoice" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'sales.customers' or request.user.is_superuser %}
+          <li><a href="{% url 'sales:customers' %}"><span class="menu-icon icon-users"></span>{% trans "مشتریان" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'sales.settings' or request.user.is_superuser %}
+          <li><a href="{% url 'sales:settings' %}"><span class="menu-icon icon-settings"></span>{% trans "تنظیمات" %}</a></li>
+        {% endif %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Human Resources Module Section -->
+    {% if user_feature_permissions|feature_allowed:'hr.dashboard' or request.user.is_superuser %}
+    <div class="mega-menu-section collapsed">
+      <button type="button" class="mega-menu-section-toggle" data-section="hr-section">
+        <span class="menu-icon icon-users"></span>
+        <span>{% trans "Human Resources" %}</span>
+        <span class="mega-menu-section-arrow">▼</span>
+      </button>
+      <div class="mega-menu-section-content" id="hr-section">
+        <ul>
+        <li><a href="{% url 'hr:dashboard' %}"><span class="menu-icon icon-chart"></span>{% trans "Dashboard" %}</a></li>
+        {% if user_feature_permissions|feature_allowed:'hr.personnel' or user_feature_permissions|feature_allowed:'hr.personnel.decree' or user_feature_permissions|feature_allowed:'hr.personnel.form' or user_feature_permissions|feature_allowed:'hr.personnel.form_groups' or user_feature_permissions|feature_allowed:'hr.personnel.form_subgroups' %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="hr-personnel">
+              <span class="menu-icon icon-user"></span>
+              <span>{% trans "Personnel" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="hr-personnel">
+              {% if user_feature_permissions|feature_allowed:'hr.personnel' %}
+                <li><a href="{% url 'hr:personnel_create' %}"><span class="menu-icon icon-user"></span>{% trans "Create Personnel" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'hr.personnel.decree' %}
+                <li><a href="{% url 'hr:personnel_decree_assignment' %}"><span class="menu-icon icon-check"></span>{% trans "Assign Decree" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'hr.personnel.form' %}
+                <li><a href="{% url 'hr:personnel_form_create' %}"><span class="menu-icon icon-edit"></span>{% trans "Personnel Form" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'hr.personnel.form_groups' %}
+                <li><a href="{% url 'hr:personnel_form_groups' %}"><span class="menu-icon icon-folder"></span>{% trans "Form Groups" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'hr.personnel.form_subgroups' %}
+                <li><a href="{% url 'hr:personnel_form_subgroups' %}"><span class="menu-icon icon-folder"></span>{% trans "Form Subgroups" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'hr.payroll.decrees' or user_feature_permissions|feature_allowed:'hr.payroll.decree_groups' or user_feature_permissions|feature_allowed:'hr.payroll.decree_subgroups' %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="hr-payroll-decrees">
+              <span class="menu-icon icon-dollar"></span>
+              <span>{% trans "حکم‌های حقوق و دستمزد" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="hr-payroll-decrees">
+              {% if user_feature_permissions|feature_allowed:'hr.payroll.decrees' %}
+                <li><a href="{% url 'hr:payroll_decrees' %}"><span class="menu-icon icon-dollar"></span>{% trans "حکم‌ها" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'hr.payroll.decree_groups' %}
+                <li><a href="{% url 'hr:payroll_decree_groups' %}"><span class="menu-icon icon-folder"></span>{% trans "گروه‌بندی حکم‌ها" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'hr.payroll.decree_subgroups' %}
+                <li><a href="{% url 'hr:payroll_decree_subgroups' %}"><span class="menu-icon icon-folder"></span>{% trans "زیر گروه‌بندی حکم‌ها" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'hr.loans.management' or user_feature_permissions|feature_allowed:'hr.loans.scheduling' or user_feature_permissions|feature_allowed:'hr.loans.savings_fund' %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="hr-loans">
+              <span class="menu-icon icon-card"></span>
+              <span>{% trans "Loans" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="hr-loans">
+              {% if user_feature_permissions|feature_allowed:'hr.loans.management' %}
+                <li><a href="{% url 'hr:loans_management' %}"><span class="menu-icon icon-card"></span>{% trans "Loan Management" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'hr.loans.scheduling' %}
+                <li><a href="{% url 'hr:loans_scheduling' %}"><span class="menu-icon icon-calendar"></span>{% trans "Scheduling" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'hr.loans.savings_fund' %}
+                <li><a href="{% url 'hr:loans_savings_fund' %}"><span class="menu-icon icon-money"></span>{% trans "Savings Fund" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Requests Module Section -->
+    {% if user_feature_permissions|feature_allowed:'inventory.requests.purchase' or user_feature_permissions|feature_allowed:'inventory.requests.warehouse' or user_feature_permissions|feature_allowed:'production.transfer_requests' or user_feature_permissions|feature_allowed:'procurement.services.request' or user_feature_permissions|feature_allowed:'hr.requests.leave' or user_feature_permissions|feature_allowed:'hr.requests.sick_leave' or user_feature_permissions|feature_allowed:'hr.requests.loan' or request.user.is_superuser %}
+    <div class="mega-menu-section collapsed">
+      <button type="button" class="mega-menu-section-toggle" data-section="requests-section">
+        <span class="menu-icon icon-clipboard"></span>
+        <span>{% trans "Requests" %}</span>
+        <span class="mega-menu-section-arrow">▼</span>
+      </button>
+      <div class="mega-menu-section-content" id="requests-section">
+        <ul>
+        {% if user_feature_permissions|feature_allowed:'inventory.requests.purchase' %}
+          <li><a href="{% url 'inventory:purchase_requests' %}"><span class="menu-icon icon-cart"></span>{% trans "Purchase Request" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'inventory.requests.warehouse' %}
+          <li><a href="{% url 'inventory:warehouse_requests' %}"><span class="menu-icon icon-clipboard"></span>{% trans "Warehouse Request" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'procurement.services.request' or request.user.is_superuser %}
+          <li><a href="{% url 'procurement:service_requests' %}"><span class="menu-icon icon-service"></span>{% trans "Service Request" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'production.transfer_requests' or request.user.is_superuser %}
+          <li><a href="{% url 'production:transfer_requests' %}"><span class="menu-icon icon-truck"></span>{% trans "Transfer to Line Requests" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'hr.requests.leave' %}
+          <li><a href="{% url 'hr:requests_leave' %}"><span class="menu-icon icon-beach"></span>{% trans "Leave Request" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'hr.requests.sick_leave' %}
+          <li><a href="{% url 'hr:requests_sick_leave' %}"><span class="menu-icon icon-hospital"></span>{% trans "Sick Leave Request" %}</a></li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'hr.requests.loan' %}
+          <li><a href="{% url 'hr:requests_loan' %}"><span class="menu-icon icon-card"></span>{% trans "Loan Request" %}</a></li>
+        {% endif %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Office Automation Module Section -->
+    {% if user_feature_permissions|feature_allowed:'office_automation.dashboard' or request.user.is_superuser %}
+    <div class="mega-menu-section collapsed">
+      <button type="button" class="mega-menu-section-toggle" data-section="office-automation-section">
+        <span class="menu-icon icon-clipboard"></span>
+        <span>{% trans "Office Automation" %}</span>
+        <span class="mega-menu-section-arrow">▼</span>
+      </button>
+      <div class="mega-menu-section-content" id="office-automation-section">
+        <ul>
+        <li><a href="{% url 'office_automation:dashboard' %}"><span class="menu-icon icon-chart"></span>{% trans "Dashboard" %}</a></li>
+        {% if user_feature_permissions|feature_allowed:'office_automation.inbox.incoming' or user_feature_permissions|feature_allowed:'office_automation.inbox.write' or user_feature_permissions|feature_allowed:'office_automation.inbox.fill_form' %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="office-automation-inbox">
+              <span class="menu-icon icon-mail"></span>
+              <span>{% trans "Inbox" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="office-automation-inbox">
+              {% if user_feature_permissions|feature_allowed:'office_automation.inbox.incoming' %}
+                <li><a href="{% url 'office_automation:inbox_incoming' %}"><span class="menu-icon icon-mail"></span>{% trans "Incoming Letters" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'office_automation.inbox.write' %}
+                <li><a href="{% url 'office_automation:inbox_write' %}"><span class="menu-icon icon-pen"></span>{% trans "Write Letter" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'office_automation.inbox.fill_form' %}
+                <li><a href="{% url 'office_automation:inbox_fill_form' %}"><span class="menu-icon icon-edit"></span>{% trans "Fill Form" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'office_automation.processes.engine' or user_feature_permissions|feature_allowed:'office_automation.processes.form_connection' %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="office-automation-processes">
+              <span class="menu-icon icon-gear"></span>
+              <span>{% trans "Processes" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="office-automation-processes">
+              {% if user_feature_permissions|feature_allowed:'office_automation.processes.engine' %}
+                <li><a href="{% url 'office_automation:processes_engine' %}"><span class="menu-icon icon-gear"></span>{% trans "Process Engine" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'office_automation.processes.form_connection' %}
+                <li><a href="{% url 'office_automation:processes_form_connection' %}"><span class="menu-icon icon-link"></span>{% trans "Process-Form Connection" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'office_automation.forms.builder' %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="office-automation-forms">
+              <span class="menu-icon icon-edit"></span>
+              <span>{% trans "Forms" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="office-automation-forms">
+              <li><a href="{% url 'office_automation:forms_builder' %}"><span class="menu-icon icon-edit"></span>{% trans "Form Builder" %}</a></li>
+            </ul>
+          </li>
+        {% endif %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Transportation Module Section -->
+    {% if user_feature_permissions|feature_allowed:'transportation.dashboard' or request.user.is_superuser %}
+    <div class="mega-menu-section collapsed">
+      <button type="button" class="mega-menu-section-toggle" data-section="transportation-section">
+        <span class="menu-icon icon-truck"></span>
+        <span>{% trans "Transportation" %}</span>
+        <span class="mega-menu-section-arrow">▼</span>
+      </button>
+      <div class="mega-menu-section-content" id="transportation-section">
+        <ul>
+          <li><a href="{% url 'transportation:dashboard' %}"><span class="menu-icon icon-chart"></span>{% trans "Dashboard" %}</a></li>
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Procurement Module Section -->
+    {% if user_feature_permissions|feature_allowed:'procurement.dashboard' or request.user.is_superuser %}
+    <div class="mega-menu-section collapsed">
+      <button type="button" class="mega-menu-section-toggle" data-section="procurement-section">
+        <span class="menu-icon icon-shopping"></span>
+        <span>{% trans "Procurement" %}</span>
+        <span class="mega-menu-section-arrow">▼</span>
+      </button>
+      <div class="mega-menu-section-content" id="procurement-section">
+        <ul>
+        <li><a href="{% url 'procurement:dashboard' %}"><span class="menu-icon icon-chart"></span>{% trans "Dashboard" %}</a></li>
+        {% if user_feature_permissions|feature_allowed:'procurement.orders.list' or user_feature_permissions|feature_allowed:'procurement.invoices.purchase' or request.user.is_superuser %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="procurement-purchase">
+              <span class="menu-icon icon-cart"></span>
+              <span>{% trans "Purchase" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="procurement-purchase">
+              {% if user_feature_permissions|feature_allowed:'procurement.orders.list' or request.user.is_superuser %}
+                <li><a href="{% url 'procurement:purchase_orders' %}"><span class="menu-icon icon-shopping-cart"></span>{% trans "Purchase Orders" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'procurement.invoices.purchase' or request.user.is_superuser %}
+                <li><a href="{% url 'procurement:purchase_invoices' %}"><span class="menu-icon icon-file-text"></span>{% trans "Purchase Invoices" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'procurement.services.request' or user_feature_permissions|feature_allowed:'procurement.invoices.service' or request.user.is_superuser %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="procurement-services">
+              <span class="menu-icon icon-service"></span>
+              <span>{% trans "Services" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="procurement-services">
+              {% if user_feature_permissions|feature_allowed:'procurement.services.request' or request.user.is_superuser %}
+                <li><a href="{% url 'procurement:service_requests' %}"><span class="menu-icon icon-file"></span>{% trans "Service Requests" %}</a></li>
+              {% endif %}
+              {% if user_feature_permissions|feature_allowed:'procurement.invoices.service' or request.user.is_superuser %}
+                <li><a href="{% url 'procurement:service_invoices' %}"><span class="menu-icon icon-file-text"></span>{% trans "Service Invoices" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        {% endif %}
+        {% if user_feature_permissions|feature_allowed:'procurement.buyers' %}
+          <li class="mega-menu-submenu-item">
+            <button type="button" class="mega-menu-toggle" data-submenu="procurement-buyers">
+              <span class="menu-icon icon-user"></span>
+              <span>{% trans "Buyers" %}</span>
+              <span class="mega-menu-arrow">▼</span>
+            </button>
+            <ul class="mega-menu-submenu" id="procurement-buyers">
+              <li><a href="{% url 'procurement:buyers' %}"><span class="menu-icon icon-user"></span>{% trans "Buyers List" %}</a></li>
+              <li><a href="{% url 'procurement:buyer_create' %}"><span class="menu-icon icon-plus"></span>{% trans "Create Buyer" %}</a></li>
+              <li><a href="{% url 'procurement:buyer_assignment' %}"><span class="menu-icon icon-check"></span>{% trans "Buyer Assignment" %}</a></li>
+            </ul>
+          </li>
+        {% endif %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>

@@ -1,0 +1,13 @@
+{% extends "shared/generic/generic_confirm_delete.html" %}
+{% load i18n %}
+
+{% block delete_details_extra %}
+{% if object.request_code %}
+<p><strong>{% trans "Request Code" %}:</strong> <code>{{ object.request_code }}</code></p>
+{% endif %}
+<p><strong>{% trans "Payment Type" %}:</strong> {{ object.get_payment_type_display }}</p>
+{% if object.amount %}
+<p><strong>{% trans "Amount" %}:</strong> {{ object.amount|floatformat:2 }}</p>
+{% endif %}
+{% endblock %}
+

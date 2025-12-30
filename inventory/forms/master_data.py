@@ -15,6 +15,8 @@ from django.db.models import Q
 from django.forms import inlineformset_factory
 from django.utils.translation import gettext_lazy as _
 
+from shared.forms.base import BaseModelForm
+
 logger = logging.getLogger('inventory.forms.master_data')
 
 
@@ -150,19 +152,14 @@ from inventory.models import (
 from inventory.forms.base import UNIT_CHOICES
 
 
-class ItemTypeForm(forms.ModelForm):
+class ItemTypeForm(BaseModelForm):
     """Form for creating/editing item types."""
     
     class Meta:
         model = ItemType
         fields = ['name', 'name_en', 'description', 'notes', 'sort_order', 'is_enabled']
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'name_en': forms.TextInput(attrs={'class': 'form-control'}),
-            'description': forms.TextInput(attrs={'class': 'form-control'}),
-            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'sort_order': forms.NumberInput(attrs={'class': 'form-control'}),
-            'is_enabled': forms.Select(attrs={'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={'rows': 3}),
         }
         labels = {
             'name': _('Name (Persian)'),
@@ -174,19 +171,14 @@ class ItemTypeForm(forms.ModelForm):
         }
 
 
-class ItemCategoryForm(forms.ModelForm):
+class ItemCategoryForm(BaseModelForm):
     """Form for creating/editing item categories."""
     
     class Meta:
         model = ItemCategory
         fields = ['name', 'name_en', 'description', 'notes', 'sort_order', 'is_enabled']
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'name_en': forms.TextInput(attrs={'class': 'form-control'}),
-            'description': forms.TextInput(attrs={'class': 'form-control'}),
-            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'sort_order': forms.NumberInput(attrs={'class': 'form-control'}),
-            'is_enabled': forms.Select(attrs={'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={'rows': 3}),
         }
         labels = {
             'name': _('Name (Persian)'),
@@ -198,20 +190,14 @@ class ItemCategoryForm(forms.ModelForm):
         }
 
 
-class ItemSubcategoryForm(forms.ModelForm):
+class ItemSubcategoryForm(BaseModelForm):
     """Form for creating/editing item subcategories."""
     
     class Meta:
         model = ItemSubcategory
         fields = ['category', 'name', 'name_en', 'description', 'notes', 'sort_order', 'is_enabled']
         widgets = {
-            'category': forms.Select(attrs={'class': 'form-control'}),
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'name_en': forms.TextInput(attrs={'class': 'form-control'}),
-            'description': forms.TextInput(attrs={'class': 'form-control'}),
-            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'sort_order': forms.NumberInput(attrs={'class': 'form-control'}),
-            'is_enabled': forms.Select(attrs={'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={'rows': 3}),
         }
         labels = {
             'category': _('Item Category'),
@@ -224,20 +210,18 @@ class ItemSubcategoryForm(forms.ModelForm):
         }
 
 
-class WarehouseForm(forms.ModelForm):
+class WarehouseForm(BaseModelForm):
     """Form for creating/editing warehouses."""
+    
+    def __init__(self, *args, **kwargs):
+        """Initialize form and remove company_id if not needed."""
+        # company_id is set automatically by AutoSetFieldsMixin in view
+        kwargs.pop('company_id', None)
+        super().__init__(*args, **kwargs)
     
     class Meta:
         model = Warehouse
         fields = ['name', 'name_en', 'description', 'notes', 'sort_order', 'is_enabled']
-        widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'name_en': forms.TextInput(attrs={'class': 'form-control'}),
-            'description': forms.TextInput(attrs={'class': 'form-control'}),
-            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'sort_order': forms.NumberInput(attrs={'class': 'form-control'}),
-            'is_enabled': forms.Select(attrs={'class': 'form-control'}),
-        }
         labels = {
             'name': _('Name (Persian)'),
             'name_en': _('Name (English)'),
@@ -248,7 +232,7 @@ class WarehouseForm(forms.ModelForm):
         }
 
 
-class SupplierForm(forms.ModelForm):
+class SupplierForm(BaseModelForm):
     """Form for creating/editing suppliers."""
     
     class Meta:
@@ -259,19 +243,8 @@ class SupplierForm(forms.ModelForm):
             'description', 'sort_order', 'is_enabled'
         ]
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'name_en': forms.TextInput(attrs={'class': 'form-control'}),
-            'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
-            'mobile_number': forms.TextInput(attrs={'class': 'form-control'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control'}),
-            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'city': forms.TextInput(attrs={'class': 'form-control'}),
-            'state': forms.TextInput(attrs={'class': 'form-control'}),
-            'country': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '3'}),
-            'tax_id': forms.TextInput(attrs={'class': 'form-control'}),
-            'description': forms.TextInput(attrs={'class': 'form-control'}),
-            'sort_order': forms.NumberInput(attrs={'class': 'form-control'}),
-            'is_enabled': forms.Select(attrs={'class': 'form-control'}),
+            'address': forms.Textarea(attrs={'rows': 3}),
+            'country': forms.TextInput(attrs={'maxlength': '3'}),
         }
         labels = {
             'name': _('Name (Persian)'),
@@ -290,7 +263,7 @@ class SupplierForm(forms.ModelForm):
         }
 
 
-class SupplierCategoryForm(forms.ModelForm):
+class SupplierCategoryForm(BaseModelForm):
     """Form for creating/editing supplier categories with optional subcategories and items."""
 
     is_primary = forms.BooleanField(
@@ -317,9 +290,7 @@ class SupplierCategoryForm(forms.ModelForm):
         model = SupplierCategory
         fields = ['supplier', 'category', 'is_primary', 'notes']
         widgets = {
-            'supplier': forms.Select(attrs={'class': 'form-control'}),
-            'category': forms.Select(attrs={'class': 'form-control'}),
-            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'notes': forms.Textarea(attrs={'rows': 3}),
         }
         labels = {
             'supplier': _('تأمین‌کننده'),
@@ -329,22 +300,23 @@ class SupplierCategoryForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         """Initialize form with company filtering."""
-        self.company_id = kwargs.pop('company_id', None)
         super().__init__(*args, **kwargs)
+        # company_id is now set by BaseModelForm
+        company_id = getattr(self, 'company_id', None)
 
-        if self.company_id:
+        if company_id:
             self.fields['supplier'].queryset = Supplier.objects.filter(
-                company_id=self.company_id,
+                company_id=company_id,
                 is_enabled=1,
             )
             self.fields['category'].queryset = ItemCategory.objects.filter(
-                company_id=self.company_id,
+                company_id=company_id,
                 is_enabled=1,
             )
 
             category_id = self._resolve_category_id()
             subcategory_qs = ItemSubcategory.objects.filter(
-                company_id=self.company_id,
+                company_id=company_id,
                 is_enabled=1,
             )
             if category_id:
@@ -352,7 +324,7 @@ class SupplierCategoryForm(forms.ModelForm):
             self.fields['subcategories'].queryset = subcategory_qs.order_by('category__name', 'name')
 
             item_qs = Item.objects.filter(
-                company_id=self.company_id,
+                company_id=company_id,
                 is_enabled=1,
             )
             if category_id:
@@ -459,7 +431,7 @@ class SupplierCategoryForm(forms.ModelForm):
         return cleaned_data
 
 
-class ItemForm(forms.ModelForm):
+class ItemForm(BaseModelForm):
     """Form for creating/editing items."""
 
     is_sellable = IntegerCheckboxField(
@@ -474,6 +446,10 @@ class ItemForm(forms.ModelForm):
         label=_('ورود از طریق رسید موقت'),
         widget=IntegerCheckboxInput(attrs={'class': 'form-check-input'}),
     )
+    serial_in_qc = IntegerCheckboxField(
+        label=_('سریال در QC'),
+        widget=IntegerCheckboxInput(attrs={'class': 'form-check-input'}),
+    )
     is_enabled = IntegerCheckboxField(
         label=_('فعال باشد'),
         widget=IntegerCheckboxInput(attrs={'class': 'form-check-input'}),
@@ -482,12 +458,12 @@ class ItemForm(forms.ModelForm):
     default_unit = forms.ChoiceField(
         choices=UNIT_CHOICES,
         label=_('واحد اصلی'),
-        widget=forms.Select(attrs={'class': 'form-control'}),
+        # BaseModelForm automatically applies 'form-control' class
     )
     primary_unit = forms.ChoiceField(
         choices=UNIT_CHOICES,
         label=_('واحد گزارش (برای گزارش‌گیری)'),
-        widget=forms.Select(attrs={'class': 'form-control'}),
+        # BaseModelForm automatically applies 'form-control' class
     )
     allowed_warehouses = forms.ModelMultipleChoiceField(
         queryset=Warehouse.objects.none(),
@@ -503,26 +479,20 @@ class ItemForm(forms.ModelForm):
             'type', 'category', 'subcategory',
             'user_segment', 'name', 'name_en',
             'secondary_batch_number',
-            'is_sellable', 'has_lot_tracking', 'requires_temporary_receipt',
+            'is_sellable', 'has_lot_tracking', 'requires_temporary_receipt', 'serial_in_qc',
+            'supply_type', 'planning_type', 'lead_time',
             'tax_id', 'tax_title', 'min_stock',
             'default_unit', 'primary_unit',
             'description', 'notes',
             'sort_order', 'is_enabled',
         ]
         widgets = {
-            'type': forms.Select(attrs={'class': 'form-control'}),
-            'category': forms.Select(attrs={'class': 'form-control'}),
-            'subcategory': forms.Select(attrs={'class': 'form-control'}),
-            'user_segment': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '2'}),
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'name_en': forms.TextInput(attrs={'class': 'form-control'}),
-            'secondary_batch_number': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '50'}),
-            'tax_id': forms.TextInput(attrs={'class': 'form-control'}),
-            'tax_title': forms.TextInput(attrs={'class': 'form-control'}),
-            'min_stock': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
-            'description': forms.TextInput(attrs={'class': 'form-control'}),
-            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'sort_order': forms.NumberInput(attrs={'class': 'form-control'}),
+            # BaseModelForm automatically applies 'form-control' class, but we can add extra attributes
+            'user_segment': forms.TextInput(attrs={'maxlength': '2'}),
+            'secondary_batch_number': forms.TextInput(attrs={'maxlength': '50'}),
+            'lead_time': forms.NumberInput(attrs={'min': '0', 'step': '1'}),
+            'min_stock': forms.NumberInput(attrs={'step': '0.001'}),
+            'notes': forms.Textarea(attrs={'rows': 3}),
         }
         labels = {
             'type': _('نوع کالا'),
@@ -532,6 +502,9 @@ class ItemForm(forms.ModelForm):
             'name': _('نام (فارسی)'),
             'name_en': _('نام (English)'),
             'secondary_batch_number': _('بچ نامبر ثانویه'),
+            'supply_type': _('نوع تامین'),
+            'planning_type': _('نوع برنامه ریزی'),
+            'lead_time': _('زمان تامین (روز)'),
             'tax_id': _('شناسه مالیاتی'),
             'tax_title': _('عنوان مالیاتی'),
             'min_stock': _('حداقل موجودی'),
@@ -574,6 +547,7 @@ class ItemForm(forms.ModelForm):
             self.fields['is_sellable'].initial = self.instance.is_sellable
             self.fields['has_lot_tracking'].initial = self.instance.has_lot_tracking
             self.fields['requires_temporary_receipt'].initial = self.instance.requires_temporary_receipt
+            self.fields['serial_in_qc'].initial = self.instance.serial_in_qc
             self.fields['is_enabled'].initial = self.instance.is_enabled
 
         self.fields['type'].label_from_instance = lambda obj: obj.name
@@ -591,6 +565,8 @@ class ItemForm(forms.ModelForm):
         subcategory = cleaned_data.get('subcategory')
         user_segment = cleaned_data.get('user_segment')
         warehouses = cleaned_data.get('allowed_warehouses')
+        name = cleaned_data.get('name')
+        name_en = cleaned_data.get('name_en')
 
         if item_type and category and item_type.company_id != category.company_id:
             raise forms.ValidationError(_('نوع کالا و دسته‌بندی انتخاب‌شده مربوط به شرکت‌های متفاوت هستند.'))
@@ -609,11 +585,26 @@ class ItemForm(forms.ModelForm):
         elif self.company_id and warehouses.filter(~Q(company_id=self.company_id)).exists():
             self.add_error('allowed_warehouses', _('انبارهای انتخاب شده باید متعلق به همان شرکت فعال باشند.'))
 
+        # Validate unique name and name_en (exclude current instance if editing)
+        if name:
+            qs = Item.objects.filter(name=name)
+            if self.instance and self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                self.add_error('name', _('کالا با این Name از قبل موجود است.'))
+        
+        if name_en:
+            qs = Item.objects.filter(name_en=name_en)
+            if self.instance and self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                self.add_error('name_en', _('کالا با این Name (English) از قبل موجود است.'))
+
         # IntegerCheckboxField already handles conversion to 0/1 in its clean() method
         # But we need to ensure fields are ALWAYS in cleaned_data, even if not in POST
         # IntegerCheckboxInput.value_from_datadict returns '0' or '1' as string
         # IntegerCheckboxField.clean() will convert to int 0 or 1
-        checkbox_fields = ['is_sellable', 'has_lot_tracking', 'requires_temporary_receipt', 'is_enabled']
+        checkbox_fields = ['is_sellable', 'has_lot_tracking', 'requires_temporary_receipt', 'serial_in_qc', 'is_enabled']
         for field_name in checkbox_fields:
             # Ensure field is always in cleaned_data
             if field_name not in cleaned_data:
@@ -691,7 +682,7 @@ class ItemUnitFormSet(forms.BaseInlineFormSet):
                 form.set_company_id(self.company_id)
     
     def clean(self) -> Dict[str, Any]:
-        """Override clean to skip validation for completely empty forms."""
+        """Override clean to skip validation for completely empty forms and check for duplicates."""
         cleaned_data = super().clean()
         # Mark completely empty forms as valid (they will be ignored in save)
         for form in self.forms:
@@ -701,10 +692,52 @@ class ItemUnitFormSet(forms.BaseInlineFormSet):
                 if not any(v for v in non_delete_fields.values() if v):
                     # Form is empty - clear errors
                     form._errors = {}
+                # Check for duplicate conversions (if form has from_unit and to_unit)
+                elif not form.cleaned_data.get('DELETE'):
+                    from_unit = form.cleaned_data.get('from_unit')
+                    to_unit = form.cleaned_data.get('to_unit')
+                    if from_unit and to_unit and hasattr(self, 'instance') and self.instance:
+                        # Check if this conversion already exists (excluding current instance)
+                        from ..models import ItemUnit
+                        existing = ItemUnit.objects.filter(
+                            company=self.instance.company,
+                            item=self.instance,
+                            from_unit=from_unit,
+                            to_unit=to_unit
+                        ).exclude(pk=form.instance.pk if form.instance and form.instance.pk else None).first()
+                        
+                        if existing:
+                            from django.core.exceptions import ValidationError
+                            from django.utils.translation import gettext_lazy as _
+                            form.add_error(
+                                None,
+                                ValidationError(
+                                    _("Unit conversion from '%(from_unit)s' to '%(to_unit)s' already exists."),
+                                    params={'from_unit': from_unit, 'to_unit': to_unit},
+                                    code='duplicate_conversion'
+                                )
+                            )
         return cleaned_data
     
+    
+    def save_new(self, form, commit=True):
+        """Override save_new to set company before creating instance."""
+        instance = super().save_new(form, commit=False)
+        # Set company from item if available
+        if hasattr(self, 'instance') and self.instance and self.instance.company:
+            instance.company = self.instance.company
+        elif self.company_id:
+            from shared.models import Company
+            try:
+                instance.company = Company.objects.get(pk=self.company_id)
+            except Company.DoesNotExist:
+                pass
+        if commit:
+            instance.save()
+        return instance
+    
     def is_valid(self) -> bool:
-        """Override is_valid to allow empty formsets."""
+        """Override is_valid to allow empty formsets and handle DELETE properly."""
         # If formset is completely empty (no forms), it's still valid
         if not self.forms or self.total_form_count() == 0:
             return True
@@ -716,6 +749,10 @@ class ItemUnitFormSet(forms.BaseInlineFormSet):
         if not valid:
             all_empty = True
             for form in self.forms:
+                # Check if form is marked for deletion - if so, it's valid even if empty
+                if form.cleaned_data and form.cleaned_data.get('DELETE'):
+                    continue  # Deleted forms are always valid
+                
                 # Check if form has any non-empty fields (excluding DELETE and hidden fields)
                 if form.cleaned_data:
                     non_delete_fields = {k: v for k, v in form.cleaned_data.items() 
@@ -753,5 +790,8 @@ ItemUnitFormSet = inlineformset_factory(
     formset=_ItemUnitFormSetBase,
     extra=0,  # No empty rows by default - user adds rows as needed
     can_delete=True,
+    min_num=0,  # Allow empty formset (no minimum required)
+    validate_min=False,  # Don't validate minimum (units are optional)
+    max_num=None,  # No maximum limit
 )
 

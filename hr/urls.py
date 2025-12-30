@@ -25,4 +25,9 @@ urlpatterns = [
     path('loans/management/', views.LoanManagementView.as_view(), name='loans_management'),
     path('loans/scheduling/', views.LoanSchedulingView.as_view(), name='loans_scheduling'),
     path('loans/savings-fund/', views.SavingsFundView.as_view(), name='loans_savings_fund'),
+    
+    # Payroll Decrees (حکم‌های حقوق و دستمزد)
+    path('payroll/decrees/', views.PayrollDecreeListView.as_view(), name='payroll_decrees'),
+    path('payroll/decree-groups/', views.PayrollDecreeGroupListView.as_view(), name='payroll_decree_groups'),
+    path('payroll/decree-subgroups/', views.PayrollDecreeSubGroupListView.as_view(), name='payroll_decree_subgroups'),
 ]

@@ -1,430 +1,444 @@
-{% extends "base.html" %}
+{% extends "shared/generic/generic_form.html" %}
 {% load i18n %}
 {% load static %}
 {% load jalali_tags %}
 {% load access_tags %}
 
-{% block title %}{{ form_title }} - {{ block.super }}{% endblock %}
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Production" %}</span>
+<span class="separator">/</span>
+<a href="{% url 'production:performance_records' %}">{% trans "Performance Records" %}</a>
+<span class="separator">/</span>
+<span>{{ form_title }}</span>
+{% endblock %}
 
-{% block content %}
-<div class="inventory-module">
-  <div class="module-header">
-    <nav class="breadcrumb">
-      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
-      <span>/</span>
-      <a href="{% url 'production:performance_records' %}">{% trans "Performance Records" %}</a>
-      <span>/</span>
-      <span>{{ form_title }}</span>
-    </nav>
-    
-    <h1 class="page-title">{{ form_title }}</h1>
-  </div>
-
-  <div class="form-container">
-    {% if messages %}
-      {% for message in messages %}
-      <div class="alert alert-{{ message.tags }}">
-        {{ message }}
-      </div>
-      {% endfor %}
-    {% endif %}
-    
-    {% if object and object.pk %}
-      <div class="info-banner">
-        <div><strong>{% trans "Performance Code" %}:</strong> {{ object.performance_code }}</div>
-        <div><strong>{% trans "Performance Date" %}:</strong> {{ object.performance_date|jalali_date }}</div>
-        <div><strong>{% trans "Status" %}:</strong> {{ object.get_status_display }}</div>
-        <div class="lock-status">
-          <strong>{% trans "Lock Status" %}:</strong>
-          {% if object.is_locked == 1 %}
-            <span class="badge badge-locked">{% trans "Locked" %}</span>
-          {% else %}
-            <span class="badge badge-unlocked">{% trans "Editable" %}</span>
-          {% endif %}
-        </div>
-      </div>
-      
+{% block before_form %}
+{% if object and object.pk %}
+  <div class="info-banner info-banner-grid">
+    <div><strong>{% trans "Performance Code" %}:</strong> <code>{{ object.performance_code }}</code></div>
+    <div><strong>{% trans "Performance Date" %}:</strong> {{ object.performance_date|jalali_date }}</div>
+    <div><strong>{% trans "Status" %}:</strong> {{ object.get_status_display }}</div>
+    <div class="lock-status">
+      <strong>{% trans "Lock Status" %}:</strong>
       {% if object.is_locked == 1 %}
-      <div class="alert alert-info">
-        {% trans "This performance record is locked and can no longer be edited." %}
-      </div>
+        <span class="badge badge-locked">{% trans "Locked" %}</span>
+      {% else %}
+        <span class="badge badge-unlocked">{% trans "Editable" %}</span>
       {% endif %}
-    {% endif %}
+    </div>
+  </div>
+  
+  {% if object.is_locked == 1 %}
+  <div class="alert alert-info">
+    {% trans "This performance record is locked and can no longer be edited." %}
+  </div>
+  {% endif %}
+{% endif %}
+{% endblock %}
+
+{% block form_sections %}
+<div class="form-section">
+  <h2>{% trans "Performance Information" %}</h2>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.document_type.id_for_label }}">{{ form.document_type.label }} *</label>
+      {{ form.document_type }}
+      {% if form.document_type.errors %}
+        <span class="error">{{ form.document_type.errors.0 }}</span>
+      {% endif %}
+      {% if form.document_type.help_text %}
+        <small class="form-text">{{ form.document_type.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.order.id_for_label }}">{{ form.order.label }} *</label>
+      {{ form.order }}
+      {% if form.order.errors %}
+        <span class="error">{{ form.order.errors.0 }}</span>
+      {% endif %}
+      {% if form.order.help_text %}
+        <small class="form-text">{{ form.order.help_text }}</small>
+      {% endif %}
+    </div>
     
-    <form method="post" class="performance-record-form" id="performance-form">
-      {% csrf_token %}
-
-      {% if form.non_field_errors %}
-        <div class="alert alert-error">
-          {{ form.non_field_errors }}
-        </div>
+    <div class="form-field" id="operation-field-container">
+      <label for="{{ form.operation.id_for_label }}">{{ form.operation.label }} <span id="operation-required" style="display: none;">*</span></label>
+      {{ form.operation }}
+      {% if form.operation.errors %}
+        <span class="error">{{ form.operation.errors.0 }}</span>
       {% endif %}
-
-      <div class="form-section">
-        <h3>{% trans "Performance Information" %}</h3>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.order.id_for_label }}">{{ form.order.label }} *</label>
-            {{ form.order }}
-            {% if form.order.errors %}
-              <div class="field-errors">
-                {{ form.order.errors }}
-              </div>
-            {% endif %}
-            {% if form.order.help_text %}
-              <small class="help-text">{{ form.order.help_text }}</small>
-            {% endif %}
-          </div>
-          
-          <div class="form-field">
-            <label for="{{ form.transfer.id_for_label }}">{{ form.transfer.label }}</label>
-            {{ form.transfer }}
-            {% if form.transfer.errors %}
-              <div class="field-errors">
-                {{ form.transfer.errors }}
-              </div>
-            {% endif %}
-            {% if form.transfer.help_text %}
-              <small class="help-text">{{ form.transfer.help_text }}</small>
-            {% endif %}
-          </div>
-        </div>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.performance_date.id_for_label }}">{{ form.performance_date.label }} *</label>
-            {{ form.performance_date }}
-            {% if form.performance_date.errors %}
-              <div class="field-errors">
-                {{ form.performance_date.errors }}
-              </div>
-            {% endif %}
-          </div>
-          
-          <div class="form-field">
-            <label for="{{ form.approved_by.id_for_label }}">{{ form.approved_by.label }}</label>
-            {{ form.approved_by }}
-            {% if form.approved_by.errors %}
-              <div class="field-errors">
-                {{ form.approved_by.errors }}
-              </div>
-            {% endif %}
-            {% if form.approved_by.help_text %}
-              <small class="help-text">{{ form.approved_by.help_text }}</small>
-            {% endif %}
-          </div>
-        </div>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.quantity_planned.id_for_label }}">{{ form.quantity_planned.label }} *</label>
-            {{ form.quantity_planned }}
-            {% if form.quantity_planned.errors %}
-              <div class="field-errors">
-                {{ form.quantity_planned.errors }}
-              </div>
-            {% endif %}
-            {% if form.quantity_planned.help_text %}
-              <small class="help-text">{{ form.quantity_planned.help_text }}</small>
-            {% endif %}
-          </div>
-          
-          <div class="form-field">
-            <label for="{{ form.quantity_actual.id_for_label }}">{{ form.quantity_actual.label }} *</label>
-            {{ form.quantity_actual }}
-            {% if form.quantity_actual.errors %}
-              <div class="field-errors">
-                {{ form.quantity_actual.errors }}
-              </div>
-            {% endif %}
-            {% if form.quantity_actual.help_text %}
-              <small class="help-text">{{ form.quantity_actual.help_text }}</small>
-            {% endif %}
-          </div>
-        </div>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
-            {{ form.notes }}
-            {% if form.notes.errors %}
-              <div class="field-errors">
-                {{ form.notes.errors }}
-              </div>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-
-      <!-- Materials Section -->
-      <div class="form-section">
-        <h3>{% trans "Materials (Waste Tracking)" %}</h3>
-        <p class="form-text">{% trans "Materials from transfer document. Enter waste quantity for each material." %}</p>
-        
-        {{ material_formset.management_form }}
-        
-        {% if material_formset.non_form_errors %}
-          <div class="alert alert-error">
-            {{ material_formset.non_form_errors }}
-          </div>
-        {% endif %}
-        
-        <div class="table-responsive">
-        <table class="data-table" id="materials-table">
-          <thead>
-            <tr>
-              <th>{% trans "Material Item" %}</th>
-              <th>{% trans "Required Quantity" %}</th>
-              <th>{% trans "Waste Quantity" %}</th>
-              <th>{% trans "Unit" %}</th>
-              <th>{% trans "Notes" %}</th>
-            </tr>
-          </thead>
-          <tbody id="materials-formset-container">
-            {% for material_form in material_formset %}
-            <tr class="formset-row" data-row-index="{{ forloop.counter0 }}">
-              {% for hidden in material_form.hidden_fields %}{{ hidden }}{% endfor %}
-              <td>
-                {% if material_form.material_item.value %}
-                  {{ material_form.material_item }}
-                {% else %}
-                  {{ material_form.material_item }}
-                {% endif %}
-                {% if material_form.material_item.errors %}
-                  <div class="field-errors">{{ material_form.material_item.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ material_form.quantity_required }}
-                {% if material_form.quantity_required.errors %}
-                  <div class="field-errors">{{ material_form.quantity_required.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ material_form.quantity_waste }}
-                {% if material_form.quantity_waste.errors %}
-                  <div class="field-errors">{{ material_form.quantity_waste.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ material_form.unit }}
-                {% if material_form.unit.errors %}
-                  <div class="field-errors">{{ material_form.unit.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ material_form.notes }}
-                {% if material_form.notes.errors %}
-                  <div class="field-errors">{{ material_form.notes.errors }}</div>
-                {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        </div>
-      </div>
-
-      <!-- Persons Section -->
-      <div class="form-section">
-        <h3>{% trans "Personnel (Labor Time)" %}</h3>
-        <p class="form-text">{% trans "Add personnel who worked on this order and enter their work minutes." %}</p>
-        
-        {{ person_formset.management_form }}
-        
-        {% if person_formset.non_form_errors %}
-          <div class="alert alert-error">
-            {{ person_formset.non_form_errors }}
-          </div>
-        {% endif %}
-        
-        <div class="table-responsive">
-        <table class="data-table" id="persons-table">
-          <thead>
-            <tr>
-              <th>{% trans "Person" %}</th>
-              <th>{% trans "Work Minutes" %}</th>
-              <th>{% trans "Work Line" %}</th>
-              <th>{% trans "Notes" %}</th>
-              <th>{% trans "Actions" %}</th>
-            </tr>
-          </thead>
-          <tbody id="persons-formset-container">
-            {% for person_form in person_formset %}
-            <tr class="formset-row" data-row-index="{{ forloop.counter0 }}">
-              {% for hidden in person_form.hidden_fields %}{{ hidden }}{% endfor %}
-              <td>
-                {{ person_form.person }}
-                {% if person_form.person.errors %}
-                  <div class="field-errors">{{ person_form.person.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ person_form.work_minutes }}
-                {% if person_form.work_minutes.errors %}
-                  <div class="field-errors">{{ person_form.work_minutes.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ person_form.work_line }}
-                {% if person_form.work_line.errors %}
-                  <div class="field-errors">{{ person_form.work_line.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ person_form.notes }}
-                {% if person_form.notes.errors %}
-                  <div class="field-errors">{{ person_form.notes.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {% if person_formset.can_delete %}
-                  {{ person_form.DELETE }}
-                {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        </div>
-        
-        <button type="button" id="add-person-btn" class="btn btn-success">{% trans "Add Person +" %}</button>
-      </div>
-
-      <!-- Machines Section -->
-      <div class="form-section">
-        <h3>{% trans "Machines (Machine Usage Time)" %}</h3>
-        <p class="form-text">{% trans "Add machines used in this order and enter their work minutes." %}</p>
-        
-        {{ machine_formset.management_form }}
-        
-        {% if machine_formset.non_form_errors %}
-          <div class="alert alert-error">
-            {{ machine_formset.non_form_errors }}
-          </div>
-        {% endif %}
-        
-        <div class="table-responsive">
-        <table class="data-table" id="machines-table">
-          <thead>
-            <tr>
-              <th>{% trans "Machine" %}</th>
-              <th>{% trans "Work Minutes" %}</th>
-              <th>{% trans "Work Line" %}</th>
-              <th>{% trans "Notes" %}</th>
-              <th>{% trans "Actions" %}</th>
-            </tr>
-          </thead>
-          <tbody id="machines-formset-container">
-            {% for machine_form in machine_formset %}
-            <tr class="formset-row" data-row-index="{{ forloop.counter0 }}">
-              {% for hidden in machine_form.hidden_fields %}{{ hidden }}{% endfor %}
-              <td>
-                {{ machine_form.machine }}
-                {% if machine_form.machine.errors %}
-                  <div class="field-errors">{{ machine_form.machine.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ machine_form.work_minutes }}
-                {% if machine_form.work_minutes.errors %}
-                  <div class="field-errors">{{ machine_form.work_minutes.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ machine_form.work_line }}
-                {% if machine_form.work_line.errors %}
-                  <div class="field-errors">{{ machine_form.work_line.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {{ machine_form.notes }}
-                {% if machine_form.notes.errors %}
-                  <div class="field-errors">{{ machine_form.notes.errors }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {% if machine_formset.can_delete %}
-                  {{ machine_form.DELETE }}
-                {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        </div>
-        
-        <button type="button" id="add-machine-btn" class="btn btn-success">{% trans "Add Machine +" %}</button>
-      </div>
-
-      <!-- Create Receipt Section (only for approved and locked records) -->
-      {% if object and object.pk and object.status == 'approved' and object.is_locked == 1 %}
-        {% if user_feature_permissions|feature_allowed:'production.performance_records:create_receipt' or user.is_superuser %}
-        <div class="form-section">
-          <h3>{% trans "Create Receipt" %}</h3>
-          <p class="form-text">{% trans "Create a receipt for the actual quantity produced." %}</p>
-          <a href="{% url 'production:performance_record_create_receipt' object.pk %}" class="btn btn-primary" onclick="return confirm('{% trans "Create receipt for this performance record?" %}')">
-            {% trans "Create Receipt" %}
-          </a>
-        </div>
-        {% endif %}
+      {% if form.operation.help_text %}
+        <small class="form-text">{{ form.operation.help_text }}</small>
       {% endif %}
+    </div>
+  </div>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.transfer.id_for_label }}">{{ form.transfer.label }}</label>
+      {{ form.transfer }}
+      {% if form.transfer.errors %}
+        <span class="error">{{ form.transfer.errors.0 }}</span>
+      {% endif %}
+      {% if form.transfer.help_text %}
+        <small class="form-text">{{ form.transfer.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.performance_date.id_for_label }}">{{ form.performance_date.label }} *</label>
+      {{ form.performance_date }}
+      {% if form.performance_date.errors %}
+        <span class="error">{{ form.performance_date.errors.0 }}</span>
+      {% endif %}
+    </div>
+    
+    <div class="form-field">
+      <label for="{{ form.approved_by.id_for_label }}">{{ form.approved_by.label }}</label>
+      {{ form.approved_by }}
+      {% if form.approved_by.errors %}
+        <span class="error">{{ form.approved_by.errors.0 }}</span>
+      {% endif %}
+      {% if form.approved_by.help_text %}
+        <small class="form-text">{{ form.approved_by.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
+  
+  <div class="form-row" id="quantity-fields-container">
+    <div class="form-field">
+      <label for="{{ form.quantity_planned.id_for_label }}">{{ form.quantity_planned.label }} <span id="quantity-planned-required" style="display: none;">*</span></label>
+      {{ form.quantity_planned }}
+      {% if form.quantity_planned.errors %}
+        <span class="error">{{ form.quantity_planned.errors.0 }}</span>
+      {% endif %}
+      {% if form.quantity_planned.help_text %}
+        <small class="form-text">{{ form.quantity_planned.help_text }}</small>
+      {% endif %}
+    </div>
+    
+    <div class="form-field">
+      <label for="{{ form.quantity_actual.id_for_label }}">{{ form.quantity_actual.label }} <span id="quantity-actual-required" style="display: none;">*</span></label>
+      {{ form.quantity_actual }}
+      {% if form.quantity_actual.errors %}
+        <span class="error">{{ form.quantity_actual.errors.0 }}</span>
+      {% endif %}
+      {% if form.quantity_actual.help_text %}
+        <small class="form-text">{{ form.quantity_actual.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
+  
+  <div class="form-row">
+    <div class="form-field full-width">
+      <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+      {{ form.notes }}
+      {% if form.notes.errors %}
+        <span class="error">{{ form.notes.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
 
-      <div class="form-actions">
-        {% if not object %}
-          <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
-        {% else %}
-          {% if object.is_locked != 1 %}
-            <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
-          {% endif %}
+{% block form_extra %}
+<!-- Materials Section -->
+<div class="form-section">
+  <header class="section-header">
+    <h2>{% trans "Materials (Waste Tracking)" %}</h2>
+    <p>{% trans "Materials from transfer document. Enter waste quantity for each material." %}</p>
+  </header>
+  
+  {{ material_formset.management_form }}
+  
+  {% if material_formset.non_form_errors %}
+    <div class="alert alert-error">
+      {% for error in material_formset.non_form_errors %}
+        <div>{{ error }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+  
+  <div class="table-responsive">
+    <table class="data-table formset-table" id="materials-table">
+      <thead>
+        <tr>
+          <th>{% trans "Material Item" %}</th>
+          <th>{% trans "Required Quantity" %}</th>
+          <th>{% trans "Waste Quantity" %}</th>
+          <th>{% trans "Unit" %}</th>
+          <th>{% trans "Notes" %}</th>
+        </tr>
+      </thead>
+      <tbody id="materials-formset-container">
+        {% for material_form in material_formset %}
+        <tr class="formset-row" data-row-index="{{ forloop.counter0 }}">
+          {% for hidden in material_form.hidden_fields %}{{ hidden }}{% endfor %}
+          <td>
+            {{ material_form.material_item }}
+            {% if material_form.material_item.errors %}
+              <div class="field-error">{{ material_form.material_item.errors.0 }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {{ material_form.quantity_required }}
+            {% if material_form.quantity_required.errors %}
+              <div class="field-error">{{ material_form.quantity_required.errors.0 }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {{ material_form.quantity_waste }}
+            {% if material_form.quantity_waste.errors %}
+              <div class="field-error">{{ material_form.quantity_waste.errors.0 }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {{ material_form.unit }}
+            {% if material_form.unit.errors %}
+              <div class="field-error">{{ material_form.unit.errors.0 }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {{ material_form.notes }}
+            {% if material_form.notes.errors %}
+              <div class="field-error">{{ material_form.notes.errors.0 }}</div>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        <!-- Empty template row for JavaScript to clone (only if formset is empty) -->
+        {% if not material_formset.forms %}
+        <tr class="formset-row formset-template" style="display: none;">
+          <td>
+            <select name="materials-__prefix__-material_item" id="id_materials-__prefix__-material_item" class="form-control">
+              <option value="">--------</option>
+            </select>
+          </td>
+          <td>
+            <input type="number" name="materials-__prefix__-quantity_required" id="id_materials-__prefix__-quantity_required" class="form-control" step="0.000001" min="0">
+          </td>
+          <td>
+            <input type="number" name="materials-__prefix__-quantity_waste" id="id_materials-__prefix__-quantity_waste" class="form-control" step="0.000001" min="0">
+          </td>
+          <td>
+            <input type="text" name="materials-__prefix__-unit" id="id_materials-__prefix__-unit" class="form-control">
+          </td>
+          <td>
+            <textarea name="materials-__prefix__-notes" id="id_materials-__prefix__-notes" class="form-control" rows="1"></textarea>
+          </td>
+        </tr>
         {% endif %}
-        <a href="{% url 'production:performance_records' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
-      </div>
-    </form>
+      </tbody>
+    </table>
   </div>
 </div>
 
-{% block extra_css %}
-<style>
-.table-responsive {
-  overflow-x: auto;
-  width: 100%;
-  margin-bottom: 1rem;
-}
+<!-- Persons Section -->
+<div class="form-section" id="persons-section">
+  <header class="section-header">
+    <h2>{% trans "Personnel (Labor Time)" %}</h2>
+    {% if is_general_document %}
+    <p>{% trans "Personnel data is automatically aggregated from operational performance records." %}</p>
+    {% else %}
+    <p>{% trans "Select personnel who worked on this operation and enter their work minutes." %}</p>
+    {% endif %}
+  </header>
+  
+  {{ person_formset.management_form }}
+  
+  {% if person_formset.non_form_errors %}
+    <div class="alert alert-error">
+      {% for error in person_formset.non_form_errors %}
+        <div>{{ error }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+  
+  <div class="table-responsive">
+    <table class="data-table formset-table" id="persons-table">
+      <thead>
+        <tr>
+          <th style="width: 50px;">{% trans "Used" %}</th>
+          <th>{% trans "Person" %}</th>
+          <th>{% trans "Work Minutes" %}</th>
+          <th>{% trans "Work Line" %}</th>
+          <th>{% trans "Notes" %}</th>
+        </tr>
+      </thead>
+      <tbody id="persons-formset-container">
+        {% for person_form in person_formset %}
+        <tr class="formset-row person-row" data-row-index="{{ forloop.counter0 }}" data-person-id="{{ person_form.person.value|default:'' }}">
+          {% for hidden in person_form.hidden_fields %}{{ hidden }}{% endfor %}
+          <td>
+            <input type="checkbox" class="person-used-checkbox" 
+                   {% if person_form.person.value %}checked{% endif %}
+                   data-person-id="{{ person_form.person.value|default:'' }}">
+            <input type="hidden" name="persons-{{ forloop.counter0 }}-person" 
+                   value="{{ person_form.person.value|default:'' }}" 
+                   class="person-id-input">
+          </td>
+          <td>
+            <span class="person-name-display">{{ person_form.person.value|default:'' }}</span>
+            {% if person_form.person.errors %}
+              <div class="field-error">{{ person_form.person.errors.0 }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {{ person_form.work_minutes }}
+            {% if person_form.work_minutes.errors %}
+              <div class="field-error">{{ person_form.work_minutes.errors.0 }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {{ person_form.work_line }}
+            {% if person_form.work_line.errors %}
+              <div class="field-error">{{ person_form.work_line.errors.0 }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {{ person_form.notes }}
+            {% if person_form.notes.errors %}
+              <div class="field-error">{{ person_form.notes.errors.0 }}</div>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <!-- Empty state - will be populated by JavaScript -->
+        <tr class="no-personnel-message">
+          <td colspan="5" class="text-center muted-text-cell">
+            {% trans "Select an operation to see available personnel." %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 
-#materials-table,
-#persons-table,
-#machines-table {
-  min-width: 800px;
-  width: 100%;
-}
+<!-- Machines Section -->
+<div class="form-section" id="machines-section">
+  <header class="section-header">
+    <h2>{% trans "Machines (Machine Usage Time)" %}</h2>
+    {% if is_general_document %}
+    <p>{% trans "Machine data is automatically aggregated from operational performance records." %}</p>
+    {% else %}
+    <p>{% trans "Select machines used in this operation and enter their work minutes." %}</p>
+    {% endif %}
+  </header>
+  
+  {{ machine_formset.management_form }}
+  
+  {% if machine_formset.non_form_errors %}
+    <div class="alert alert-error">
+      {% for error in machine_formset.non_form_errors %}
+        <div>{{ error }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+  
+  <div class="table-responsive">
+    <table class="data-table formset-table" id="machines-table">
+      <thead>
+        <tr>
+          <th style="width: 50px;">{% trans "Used" %}</th>
+          <th>{% trans "Machine" %}</th>
+          <th>{% trans "Work Minutes" %}</th>
+          <th>{% trans "Work Line" %}</th>
+          <th>{% trans "Notes" %}</th>
+        </tr>
+      </thead>
+      <tbody id="machines-formset-container">
+        {% for machine_form in machine_formset %}
+        <tr class="formset-row machine-row" data-row-index="{{ forloop.counter0 }}" data-machine-id="{{ machine_form.machine.value|default:'' }}">
+          {% for hidden in machine_form.hidden_fields %}{{ hidden }}{% endfor %}
+          <td>
+            <input type="checkbox" class="machine-used-checkbox" 
+                   {% if machine_form.machine.value %}checked{% endif %}
+                   data-machine-id="{{ machine_form.machine.value|default:'' }}">
+            <input type="hidden" name="machines-{{ forloop.counter0 }}-machine" 
+                   value="{{ machine_form.machine.value|default:'' }}" 
+                   class="machine-id-input">
+          </td>
+          <td>
+            <span class="machine-name-display">{{ machine_form.machine.value|default:'' }}</span>
+            {% if machine_form.machine.errors %}
+              <div class="field-error">{{ machine_form.machine.errors.0 }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {{ machine_form.work_minutes }}
+            {% if machine_form.work_minutes.errors %}
+              <div class="field-error">{{ machine_form.work_minutes.errors.0 }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {{ machine_form.work_line }}
+            {% if machine_form.work_line.errors %}
+              <div class="field-error">{{ machine_form.work_line.errors.0 }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {{ machine_form.notes }}
+            {% if machine_form.notes.errors %}
+              <div class="field-error">{{ machine_form.notes.errors.0 }}</div>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <!-- Empty state - will be populated by JavaScript -->
+        <tr class="no-machines-message">
+          <td colspan="5" class="text-center muted-text-cell">
+            {% trans "Select an operation to see available machines." %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 
-#materials-table th,
-#materials-table td,
-#persons-table th,
-#persons-table td,
-#machines-table th,
-#machines-table td {
-  white-space: nowrap;
-  min-width: 120px;
-  padding: 8px 12px;
-}
-
-.form-container {
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
-.inventory-module {
-  max-width: 100%;
-  overflow-x: hidden;
-}
-</style>
+<!-- Create Receipt Section (only for approved and locked records) -->
+{% if object and object.pk and object.status == 'approved' and object.is_locked == 1 %}
+  {% if user_feature_permissions|feature_allowed:'production.performance_records:create_receipt' or user.is_superuser %}
+  <div class="form-section">
+    <header class="section-header">
+      <h2>{% trans "Create Receipt" %}</h2>
+      <p>{% trans "Create a receipt for the actual quantity produced." %}</p>
+    </header>
+    <a href="{% url 'production:performance_record_create_receipt' object.pk %}" class="btn btn-primary" data-confirm="{% trans 'Create receipt for this performance record?' %}">
+      {% trans "Create Receipt" %}
+    </a>
+  </div>
+  {% endif %}
+{% endif %}
 {% endblock %}
 
-{% block extra_scripts %}
+{% block form_actions_extra %}
+{% if object and object.is_locked == 1 %}
+  <style>
+    .form-actions button[type="submit"] {
+      display: none !important;
+    }
+  </style>
+{% endif %}
+{% endblock %}
+
+{% block extra_styles %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/shared.css' %}">
+{% endblock %}
+
+{% block form_scripts %}
+{% load static %}
 <script src="{% static 'js/jalali-datepicker/jalali-datepicker.min.js' %}"></script>
+<script src="{% static 'js/formset.js' %}"></script>
 <link rel="stylesheet" href="{% static 'css/jalali-datepicker/jalali-datepicker.min.css' %}">
 
 <script>
@@ -441,11 +455,916 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Auto-populate materials when transfer is selected
+  // Get form elements
+  var documentTypeSelect = document.getElementById('id_document_type');
   var orderSelect = document.getElementById('id_order');
+  var operationSelect = document.getElementById('id_operation');
   var transferSelect = document.getElementById('id_transfer');
   var quantityPlannedInput = document.getElementById('id_quantity_planned');
   var quantityActualInput = document.getElementById('id_quantity_actual');
+  var quantityFieldsContainer = document.getElementById('quantity-fields-container');
+  var operationFieldContainer = document.getElementById('operation-field-container');
+  var operationRequired = document.getElementById('operation-required');
+  var quantityPlannedRequired = document.getElementById('quantity-planned-required');
+  var quantityActualRequired = document.getElementById('quantity-actual-required');
+
+  // Function to toggle fields based on document type
+  function toggleFieldsByDocumentType() {
+    var documentType = documentTypeSelect ? documentTypeSelect.value : '';
+    var isGeneral = (documentType === 'general');
+    
+    // Toggle operation and quantity fields
+    if (documentType === 'operational') {
+      // Show operation field, hide quantity fields
+      if (operationFieldContainer) {
+        operationFieldContainer.style.display = '';
+      }
+      if (operationSelect) {
+        operationSelect.required = true;
+        operationSelect.disabled = false;
+      }
+      if (operationRequired) {
+        operationRequired.style.display = 'inline';
+      }
+      
+      if (quantityFieldsContainer) {
+        quantityFieldsContainer.style.display = 'none';
+      }
+      if (quantityPlannedInput) {
+        quantityPlannedInput.required = false;
+        quantityPlannedInput.value = '';
+        quantityPlannedInput.disabled = false;
+      }
+      if (quantityActualInput) {
+        quantityActualInput.required = false;
+        quantityActualInput.value = '';
+        quantityActualInput.disabled = false;
+      }
+      if (quantityPlannedRequired) {
+        quantityPlannedRequired.style.display = 'none';
+      }
+      if (quantityActualRequired) {
+        quantityActualRequired.style.display = 'none';
+      }
+    } else if (documentType === 'general') {
+      // Hide operation field, show quantity fields
+      if (operationFieldContainer) {
+        operationFieldContainer.style.display = 'none';
+      }
+      if (operationSelect) {
+        operationSelect.required = false;
+        operationSelect.value = '';
+        operationSelect.disabled = false;
+      }
+      if (operationRequired) {
+        operationRequired.style.display = 'none';
+      }
+      
+      if (quantityFieldsContainer) {
+        quantityFieldsContainer.style.display = '';
+      }
+      if (quantityPlannedInput) {
+        quantityPlannedInput.required = true;
+        quantityPlannedInput.disabled = false;
+      }
+      if (quantityActualInput) {
+        quantityActualInput.required = true;
+        quantityActualInput.disabled = false;
+      }
+      if (quantityPlannedRequired) {
+        quantityPlannedRequired.style.display = 'inline';
+      }
+      if (quantityActualRequired) {
+        quantityActualRequired.style.display = 'inline';
+      }
+    }
+    
+    // Toggle persons and machines sections
+    var personsSection = document.getElementById('persons-section');
+    var machinesSection = document.getElementById('machines-section');
+    
+    if (isGeneral) {
+      // Disable all person and machine inputs
+      if (personsSection) {
+        var personInputs = personsSection.querySelectorAll('input, select, textarea');
+        personInputs.forEach(function(input) {
+          if (input.type !== 'hidden' && !input.classList.contains('person-used-checkbox')) {
+            input.disabled = true;
+            input.readOnly = true;
+          }
+        });
+      }
+      
+      if (machinesSection) {
+        var machineInputs = machinesSection.querySelectorAll('input, select, textarea');
+        machineInputs.forEach(function(input) {
+          if (input.type !== 'hidden' && !input.classList.contains('machine-used-checkbox')) {
+            input.disabled = true;
+            input.readOnly = true;
+          }
+        });
+      }
+    } else {
+      // Enable checkboxes (fields will be enabled/disabled based on checkbox state)
+      if (personsSection) {
+        var personCheckboxes = personsSection.querySelectorAll('.person-used-checkbox');
+        personCheckboxes.forEach(function(checkbox) {
+          checkbox.disabled = false;
+        });
+      }
+      
+      if (machinesSection) {
+        var machineCheckboxes = machinesSection.querySelectorAll('.machine-used-checkbox');
+        machineCheckboxes.forEach(function(checkbox) {
+          checkbox.disabled = false;
+        });
+      }
+    }
+  }
+
+  // Initialize field visibility on page load
+  toggleFieldsByDocumentType();
+
+  // Load operations on page load if order is already selected
+  if (orderSelect && orderSelect.value && documentTypeSelect && documentTypeSelect.value === 'operational') {
+    loadOperationsForOrder(orderSelect.value);
+  }
+
+  // Update fields when document type changes
+  if (documentTypeSelect) {
+    documentTypeSelect.addEventListener('change', function() {
+      toggleFieldsByDocumentType();
+      // Clear operation when switching to general
+      if (this.value === 'general' && operationSelect) {
+        operationSelect.value = '';
+        operationSelect.innerHTML = '<option value="">--------</option>';
+        // Clear operation data when switching to general
+        clearOperationData();
+      }
+      // Reload operations when switching to operational
+      if (this.value === 'operational' && orderSelect && orderSelect.value) {
+        loadOperationsForOrder(orderSelect.value);
+        // If operation is already selected, reload its data
+        if (operationSelect && operationSelect.value) {
+          loadOperationData(operationSelect.value, orderSelect.value);
+        }
+      }
+    });
+  }
+
+  // Function to load operations for selected order
+  function loadOperationsForOrder(orderId) {
+    console.log('loadOperationsForOrder called with orderId:', orderId);
+    
+    if (!orderId || !operationSelect) {
+      console.log('No orderId or operationSelect, clearing options');
+      if (operationSelect) {
+        operationSelect.innerHTML = '<option value="">--------</option>';
+      }
+      return;
+    }
+
+    // Only fetch operations if document type is operational
+    if (documentTypeSelect && documentTypeSelect.value !== 'operational') {
+      console.log('Document type is not operational, skipping');
+      if (operationSelect) {
+        operationSelect.innerHTML = '<option value="">--------</option>';
+      }
+      return;
+    }
+
+    // Show loading state
+    if (operationSelect) {
+      operationSelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
+      operationSelect.disabled = true;
+    }
+
+    // Build URL - ensure it includes language prefix
+    var baseUrl = '{% url "production:performance_record_get_operations" %}';
+    // If baseUrl doesn't start with /fa/, add it
+    if (!baseUrl.startsWith('/fa/') && !baseUrl.startsWith('http')) {
+      baseUrl = '/fa' + baseUrl;
+    }
+    var url = baseUrl + '?order_id=' + orderId;
+    console.log('Fetching operations from:', url);
+    console.log('Base URL:', baseUrl);
+    console.log('Order ID:', orderId);
+
+    // Fetch operations for the selected order's process via AJAX
+    fetch(url, {
+      method: 'GET',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json',
+      },
+      credentials: 'same-origin',  // Include cookies for session
+    })
+      .then(function(response) {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+          throw new Error('Network response was not ok: ' + response.status);
+        }
+        return response.json();
+      })
+      .then(function(data) {
+        console.log('Received data:', data);
+        
+        if (data.error) {
+          console.error('Error fetching operations:', data.error);
+          if (operationSelect) {
+            operationSelect.innerHTML = '<option value="">--------</option>';
+            operationSelect.disabled = false;
+          }
+          return;
+        }
+        
+        // Clear existing options
+        if (operationSelect) {
+          operationSelect.innerHTML = '<option value="">--------</option>';
+          
+          // Add new options
+          if (data.operations && data.operations.length > 0) {
+            console.log('Adding', data.operations.length, 'operations');
+            data.operations.forEach(function(op) {
+              var option = document.createElement('option');
+              option.value = op.id;
+              option.textContent = op.name || ('Operation ' + op.sequence_order);
+              operationSelect.appendChild(option);
+            });
+          } else {
+            console.log('No operations available');
+            // No operations available
+            var option = document.createElement('option');
+            option.value = '';
+            option.textContent = '{% trans "No operations available" %}';
+            option.disabled = true;
+            operationSelect.appendChild(option);
+          }
+          operationSelect.disabled = false;
+        }
+      })
+      .catch(function(error) {
+        console.error('Error fetching operations:', error);
+        if (operationSelect) {
+          operationSelect.innerHTML = '<option value="">--------</option>';
+          operationSelect.disabled = false;
+        }
+      });
+  }
+
+  // Update operation options when order changes
+  if (orderSelect && operationSelect) {
+    console.log('Setting up order change listener');
+    
+    // Use both change and input events to ensure it works
+    function handleOrderChange() {
+      var orderId = orderSelect.value;
+      console.log('Order changed/input to:', orderId);
+      // Clear operation and its data when order changes
+      if (operationSelect) {
+        operationSelect.value = '';
+        operationSelect.innerHTML = '<option value="">--------</option>';
+      }
+      clearOperationData();
+      
+      if (orderId) {
+        loadOperationsForOrder(orderId);
+      }
+    }
+    
+    orderSelect.addEventListener('change', handleOrderChange);
+    orderSelect.addEventListener('input', handleOrderChange);
+    
+    // Also check if order is already selected on page load
+    // Use multiple timeouts to ensure DOM is ready
+    setTimeout(function() {
+      console.log('Checking for pre-selected order...');
+      console.log('orderSelect:', orderSelect);
+      console.log('orderSelect.value:', orderSelect ? orderSelect.value : 'N/A');
+      console.log('documentTypeSelect:', documentTypeSelect);
+      console.log('documentTypeSelect.value:', documentTypeSelect ? documentTypeSelect.value : 'N/A');
+      
+      if (orderSelect && orderSelect.value && documentTypeSelect && documentTypeSelect.value === 'operational') {
+        console.log('Order already selected on page load:', orderSelect.value);
+        loadOperationsForOrder(orderSelect.value);
+      }
+    }, 500);
+    
+    // Also try after a longer delay
+    setTimeout(function() {
+      if (orderSelect && orderSelect.value && documentTypeSelect && documentTypeSelect.value === 'operational') {
+        console.log('Second check - Order already selected:', orderSelect.value);
+        loadOperationsForOrder(orderSelect.value);
+      }
+    }, 1000);
+  } else {
+    console.error('orderSelect or operationSelect not found!');
+    console.log('orderSelect:', orderSelect);
+    console.log('operationSelect:', operationSelect);
+  }
+
+  // Load operation data (materials, personnel, machines) when operation changes
+  function loadOperationData(operationId, orderId) {
+    console.log('loadOperationData called with operationId:', operationId, 'orderId:', orderId);
+    
+    if (!operationId || !orderId) {
+      console.log('No operationId or orderId, clearing data');
+      clearOperationData();
+      return;
+    }
+
+    // Only fetch data if document type is operational
+    if (documentTypeSelect && documentTypeSelect.value !== 'operational') {
+      console.log('Document type is not operational, skipping');
+      return;
+    }
+
+    // Build URL
+    var baseUrl = '{% url "production:performance_record_get_operation_data" %}';
+    if (!baseUrl.startsWith('/fa/') && !baseUrl.startsWith('http')) {
+      baseUrl = '/fa' + baseUrl;
+    }
+    var url = baseUrl + '?operation_id=' + operationId + '&order_id=' + orderId;
+    console.log('Fetching operation data from:', url);
+
+    // Fetch operation data via AJAX
+    fetch(url, {
+      method: 'GET',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json',
+      },
+      credentials: 'same-origin',
+    })
+      .then(function(response) {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+          throw new Error('Network response was not ok: ' + response.status);
+        }
+        return response.json();
+      })
+      .then(function(data) {
+        console.log('Received operation data:', data);
+        
+        if (data.error) {
+          console.error('Error fetching operation data:', data.error);
+          return;
+        }
+        
+        // Store operation data globally for use in populate functions
+        window.currentOperationData = data;
+        
+        // Populate materials
+        if (data.materials && data.materials.length > 0) {
+          populateMaterials(data.materials);
+        } else {
+          clearMaterials();
+        }
+        
+        // Populate personnel (wait a bit to ensure template is ready)
+        setTimeout(function() {
+          if (data.personnel && data.personnel.length > 0) {
+            populatePersonnel(data.personnel);
+          } else {
+            clearPersonnel();
+          }
+        }, 100);
+        
+        // Populate machines (wait a bit to ensure template is ready)
+        setTimeout(function() {
+          if (data.machines && data.machines.length > 0) {
+            populateMachines(data.machines);
+          } else {
+            clearMachines();
+          }
+        }, 150);
+      })
+      .catch(function(error) {
+        console.error('Error fetching operation data:', error);
+      });
+  }
+
+  function clearOperationData() {
+    clearMaterials();
+    clearPersonnel();
+    clearMachines();
+  }
+
+  function clearMaterials() {
+    var materialsContainer = document.getElementById('materials-formset-container');
+    if (materialsContainer) {
+      // Keep only the first empty row or template
+      var rows = materialsContainer.querySelectorAll('.formset-row');
+      rows.forEach(function(row, index) {
+        if (index > 0) {
+          row.remove();
+        } else {
+          // Clear the first row
+          row.querySelectorAll('input, select, textarea').forEach(function(field) {
+            if (field.type !== 'hidden' && field.name && !field.name.includes('DELETE')) {
+              field.value = '';
+            }
+          });
+        }
+      });
+      // Update TOTAL_FORMS
+      var totalFormsInput = document.querySelector('#id_materials-TOTAL_FORMS');
+      if (totalFormsInput) {
+        totalFormsInput.value = '1';
+      }
+    }
+  }
+
+  function populateMaterials(materials) {
+    console.log('Populating materials:', materials);
+    var materialsContainer = document.getElementById('materials-formset-container');
+    if (!materialsContainer) {
+      console.error('Materials container not found');
+      return;
+    }
+
+    // Clear existing rows (except template)
+    var existingRows = materialsContainer.querySelectorAll('.formset-row:not(.formset-template)');
+    existingRows.forEach(function(row) {
+      row.remove();
+    });
+
+    // Get template row - try multiple selectors
+    var templateRow = materialsContainer.querySelector('.formset-template') || 
+                     materialsContainer.querySelector('tr.formset-row');
+    
+    if (!templateRow) {
+      console.error('Template row not found for materials');
+      return;
+    }
+
+    // Create rows for each material
+    var totalFormsInput = document.querySelector('#id_materials-TOTAL_FORMS');
+    var currentIndex = 0;
+    
+    materials.forEach(function(material) {
+      var newRow = templateRow.cloneNode(true);
+      newRow.classList.remove('formset-template');
+      newRow.style.display = '';
+      
+      // Update field names with correct index (handle both __prefix__ and numeric patterns)
+      newRow.querySelectorAll('input, select, textarea').forEach(function(field) {
+        if (field.name) {
+          field.name = field.name.replace(/materials-__prefix__-/, 'materials-' + currentIndex + '-')
+                                 .replace(/materials-\d+-/, 'materials-' + currentIndex + '-');
+          if (field.id) {
+            field.id = field.id.replace(/id_materials-__prefix__-/, 'id_materials-' + currentIndex + '-')
+                               .replace(/id_materials-\d+-/, 'id_materials-' + currentIndex + '-');
+          }
+        }
+      });
+      
+      // Set values
+      var materialItemSelect = newRow.querySelector('select[name*="material_item"]');
+      var quantityRequiredInput = newRow.querySelector('input[name*="quantity_required"]');
+      var quantityWasteInput = newRow.querySelector('input[name*="quantity_waste"]');
+      var unitInput = newRow.querySelector('input[name*="unit"]');
+      
+      if (materialItemSelect) {
+        // Find option with matching item_id or create new option
+        var option = materialItemSelect.querySelector('option[value="' + material.item_id + '"]');
+        if (!option) {
+          option = document.createElement('option');
+          option.value = material.item_id;
+          option.textContent = material.item_code + ' - ' + material.item_name;
+          materialItemSelect.appendChild(option);
+        }
+        materialItemSelect.value = material.item_id;
+      }
+      
+      if (quantityRequiredInput) {
+        quantityRequiredInput.value = material.quantity_required || '';
+      }
+      
+      if (quantityWasteInput) {
+        quantityWasteInput.value = '';
+      }
+      
+      if (unitInput) {
+        unitInput.value = material.unit || '';
+      }
+      
+      materialsContainer.appendChild(newRow);
+      currentIndex++;
+    });
+
+    // Update TOTAL_FORMS
+    if (totalFormsInput) {
+      totalFormsInput.value = currentIndex.toString();
+    }
+  }
+
+  function clearPersonnel() {
+    var personsContainer = document.getElementById('persons-formset-container');
+    if (personsContainer) {
+      var rows = personsContainer.querySelectorAll('.formset-row:not(.formset-template)');
+      rows.forEach(function(row) {
+        row.remove();
+      });
+      var totalFormsInput = document.querySelector('#id_persons-TOTAL_FORMS');
+      if (totalFormsInput) {
+        totalFormsInput.value = '0';
+      }
+    }
+  }
+
+  function populatePersonnel(personnel) {
+    console.log('Populating personnel:', personnel);
+    var personsContainer = document.getElementById('persons-formset-container');
+    if (!personsContainer) {
+      console.error('Persons container not found');
+      return;
+    }
+
+    // Clear existing rows
+    personsContainer.innerHTML = '';
+    
+    if (!personnel || personnel.length === 0) {
+      personsContainer.innerHTML = '<tr class="no-personnel-message"><td colspan="5" class="text-center muted-text-cell">{% trans "No personnel available for this work line." %}</td></tr>';
+      var totalFormsInput = document.querySelector('#id_persons-TOTAL_FORMS');
+      if (totalFormsInput) {
+        totalFormsInput.value = '0';
+      }
+      return;
+    }
+
+    var totalFormsInput = document.querySelector('#id_persons-TOTAL_FORMS');
+    var currentIndex = 0;
+    var workLineId = window.currentOperationData && window.currentOperationData.work_line ? window.currentOperationData.work_line.id : null;
+    
+    personnel.forEach(function(person) {
+      var row = document.createElement('tr');
+      row.className = 'formset-row person-row';
+      row.setAttribute('data-person-id', person.id);
+      
+      // Checkbox column
+      var checkboxTd = document.createElement('td');
+      var checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'person-used-checkbox';
+      checkbox.setAttribute('data-person-id', person.id);
+      checkbox.addEventListener('change', function() {
+        togglePersonRowFields(row, this.checked);
+      });
+      checkboxTd.appendChild(checkbox);
+      
+      // Hidden person ID input
+      var personIdInput = document.createElement('input');
+      personIdInput.type = 'hidden';
+      personIdInput.name = 'persons-' + currentIndex + '-person';
+      personIdInput.value = person.id;
+      personIdInput.className = 'person-id-input';
+      checkboxTd.appendChild(personIdInput);
+      row.appendChild(checkboxTd);
+      
+      // Person name display
+      var nameTd = document.createElement('td');
+      var nameSpan = document.createElement('span');
+      nameSpan.className = 'person-name-display';
+      nameSpan.textContent = person.code + ' - ' + person.name;
+      nameTd.appendChild(nameSpan);
+      row.appendChild(nameTd);
+      
+      // Work minutes input (readonly, calculated automatically)
+      var minutesTd = document.createElement('td');
+      var minutesInput = document.createElement('input');
+      minutesInput.type = 'number';
+      minutesInput.name = 'persons-' + currentIndex + '-work_minutes';
+      minutesInput.id = 'id_persons-' + currentIndex + '-work_minutes';
+      minutesInput.className = 'form-control';
+      minutesInput.step = '0.000001';
+      minutesInput.min = '0';
+      minutesInput.readOnly = true;
+      minutesInput.disabled = true;
+      minutesInput.style.backgroundColor = '#f5f5f5';
+      // Calculate work minutes: labor_minutes_per_unit * quantity_planned
+      var laborMinutesPerUnit = window.currentOperationData && window.currentOperationData.operation ? 
+                                 (window.currentOperationData.operation.labor_minutes_per_unit || 0) : 0;
+      // Use order quantity_planned (from operation data)
+      var quantity = window.currentOperationData && window.currentOperationData.order ? 
+                     (window.currentOperationData.order.quantity_planned || 0) : 0;
+      var calculatedMinutes = laborMinutesPerUnit * quantity;
+      minutesInput.value = calculatedMinutes > 0 ? calculatedMinutes.toFixed(6) : '';
+      minutesTd.appendChild(minutesInput);
+      row.appendChild(minutesTd);
+      
+      // Work line (hidden input, will be set automatically)
+      var workLineTd = document.createElement('td');
+      var workLineInput = document.createElement('input');
+      workLineInput.type = 'hidden';
+      workLineInput.name = 'persons-' + currentIndex + '-work_line';
+      workLineInput.value = workLineId || '';
+      workLineInput.className = 'work-line-input';
+      var workLineDisplay = document.createElement('span');
+      if (window.currentOperationData && window.currentOperationData.work_line) {
+        workLineDisplay.textContent = window.currentOperationData.work_line.code + ' - ' + window.currentOperationData.work_line.name;
+      }
+      workLineTd.appendChild(workLineInput);
+      workLineTd.appendChild(workLineDisplay);
+      row.appendChild(workLineTd);
+      
+      // Notes input
+      var notesTd = document.createElement('td');
+      var notesInput = document.createElement('textarea');
+      notesInput.name = 'persons-' + currentIndex + '-notes';
+      notesInput.id = 'id_persons-' + currentIndex + '-notes';
+      notesInput.className = 'form-control';
+      notesInput.rows = 1;
+      notesInput.disabled = true;
+      notesTd.appendChild(notesInput);
+      row.appendChild(notesTd);
+      
+      personsContainer.appendChild(row);
+      currentIndex++;
+    });
+
+    if (totalFormsInput) {
+      totalFormsInput.value = currentIndex.toString();
+    }
+  }
+  
+  function togglePersonRowFields(row, enabled) {
+    var minutesInput = row.querySelector('input[name*="work_minutes"]');
+    var notesInput = row.querySelector('textarea[name*="notes"]');
+    var personIdInput = row.querySelector('.person-id-input');
+    
+    // Work minutes is always readonly (calculated automatically)
+    // Just enable/disable for form submission
+    if (minutesInput) {
+      minutesInput.disabled = !enabled;
+      // Recalculate when enabled
+      if (enabled) {
+        updatePersonWorkMinutes(row);
+      } else {
+        minutesInput.value = '';
+      }
+    }
+    if (notesInput) {
+      notesInput.disabled = !enabled;
+      if (!enabled) {
+        notesInput.value = '';
+      }
+    }
+    if (personIdInput) {
+      personIdInput.disabled = !enabled;
+    }
+  }
+  
+  function updatePersonWorkMinutes(row) {
+    if (!window.currentOperationData || !window.currentOperationData.operation) {
+      return;
+    }
+    var minutesInput = row.querySelector('input[name*="work_minutes"]');
+    if (!minutesInput) return;
+    
+    var laborMinutesPerUnit = window.currentOperationData.operation.labor_minutes_per_unit || 0;
+    // Use order quantity_planned (from operation data)
+    var quantity = window.currentOperationData.order ? 
+                   (window.currentOperationData.order.quantity_planned || 0) : 0;
+    var calculatedMinutes = laborMinutesPerUnit * quantity;
+    minutesInput.value = calculatedMinutes > 0 ? calculatedMinutes.toFixed(6) : '';
+  }
+
+  function clearMachines() {
+    var machinesContainer = document.getElementById('machines-formset-container');
+    if (machinesContainer) {
+      var rows = machinesContainer.querySelectorAll('.formset-row:not(.formset-template)');
+      rows.forEach(function(row) {
+        row.remove();
+      });
+      var totalFormsInput = document.querySelector('#id_machines-TOTAL_FORMS');
+      if (totalFormsInput) {
+        totalFormsInput.value = '0';
+      }
+    }
+  }
+
+  function populateMachines(machines) {
+    console.log('Populating machines:', machines);
+    var machinesContainer = document.getElementById('machines-formset-container');
+    if (!machinesContainer) {
+      console.error('Machines container not found');
+      return;
+    }
+
+    // Clear existing rows
+    machinesContainer.innerHTML = '';
+    
+    if (!machines || machines.length === 0) {
+      machinesContainer.innerHTML = '<tr class="no-machines-message"><td colspan="5" class="text-center muted-text-cell">{% trans "No machines available for this work line." %}</td></tr>';
+      var totalFormsInput = document.querySelector('#id_machines-TOTAL_FORMS');
+      if (totalFormsInput) {
+        totalFormsInput.value = '0';
+      }
+      return;
+    }
+
+    var totalFormsInput = document.querySelector('#id_machines-TOTAL_FORMS');
+    var currentIndex = 0;
+    var workLineId = window.currentOperationData && window.currentOperationData.work_line ? window.currentOperationData.work_line.id : null;
+    
+    machines.forEach(function(machine) {
+      var row = document.createElement('tr');
+      row.className = 'formset-row machine-row';
+      row.setAttribute('data-machine-id', machine.id);
+      
+      // Checkbox column
+      var checkboxTd = document.createElement('td');
+      var checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'machine-used-checkbox';
+      checkbox.setAttribute('data-machine-id', machine.id);
+      checkbox.addEventListener('change', function() {
+        toggleMachineRowFields(row, this.checked);
+      });
+      checkboxTd.appendChild(checkbox);
+      
+      // Hidden machine ID input
+      var machineIdInput = document.createElement('input');
+      machineIdInput.type = 'hidden';
+      machineIdInput.name = 'machines-' + currentIndex + '-machine';
+      machineIdInput.value = machine.id;
+      machineIdInput.className = 'machine-id-input';
+      checkboxTd.appendChild(machineIdInput);
+      row.appendChild(checkboxTd);
+      
+      // Machine name display
+      var nameTd = document.createElement('td');
+      var nameSpan = document.createElement('span');
+      nameSpan.className = 'machine-name-display';
+      nameSpan.textContent = machine.code + ' - ' + machine.name;
+      nameTd.appendChild(nameSpan);
+      row.appendChild(nameTd);
+      
+      // Work minutes input (readonly, calculated automatically)
+      var minutesTd = document.createElement('td');
+      var minutesInput = document.createElement('input');
+      minutesInput.type = 'number';
+      minutesInput.name = 'machines-' + currentIndex + '-work_minutes';
+      minutesInput.id = 'id_machines-' + currentIndex + '-work_minutes';
+      minutesInput.className = 'form-control';
+      minutesInput.step = '0.000001';
+      minutesInput.min = '0';
+      minutesInput.readOnly = true;
+      minutesInput.disabled = true;
+      minutesInput.style.backgroundColor = '#f5f5f5';
+      // Calculate work minutes: machine_minutes_per_unit * quantity
+      var machineMinutesPerUnit = window.currentOperationData && window.currentOperationData.operation ? 
+                                  (window.currentOperationData.operation.machine_minutes_per_unit || 0) : 0;
+      // For operational documents, use order quantity_planned
+      var quantity = window.currentOperationData && window.currentOperationData.order ? 
+                     (window.currentOperationData.order.quantity_planned || 0) : 0;
+      var calculatedMinutes = machineMinutesPerUnit * quantity;
+      minutesInput.value = calculatedMinutes > 0 ? calculatedMinutes.toFixed(6) : '';
+      minutesTd.appendChild(minutesInput);
+      row.appendChild(minutesTd);
+      
+      // Work line (hidden input, will be set automatically)
+      var workLineTd = document.createElement('td');
+      var workLineInput = document.createElement('input');
+      workLineInput.type = 'hidden';
+      workLineInput.name = 'machines-' + currentIndex + '-work_line';
+      workLineInput.value = workLineId || '';
+      workLineInput.className = 'work-line-input';
+      var workLineDisplay = document.createElement('span');
+      if (window.currentOperationData && window.currentOperationData.work_line) {
+        workLineDisplay.textContent = window.currentOperationData.work_line.code + ' - ' + window.currentOperationData.work_line.name;
+      }
+      workLineTd.appendChild(workLineInput);
+      workLineTd.appendChild(workLineDisplay);
+      row.appendChild(workLineTd);
+      
+      // Notes input
+      var notesTd = document.createElement('td');
+      var notesInput = document.createElement('textarea');
+      notesInput.name = 'machines-' + currentIndex + '-notes';
+      notesInput.id = 'id_machines-' + currentIndex + '-notes';
+      notesInput.className = 'form-control';
+      notesInput.rows = 1;
+      notesInput.disabled = true;
+      notesTd.appendChild(notesInput);
+      row.appendChild(notesTd);
+      
+      machinesContainer.appendChild(row);
+      currentIndex++;
+    });
+
+    if (totalFormsInput) {
+      totalFormsInput.value = currentIndex.toString();
+    }
+  }
+  
+  function toggleMachineRowFields(row, enabled) {
+    var minutesInput = row.querySelector('input[name*="work_minutes"]');
+    var notesInput = row.querySelector('textarea[name*="notes"]');
+    var machineIdInput = row.querySelector('.machine-id-input');
+    
+    // Work minutes is always readonly (calculated automatically)
+    // Just enable/disable for form submission
+    if (minutesInput) {
+      minutesInput.disabled = !enabled;
+      // Recalculate when enabled
+      if (enabled) {
+        updateMachineWorkMinutes(row);
+      } else {
+        minutesInput.value = '';
+      }
+    }
+    if (notesInput) {
+      notesInput.disabled = !enabled;
+      if (!enabled) {
+        notesInput.value = '';
+      }
+    }
+    if (machineIdInput) {
+      machineIdInput.disabled = !enabled;
+    }
+  }
+  
+  function updateMachineWorkMinutes(row) {
+    if (!window.currentOperationData || !window.currentOperationData.operation) {
+      return;
+    }
+    var minutesInput = row.querySelector('input[name*="work_minutes"]');
+    if (!minutesInput) return;
+    
+    var machineMinutesPerUnit = window.currentOperationData.operation.machine_minutes_per_unit || 0;
+    // For operational documents, use order quantity_planned
+    var quantity = window.currentOperationData.order ? 
+                   (window.currentOperationData.order.quantity_planned || 0) : 0;
+    var calculatedMinutes = machineMinutesPerUnit * quantity;
+    minutesInput.value = calculatedMinutes > 0 ? calculatedMinutes.toFixed(6) : '';
+  }
+  
+  // Update work minutes when quantity changes (if quantity_actual exists for general documents)
+  var quantityActualInput = document.getElementById('id_quantity_actual');
+  if (quantityActualInput) {
+    quantityActualInput.addEventListener('input', function() {
+      updateAllWorkMinutes();
+    });
+    quantityActualInput.addEventListener('change', function() {
+      updateAllWorkMinutes();
+    });
+  }
+  
+  function updateAllWorkMinutes() {
+    if (!window.currentOperationData || !window.currentOperationData.operation) {
+      return;
+    }
+    
+    // For operational documents, use order quantity_planned
+    // For general documents, use quantity_actual if available
+    var quantity = window.currentOperationData.order ? 
+                   (window.currentOperationData.order.quantity_planned || 0) : 0;
+    var quantityActualInput = document.getElementById('id_quantity_actual');
+    if (quantityActualInput && quantityActualInput.value) {
+      quantity = parseFloat(quantityActualInput.value) || quantity;
+    }
+    
+    // Update all checked personnel work minutes
+    document.querySelectorAll('.person-used-checkbox:checked').forEach(function(checkbox) {
+      var row = checkbox.closest('.person-row');
+      if (row) {
+        updatePersonWorkMinutes(row);
+      }
+    });
+    
+    // Update all checked machine work minutes
+    document.querySelectorAll('.machine-used-checkbox:checked').forEach(function(checkbox) {
+      var row = checkbox.closest('.machine-row');
+      if (row) {
+        updateMachineWorkMinutes(row);
+      }
+    });
+  }
+
+  // Listen for operation changes
+  if (operationSelect && orderSelect) {
+    operationSelect.addEventListener('change', function() {
+      var operationId = this.value;
+      var orderId = orderSelect.value;
+      console.log('Operation changed to:', operationId);
+      if (operationId && orderId) {
+        loadOperationData(operationId, orderId);
+      } else {
+        clearOperationData();
+      }
+    });
+    
+    // Also load on page load if operation is already selected
+    setTimeout(function() {
+      if (operationSelect && operationSelect.value && orderSelect && orderSelect.value && 
+          documentTypeSelect && documentTypeSelect.value === 'operational') {
+        console.log('Operation already selected on page load:', operationSelect.value);
+        loadOperationData(operationSelect.value, orderSelect.value);
+      }
+    }, 1500);
+  }
 
   if (orderSelect && transferSelect) {
     function updateTransferOptions() {
@@ -468,10 +1387,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     orderSelect.addEventListener('change', function() {
       updateTransferOptions();
-      // Auto-populate quantity_planned from order
-      if (orderSelect.options[orderSelect.selectedIndex]) {
-        var orderText = orderSelect.options[orderSelect.selectedIndex].text;
-        // Extract quantity from order text if available, or make API call
+      // Auto-populate quantity_planned from order (only for general documents)
+      if (documentTypeSelect && documentTypeSelect.value === 'general') {
+        if (orderSelect.options[orderSelect.selectedIndex]) {
+          var orderText = orderSelect.options[orderSelect.selectedIndex].text;
+          // Extract quantity from order text if available, or make API call
+        }
       }
     });
 
@@ -481,108 +1402,68 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Formset management for persons
-  var addPersonBtn = document.getElementById('add-person-btn');
-  var personsFormsetContainer = document.getElementById('persons-formset-container');
-  var totalPersonsInput = document.querySelector('#id_persons-TOTAL_FORMS');
-
-  if (addPersonBtn && personsFormsetContainer && totalPersonsInput) {
-    addPersonBtn.addEventListener('click', function() {
-      var currentFormCount = parseInt(totalPersonsInput.value);
-      var newFormIndex = currentFormCount;
-
-      var newFormRow = personsFormsetContainer.lastElementChild.cloneNode(true);
-      newFormRow.setAttribute('data-row-index', newFormIndex);
-
-      newFormRow.querySelectorAll('input, select, textarea').forEach(function(field) {
-        if (field.name) {
-          field.name = field.name.replace(/persons-(\d+)-/, `persons-${newFormIndex}-`);
-        }
-        if (field.id) {
-          field.id = field.id.replace(/id_persons-(\d+)-/, `id_persons-${newFormIndex}-`);
-        }
-        if (field.type !== 'hidden' && field.type !== 'checkbox') {
-          field.value = '';
-        }
-        if (field.type === 'checkbox') {
-          field.checked = false;
-        }
-      });
-
-      newFormRow.querySelectorAll('.field-errors').forEach(function(error) {
-        error.textContent = '';
-      });
-
-      personsFormsetContainer.appendChild(newFormRow);
-      totalPersonsInput.value = newFormIndex + 1;
-    });
-  }
-
-  // Formset management for machines
-  var addMachineBtn = document.getElementById('add-machine-btn');
-  var machinesFormsetContainer = document.getElementById('machines-formset-container');
-  var totalMachinesInput = document.querySelector('#id_machines-TOTAL_FORMS');
-
-  if (addMachineBtn && machinesFormsetContainer && totalMachinesInput) {
-    addMachineBtn.addEventListener('click', function() {
-      var currentFormCount = parseInt(totalMachinesInput.value);
-      var newFormIndex = currentFormCount;
-
-      var newFormRow = machinesFormsetContainer.lastElementChild.cloneNode(true);
-      newFormRow.setAttribute('data-row-index', newFormIndex);
-
-      newFormRow.querySelectorAll('input, select, textarea').forEach(function(field) {
-        if (field.name) {
-          field.name = field.name.replace(/machines-(\d+)-/, `machines-${newFormIndex}-`);
-        }
-        if (field.id) {
-          field.id = field.id.replace(/id_machines-(\d+)-/, `id_machines-${newFormIndex}-`);
-        }
-        if (field.type !== 'hidden' && field.type !== 'checkbox') {
-          field.value = '';
-        }
-        if (field.type === 'checkbox') {
-          field.checked = false;
+  // Handle form submission - only include checked personnel and machines
+  var performanceForm = document.getElementById('performance-form') || document.querySelector('form');
+  if (performanceForm) {
+    performanceForm.addEventListener('submit', function(e) {
+      // Filter out unchecked personnel rows
+      var personRows = document.querySelectorAll('.person-row');
+      var personIndex = 0;
+      personRows.forEach(function(row) {
+        var checkbox = row.querySelector('.person-used-checkbox');
+        if (checkbox && checkbox.checked) {
+          // Reindex this row
+          row.querySelectorAll('input, textarea').forEach(function(field) {
+            if (field.name) {
+              field.name = field.name.replace(/persons-\d+-/, 'persons-' + personIndex + '-');
+              field.disabled = false; // Ensure enabled for submission
+            }
+          });
+          personIndex++;
+        } else {
+          // Disable all inputs in unchecked rows
+          row.querySelectorAll('input, textarea').forEach(function(field) {
+            field.disabled = true;
+            field.name = ''; // Remove name so it won't be submitted
+          });
         }
       });
-
-      newFormRow.querySelectorAll('.field-errors').forEach(function(error) {
-        error.textContent = '';
-      });
-
-      machinesFormsetContainer.appendChild(newFormRow);
-      totalMachinesInput.value = newFormIndex + 1;
-    });
-  }
-
-  // Handle DELETE checkboxes
-  if (personsFormsetContainer) {
-    personsFormsetContainer.addEventListener('change', function(e) {
-      if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('-DELETE')) {
-        var row = e.target.closest('.formset-row');
-        if (row && e.target.checked) {
-          row.style.display = 'none';
-        } else if (row && !e.target.checked) {
-          row.style.display = '';
+      
+      // Filter out unchecked machine rows
+      var machineRows = document.querySelectorAll('.machine-row');
+      var machineIndex = 0;
+      machineRows.forEach(function(row) {
+        var checkbox = row.querySelector('.machine-used-checkbox');
+        if (checkbox && checkbox.checked) {
+          // Reindex this row
+          row.querySelectorAll('input, textarea').forEach(function(field) {
+            if (field.name) {
+              field.name = field.name.replace(/machines-\d+-/, 'machines-' + machineIndex + '-');
+              field.disabled = false; // Ensure enabled for submission
+            }
+          });
+          machineIndex++;
+        } else {
+          // Disable all inputs in unchecked rows
+          row.querySelectorAll('input, textarea').forEach(function(field) {
+            field.disabled = true;
+            field.name = ''; // Remove name so it won't be submitted
+          });
         }
+      });
+      
+      // Update TOTAL_FORMS based on checked items
+      var totalPersonsInput = document.querySelector('#id_persons-TOTAL_FORMS');
+      if (totalPersonsInput) {
+        totalPersonsInput.value = personIndex.toString();
       }
-    });
-  }
-
-  if (machinesFormsetContainer) {
-    machinesFormsetContainer.addEventListener('change', function(e) {
-      if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('-DELETE')) {
-        var row = e.target.closest('.formset-row');
-        if (row && e.target.checked) {
-          row.style.display = 'none';
-        } else if (row && !e.target.checked) {
-          row.style.display = '';
-        }
+      
+      var totalMachinesInput = document.querySelector('#id_machines-TOTAL_FORMS');
+      if (totalMachinesInput) {
+        totalMachinesInput.value = machineIndex.toString();
       }
     });
   }
 });
 </script>
 {% endblock %}
-{% endblock %}
-

@@ -1,0 +1,67 @@
+{% extends "shared/generic/generic_list.html" %}
+{% load i18n jalali_tags %}
+
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Service Requests" %}</span>
+{% endblock %}
+
+{% block filter_fields %}
+<div class="form-group">
+  <label for="status">{% trans "Status" %}</label>
+  <select name="status" id="status" class="form-control">
+    <option value="">-- {% trans "All" %} --</option>
+    <option value="draft" {% if request.GET.status == 'draft' %}selected{% endif %}>{% trans "Draft" %}</option>
+    <option value="approved" {% if request.GET.status == 'approved' %}selected{% endif %}>{% trans "Approved" %}</option>
+    <option value="ordered" {% if request.GET.status == 'ordered' %}selected{% endif %}>{% trans "Ordered" %}</option>
+    <option value="fulfilled" {% if request.GET.status == 'fulfilled' %}selected{% endif %}>{% trans "Fulfilled" %}</option>
+    <option value="cancelled" {% if request.GET.status == 'cancelled' %}selected{% endif %}>{% trans "Cancelled" %}</option>
+  </select>
+</div>
+{% endblock %}
+
+{% block table_headers %}
+<th>{% trans "Request Code" %}</th>
+<th>{% trans "Request Date" %}</th>
+<th>{% trans "Service Description" %}</th>
+<th>{% trans "Supplier" %}</th>
+<th>{% trans "Priority" %}</th>
+<th>{% trans "Status" %}</th>
+<th>{% trans "Actions" %}</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for request in object_list %}
+<tr>
+  <td><code>{{ request.request_code }}</code></td>
+  <td>{{ request.request_date|jalali_date }}</td>
+  <td>{{ request.service_description|truncatewords:10 }}</td>
+  <td>{{ request.supplier.name|default:"-" }}</td>
+  <td>
+    <span class="badge badge-{{ request.priority|default:'secondary' }}">
+      {{ request.get_priority_display }}
+    </span>
+  </td>
+  <td>
+    <span class="badge badge-{{ request.status|default:'secondary' }}">
+      {{ request.get_status_display }}
+    </span>
+  </td>
+  <td>
+    <a href="{% url 'procurement:service_request_detail' request.pk %}" class="btn btn-sm btn-info">{% trans "View" %}</a>
+    {% if request.status == 'draft' %}
+      <a href="{% url 'procurement:service_request_edit' request.pk %}" class="btn btn-sm btn-primary">{% trans "Edit" %}</a>
+      <a href="{% url 'procurement:service_request_delete' request.pk %}" class="btn btn-sm btn-danger">{% trans "Delete" %}</a>
+    {% endif %}
+  </td>
+</tr>
+{% empty %}
+<tr>
+  <td colspan="7" class="text-center">
+    <div class="empty-state">
+      <p>{% trans "No service requests found." %}</p>
+    </div>
+  </td>
+</tr>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,904 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{{ form_title|default:"فرم" }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      {% for crumb in breadcrumbs %}
+        <span class="separator">/</span>
+        {% if crumb.url %}
+          <a href="{{ crumb.url }}">{{ crumb.label }}</a>
+        {% else %}
+          <span>{{ crumb.label }}</span>
+        {% endif %}
+      {% endfor %}
+    </nav>
+    
+    <h1 class="page-title">{{ form_title|default:"فرم" }}</h1>
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="form-container">
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger" role="alert">
+        <strong>{% trans "خطا" %}:</strong>
+        {% for error in form.non_field_errors %}
+          <div>{{ error }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" class="entity-form">
+      {% csrf_token %}
+      {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+
+      <div class="form-section">
+        <h3>{% trans "اطلاعات پایه" %}</h3>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.name.id_for_label }}">
+              {{ form.name.label }}
+              {% if form.name.field.required %}*{% endif %}
+            </label>
+            {{ form.name }}
+            {% if form.name.errors %}
+              <div class="error-message" role="alert">
+                {% for error in form.name.errors %}
+                  <span class="error">{{ error }}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+            {% if form.name.help_text %}
+              <small class="form-text">{{ form.name.help_text }}</small>
+            {% endif %}
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-field full-width">
+            <label for="{{ form.description.id_for_label }}">
+              {{ form.description.label }}
+            </label>
+            {{ form.description }}
+            {% if form.description.errors %}
+              <div class="error-message" role="alert">
+                {% for error in form.description.errors %}
+                  <span class="error">{{ error }}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+            {% if form.description.help_text %}
+              <small class="form-text">{{ form.description.help_text }}</small>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>{% trans "سند ماشه‌کننده" %}</h3>
+        <div class="form-row">
+          <div class="form-field full-width">
+            <label for="{{ form.trigger_document.id_for_label }}">
+              {{ form.trigger_document.label }}
+              {% if form.trigger_document.field.required %}*{% endif %}
+            </label>
+            <select name="{{ form.trigger_document.name }}" id="{{ form.trigger_document.id_for_label }}" class="form-control" required>
+              {% for value, label in form.trigger_document.field.choices %}
+                {% if value|slice:":13" == "__category__" %}
+                  <optgroup label="{{ label }}">
+                {% elif value == "" %}
+                  <option value="">{{ label }}</option>
+                {% else %}
+                  <option value="{{ value }}" {% if form.trigger_document.value == value %}selected{% endif %}>{{ label }}</option>
+                {% endif %}
+              {% endfor %}
+            </select>
+            {% if form.trigger_document.errors %}
+              <div class="error-message" role="alert">
+                {% for error in form.trigger_document.errors %}
+                  <span class="error">{{ error }}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+            {% if form.trigger_document.help_text %}
+              <small class="form-text">{{ form.trigger_document.help_text }}</small>
+            {% endif %}
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-field">
+            <label for="{{ form.trigger_module.id_for_label }}">
+              {{ form.trigger_module.label }}
+            </label>
+            {{ form.trigger_module }}
+            {% if form.trigger_module.errors %}
+              <div class="error-message" role="alert">
+                {% for error in form.trigger_module.errors %}
+                  <span class="error">{{ error }}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+            {% if form.trigger_module.help_text %}
+              <small class="form-text">{{ form.trigger_module.help_text }}</small>
+            {% endif %}
+          </div>
+          
+          <div class="form-field">
+            <label for="{{ form.trigger_document_type.id_for_label }}">
+              {{ form.trigger_document_type.label }}
+            </label>
+            {{ form.trigger_document_type }}
+            {% if form.trigger_document_type.errors %}
+              <div class="error-message" role="alert">
+                {% for error in form.trigger_document_type.errors %}
+                  <span class="error">{{ error }}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+            {% if form.trigger_document_type.help_text %}
+              <small class="form-text">{{ form.trigger_document_type.help_text }}</small>
+            {% endif %}
+          </div>
+          
+          <div class="form-field">
+            <label for="{{ form.trigger_model.id_for_label }}">
+              {{ form.trigger_model.label }}
+            </label>
+            {{ form.trigger_model }}
+            {% if form.trigger_model.errors %}
+              <div class="error-message" role="alert">
+                {% for error in form.trigger_model.errors %}
+                  <span class="error">{{ error }}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+            {% if form.trigger_model.help_text %}
+              <small class="form-text">{{ form.trigger_model.help_text }}</small>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section" id="conditions-section" style="display: none;">
+        <h3>{% trans "شروط" %}</h3>
+        <p class="text-muted">{% trans "شروطی را تعریف کنید که اسناد باید داشته باشند تا این فرایند خودکار اجرا شود." %}</p>
+        
+        <div id="conditions-container">
+          <div id="conditions-list"></div>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="add-global-condition-btn" style="display: none;">
+            <span>+</span> {% trans "افزودن شرط عمومی" %}
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="add-document-condition-btn" style="display: none;">
+            <span>+</span> {% trans "افزودن شرط فیلد سند" %}
+          </button>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>{% trans "تنظیمات" %}</h3>
+        <div class="form-row">
+          <div class="form-field">
+            <div class="form-check">
+              {{ form.is_active }}
+              <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                {{ form.is_active.label }}
+              </label>
+              {% if form.is_active.help_text %}
+                <small class="form-text">{{ form.is_active.help_text }}</small>
+              {% endif %}
+            </div>
+            {% if form.is_active.errors %}
+              <div class="error-message" role="alert">
+                {% for error in form.is_active.errors %}
+                  <span class="error">{{ error }}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">{% trans "ذخیره" %}</button>
+        <a href="{{ cancel_url|default:request.META.HTTP_REFERER|default:'/' }}" class="btn btn-secondary">{% trans "لغو" %}</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// Auto-fill trigger fields when document is selected
+document.addEventListener('DOMContentLoaded', function() {
+  const triggerDocumentSelect = document.getElementById('id_trigger_document');
+  const triggerModuleInput = document.getElementById('id_trigger_module');
+  const triggerDocumentTypeInput = document.getElementById('id_trigger_document_type');
+  const triggerModelInput = document.getElementById('id_trigger_model');
+  const conditionsSection = document.getElementById('conditions-section');
+  const addGlobalConditionBtn = document.getElementById('add-global-condition-btn');
+  const addDocumentConditionBtn = document.getElementById('add-document-condition-btn');
+  const conditionsList = document.getElementById('conditions-list');
+  
+  let filterableFieldsData = null;
+  let conditionCounter = 0;
+  
+  if (triggerDocumentSelect) {
+    triggerDocumentSelect.addEventListener('change', function() {
+      const selectedId = this.value;
+      if (selectedId) {
+        // Fetch document details from server
+        const url = '{% url "accounting:automation_api_document_info" "DOC_ID" %}'.replace('DOC_ID', selectedId);
+        fetch(url)
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              triggerModuleInput.value = data.module;
+              triggerDocumentTypeInput.value = data.document_type;
+              triggerModelInput.value = data.model;
+              
+              // Fetch filterable fields
+              const fieldsUrl = '{% url "accounting:automation_api_filterable_fields" "DOC_ID" %}'.replace('DOC_ID', selectedId);
+              fetch(fieldsUrl)
+                .then(response => response.json())
+                .then(fieldsData => {
+                  if (fieldsData.success) {
+                    filterableFieldsData = fieldsData;
+                    conditionsSection.style.display = 'block';
+                    addGlobalConditionBtn.style.display = 'inline-block';
+                    addDocumentConditionBtn.style.display = 'inline-block';
+                  }
+                })
+                .catch(error => {
+                  console.error('Error fetching filterable fields:', error);
+                });
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching document info:', error);
+          });
+      } else {
+        triggerModuleInput.value = '';
+        triggerDocumentTypeInput.value = '';
+        triggerModelInput.value = '';
+        conditionsSection.style.display = 'none';
+        conditionsList.innerHTML = '';
+        filterableFieldsData = null;
+      }
+    });
+  }
+  
+  // Add global condition
+  if (addGlobalConditionBtn) {
+    addGlobalConditionBtn.addEventListener('click', function() {
+      addCondition('global');
+    });
+  }
+  
+  // Add document-specific condition
+  if (addDocumentConditionBtn) {
+    addDocumentConditionBtn.addEventListener('click', function() {
+      addCondition('document_specific');
+    });
+  }
+  
+  function addCondition(filterType) {
+    if (!filterableFieldsData) return;
+    
+    const conditionId = 'condition_' + conditionCounter++;
+    const conditionDiv = document.createElement('div');
+    conditionDiv.className = 'condition-item';
+    conditionDiv.id = conditionId;
+    conditionDiv.innerHTML = buildConditionHTML(conditionId, filterType);
+    conditionsList.appendChild(conditionDiv);
+    
+    // Initialize condition form
+    initializeConditionForm(conditionId, filterType);
+  }
+  
+  function buildConditionHTML(conditionId, filterType) {
+    const isGlobal = filterType === 'global';
+    let html = `
+      <div class="card mb-3">
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3">
+              <label>{% trans "نوع فیلتر" %}</label>
+              <select class="form-control condition-filter-type" data-condition-id="${conditionId}">
+                <option value="global" ${isGlobal ? 'selected' : ''}>{% trans "فیلتر عمومی" %}</option>
+                <option value="document_specific" ${!isGlobal ? 'selected' : ''}>{% trans "فیلد سند" %}</option>
+              </select>
+            </div>
+            <div class="col-md-3 condition-field-container">
+              ${isGlobal ? buildGlobalFieldSelect(conditionId) : buildDocumentFieldSelect(conditionId)}
+            </div>
+            <div class="col-md-2">
+              <label>{% trans "عملگر" %}</label>
+              <select class="form-control condition-operator" data-condition-id="${conditionId}"></select>
+            </div>
+            <div class="col-md-3 condition-value-container">
+              <label>{% trans "مقدار" %}</label>
+              <div class="condition-value-wrapper" data-condition-id="${conditionId}">
+                <input type="text" class="form-control condition-value" data-condition-id="${conditionId}" placeholder='{% trans "مقدار را وارد کنید" %}'>
+              </div>
+            </div>
+            <div class="col-md-1">
+              <label>&nbsp;</label>
+              <button type="button" class="btn btn-sm btn-danger remove-condition" data-condition-id="${conditionId}">
+                <span>&times;</span>
+              </button>
+            </div>
+          </div>
+          <div class="row mt-2">
+            <div class="col-md-3">
+              <label>{% trans "عملگر منطقی" %}</label>
+              <select class="form-control condition-logical-operator" data-condition-id="${conditionId}">
+                <option value="AND">{% trans "و (AND)" %}</option>
+                <option value="OR">{% trans "یا (OR)" %}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    return html;
+  }
+  
+  function buildGlobalFieldSelect(conditionId) {
+    if (!filterableFieldsData || !filterableFieldsData.global_filters) return '';
+    
+    let html = '<label>{% trans "دسته فیلتر" %}</label><select class="form-control condition-filter-category" data-condition-id="' + conditionId + '">';
+    for (const [key, value] of Object.entries(filterableFieldsData.global_filters)) {
+      html += `<option value="${key}">${value.label}</option>`;
+    }
+    html += '</select>';
+    return html;
+  }
+  
+  function buildDocumentFieldSelect(conditionId) {
+    // Use grouped fields if available, otherwise fall back to flat structure
+    const fieldGroups = filterableFieldsData?.field_groups || {};
+    const documentFields = filterableFieldsData?.document_fields || {};
+    
+    let html = '<label>{% trans "فیلد" %}</label><select class="form-control condition-field-name" data-condition-id="' + conditionId + '">';
+    html += '<option value="">{% trans "-- انتخاب فیلد --" %}</option>';
+    
+    // If we have grouped fields, use them
+    if (Object.keys(fieldGroups).length > 0) {
+      for (const [groupName, groupData] of Object.entries(fieldGroups)) {
+        if (groupData.fields && Object.keys(groupData.fields).length > 0) {
+          // Add optgroup for better organization
+          html += `<optgroup label="${groupData.label || groupName}">`;
+          for (const [fieldKey, fieldValue] of Object.entries(groupData.fields)) {
+            const dataAttrs = `data-field-type="${fieldValue.field_type}" data-ui-type="${fieldValue.ui_type || 'text_input'}" data-operators='${JSON.stringify(fieldValue.operators || [])}' data-model="${fieldValue.model || ''}"`;
+            const choicesAttr = fieldValue.choices ? ` data-choices='${JSON.stringify(fieldValue.choices)}'` : '';
+            const accountLevelAttr = fieldValue.account_level ? ` data-account-level="${fieldValue.account_level}"` : '';
+            html += `<option value="${fieldKey}" ${dataAttrs}${choicesAttr}${accountLevelAttr}>${fieldValue.label}</option>`;
+          }
+          html += '</optgroup>';
+        }
+      }
+    } else {
+      // Fall back to flat structure
+      for (const [key, value] of Object.entries(documentFields)) {
+        html += `<option value="${key}" data-field-type="${value.field_type}" data-operators='${JSON.stringify(value.operators || [])}'>${value.label}</option>`;
+      }
+    }
+    
+    html += '</select>';
+    return html;
+  }
+  
+  function initializeConditionForm(conditionId, filterType) {
+    const conditionDiv = document.getElementById(conditionId);
+    const filterTypeSelect = conditionDiv.querySelector('.condition-filter-type');
+    const fieldContainer = conditionDiv.querySelector('.condition-field-container');
+    const operatorSelect = conditionDiv.querySelector('.condition-operator');
+    const fieldSelect = conditionDiv.querySelector('.condition-field-name') || conditionDiv.querySelector('.condition-filter-category');
+    const removeBtn = conditionDiv.querySelector('.remove-condition');
+    
+    // Handle filter type change
+    filterTypeSelect.addEventListener('change', function() {
+      const newType = this.value;
+      fieldContainer.innerHTML = newType === 'global' 
+        ? buildGlobalFieldSelect(conditionId)
+        : buildDocumentFieldSelect(conditionId);
+      
+      // Re-initialize field select with event listener
+      const newFieldSelect = conditionDiv.querySelector('.condition-field-name') || conditionDiv.querySelector('.condition-filter-category');
+      if (newFieldSelect) {
+        newFieldSelect.addEventListener('change', function() {
+          updateOperators(conditionId, newType, this.value);
+        });
+        // Initialize operators if field is already selected
+        if (newFieldSelect.value) {
+          updateOperators(conditionId, newType, newFieldSelect.value);
+        }
+      }
+      
+      // Re-initialize operator change listener
+      const newOperatorSelect = conditionDiv.querySelector('.condition-operator');
+      if (newOperatorSelect) {
+        newOperatorSelect.addEventListener('change', function() {
+          const fieldValue = newFieldSelect ? newFieldSelect.value : '';
+          if (fieldValue) {
+            updateValueInput(conditionId, fieldValue, newType, this.value);
+          }
+        });
+      }
+    });
+    
+    // Handle field change
+    if (fieldSelect) {
+      fieldSelect.addEventListener('change', function() {
+        const selectedValue = this.value;
+        updateOperators(conditionId, filterType, selectedValue);
+      });
+      
+      // Initialize operators if field is already selected
+      if (fieldSelect.value) {
+        updateOperators(conditionId, filterType, fieldSelect.value);
+      }
+    }
+    
+    // Handle operator change to update value input
+    if (operatorSelect) {
+      operatorSelect.addEventListener('change', function() {
+        const fieldValue = fieldSelect ? fieldSelect.value : '';
+        if (fieldValue) {
+          updateValueInput(conditionId, fieldValue, filterType, this.value);
+        }
+      });
+    }
+    
+    // Handle remove button
+    removeBtn.addEventListener('click', function() {
+      conditionDiv.remove();
+    });
+  }
+  
+  // Operator translations
+  const operatorLabels = {
+    '==': 'برابر با',
+    '!=': 'مخالف',
+    '>': 'بزرگتر از',
+    '<': 'کوچکتر از',
+    '>=': 'بزرگتر یا مساوی',
+    '<=': 'کوچکتر یا مساوی',
+    'in': 'عضو',
+    'not_in': 'غیر عضو',
+    'contains': 'شامل',
+    'starts_with': 'شروع با',
+    'ends_with': 'پایان با',
+    'between': 'بین',
+    'hierarchy_level': 'سطح سلسله مراتب',
+    'hierarchy_parent': 'والد سلسله مراتب',
+    'hierarchy_descendant': 'زیرمجموعه سلسله مراتب',
+    'is_null': 'خالی است',
+    'is_not_null': 'خالی نیست',
+  };
+  
+  function getOperatorLabel(operator) {
+    return operatorLabels[operator] || operator;
+  }
+  
+  function getFieldInfo(fieldValue, filterType) {
+    if (filterType === 'global') {
+      return filterableFieldsData?.global_filters?.[fieldValue] || null;
+    } else {
+      // Try to get from field_groups first
+      const fieldGroups = filterableFieldsData?.field_groups || {};
+      for (const groupName in fieldGroups) {
+        const group = fieldGroups[groupName];
+        if (group.fields && group.fields[fieldValue]) {
+          return group.fields[fieldValue];
+        }
+      }
+      // Fall back to document_fields
+      return filterableFieldsData?.document_fields?.[fieldValue] || null;
+    }
+  }
+  
+  function buildValueInput(conditionId, fieldInfo, operator) {
+    if (!fieldInfo) {
+      return '<input type="text" class="form-control condition-value" placeholder="{% trans "مقدار را وارد کنید" %}">';
+    }
+    
+    const fieldType = fieldInfo.field_type;
+    const uiType = fieldInfo.ui_type || 'text_input';
+    const model = fieldInfo.model;
+    const choices = fieldInfo.choices;
+    
+    // For foreign_key fields (سند کل، معین، تفصیلی)
+    if (fieldType === 'foreign_key' && uiType === 'autocomplete') {
+      return `<select class="form-control condition-value condition-autocomplete" data-model="${model || ''}" data-field-type="${fieldType}">
+        <option value="">{% trans "-- انتخاب کنید --" %}</option>
+      </select>`;
+    }
+    
+    // For choice fields (وضعیت)
+    if (fieldType === 'choice' && uiType === 'select') {
+      const fieldChoices = choices || [];
+      let html = `<select class="form-control condition-value condition-select">`;
+      html += `<option value="">{% trans "-- انتخاب کنید --" %}</option>`;
+      fieldChoices.forEach(choice => {
+        // Handle tuple format: (value, label) or simple value
+        const value = Array.isArray(choice) ? choice[0] : choice;
+        const label = Array.isArray(choice) ? choice[1] : choice;
+        html += `<option value="${value}">${label}</option>`;
+      });
+      html += `</select>`;
+      return html;
+    }
+    
+    // For date fields
+    if (fieldType === 'date' && uiType === 'date_picker') {
+      return `<input type="text" class="form-control condition-value condition-date-picker" data-jdp placeholder="{% trans "تاریخ را انتخاب کنید" %}">`;
+    }
+    
+    // For number fields
+    if (fieldType === 'number' && uiType === 'number_input') {
+      return `<input type="number" class="form-control condition-value condition-number" placeholder="{% trans "عدد را وارد کنید" %}">`;
+    }
+    
+    // For hierarchy_level (سطح تفصیلی)
+    if (operator === 'hierarchy_level') {
+      return `<input type="number" class="form-control condition-value condition-number" min="1" max="10" placeholder="{% trans "سطح را وارد کنید (1-10)" %}">`;
+    }
+    
+    // Default: text input
+    return `<input type="text" class="form-control condition-value" placeholder="{% trans "مقدار را وارد کنید" %}">`;
+  }
+  
+  function updateValueInput(conditionId, fieldValue, filterType, operator) {
+    const conditionDiv = document.getElementById(conditionId);
+    const valueContainer = conditionDiv.querySelector('.condition-value-wrapper');
+    if (!valueContainer) return;
+    
+    let fieldInfo = getFieldInfo(fieldValue, filterType);
+    
+    // Try to get field info from selected option's data attributes if not found
+    if (!fieldInfo) {
+      const fieldSelect = conditionDiv.querySelector('.condition-field-name') || conditionDiv.querySelector('.condition-filter-category');
+      if (fieldSelect) {
+        const selectedOption = fieldSelect.options[fieldSelect.selectedIndex];
+        if (selectedOption) {
+          const fieldType = selectedOption.getAttribute('data-field-type');
+          const uiType = selectedOption.getAttribute('data-ui-type');
+          const model = selectedOption.getAttribute('data-model');
+          let choices = null;
+          try {
+            const choicesAttr = selectedOption.getAttribute('data-choices');
+            if (choicesAttr) {
+              choices = JSON.parse(choicesAttr);
+            }
+          } catch (e) {
+            console.error('Error parsing choices:', e);
+          }
+          
+          if (fieldType) {
+            fieldInfo = {
+              field_type: fieldType,
+              ui_type: uiType || 'text_input',
+              model: model,
+              choices: choices,
+            };
+          }
+        }
+      }
+    }
+    
+    const newInput = buildValueInput(conditionId, fieldInfo, operator);
+    valueContainer.innerHTML = newInput;
+    
+    // Initialize special inputs
+    const valueInput = valueContainer.querySelector('.condition-value');
+    if (valueInput) {
+      // Initialize autocomplete for foreign_key
+      if (valueInput.classList.contains('condition-autocomplete')) {
+        const model = valueInput.getAttribute('data-model');
+        initializeAutocomplete(valueInput, model, fieldValue);
+      }
+      
+      // Initialize date picker
+      if (valueInput.classList.contains('condition-date-picker')) {
+        initializeDatePicker(valueInput);
+      }
+    }
+  }
+  
+  function initializeAutocomplete(selectElement, model, fieldName) {
+    if (!model) {
+      console.error('Model not provided for autocomplete');
+      return;
+    }
+    
+    console.log('Initializing autocomplete:', {model, fieldName});
+    
+    // Determine account_level for Account model
+    let accountLevel = null;
+    if (model === 'accounting.Account') {
+      // First try to get from data attribute
+      const conditionDiv = selectElement.closest('.condition-item');
+      if (conditionDiv) {
+        const fieldSelect = conditionDiv.querySelector('.condition-field-name');
+        if (fieldSelect) {
+          const selectedOption = fieldSelect.options[fieldSelect.selectedIndex];
+          if (selectedOption) {
+            const levelAttr = selectedOption.getAttribute('data-account-level');
+            if (levelAttr) {
+              accountLevel = parseInt(levelAttr);
+              console.log('Account level from data attribute:', accountLevel);
+            }
+          }
+        }
+      }
+      
+      // Fallback: check field name
+      if (!accountLevel) {
+        if (fieldName && (fieldName.includes('sanad_kol') || fieldName.includes('سند کل'))) {
+          accountLevel = 1;
+        } else if (fieldName && (fieldName.includes('moin') || fieldName.includes('معین'))) {
+          accountLevel = 2;
+        } else if (fieldName && (fieldName.includes('tafsili') || fieldName.includes('تفصیلی'))) {
+          accountLevel = 3;
+        }
+        console.log('Account level determined from field name:', accountLevel, 'for field:', fieldName);
+      }
+    }
+    
+    // Load options from API
+    let apiUrl = '{% url "accounting:automation_api_autocomplete" "MODEL" %}'.replace('MODEL', encodeURIComponent(model));
+    if (accountLevel) {
+      apiUrl += `?account_level=${accountLevel}`;
+    }
+    
+    console.log('Fetching from:', apiUrl);
+    
+    fetch(apiUrl)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Autocomplete response:', data);
+        if (data.success && data.results) {
+          selectElement.innerHTML = '<option value="">{% trans "-- انتخاب کنید --" %}</option>';
+          data.results.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item.id;
+            option.textContent = item.text;
+            selectElement.appendChild(option);
+          });
+          
+          // Make it searchable (simple implementation, can be enhanced with Select2)
+          // For now, it's a regular select. You can add Select2 here if available
+        } else {
+          console.error('Autocomplete failed:', data.error || 'Unknown error');
+          selectElement.innerHTML = '<option value="">{% trans "-- خطا در بارگذاری --" %}</option>';
+        }
+      })
+      .catch(error => {
+        console.error('Error loading autocomplete options:', error);
+        selectElement.innerHTML = '<option value="">{% trans "-- خطا در بارگذاری --" %}</option>';
+      });
+  }
+  
+  function initializeDatePicker(inputElement) {
+    // Check if jalali-datepicker is available
+    if (typeof jalaliDatepicker !== 'undefined') {
+      jalaliDatepicker.startWatch({
+        minDate: 'attr',
+        maxDate: 'attr',
+        time: false,
+        dateSeparator: '/',
+        autoHide: true
+      });
+    } else if (typeof $.fn.persianDatepicker !== 'undefined') {
+      // Fallback to persian-datepicker if available
+      $(inputElement).persianDatepicker({
+        observer: true,
+        format: 'YYYY/MM/DD',
+        timePicker: {
+          enabled: false
+        }
+      });
+    } else {
+      // Fallback: use HTML5 date input
+      console.warn('Persian date picker library not loaded. Using HTML5 date input.');
+      inputElement.type = 'date';
+    }
+  }
+  
+  function updateOperators(conditionId, filterType, fieldValue) {
+    const conditionDiv = document.getElementById(conditionId);
+    const operatorSelect = conditionDiv.querySelector('.condition-operator');
+    const fieldSelect = conditionDiv.querySelector('.condition-field-name') || conditionDiv.querySelector('.condition-filter-category');
+    
+    if (!operatorSelect) return;
+    
+    let operators = [];
+    let fieldInfo = null;
+    
+    if (filterType === 'global') {
+      const globalFilter = filterableFieldsData?.global_filters?.[fieldValue];
+      if (globalFilter) {
+        operators = globalFilter.operators || [];
+        fieldInfo = globalFilter;
+      }
+    } else {
+      // Try to get operators from data attribute first (from field_groups)
+      if (fieldSelect) {
+        const selectedOption = fieldSelect.options[fieldSelect.selectedIndex];
+        if (selectedOption && selectedOption.hasAttribute('data-operators')) {
+          try {
+            operators = JSON.parse(selectedOption.getAttribute('data-operators'));
+            // Get field info from data attributes
+            const fieldType = selectedOption.getAttribute('data-field-type');
+            const uiType = selectedOption.getAttribute('data-ui-type');
+            const model = selectedOption.getAttribute('data-model') || null;
+            let fieldChoices = null;
+            try {
+              const choicesAttr = selectedOption.getAttribute('data-choices');
+              if (choicesAttr) {
+                fieldChoices = JSON.parse(choicesAttr);
+              }
+            } catch (e) {
+              console.error('Error parsing choices:', e);
+            }
+            fieldInfo = {
+              field_type: fieldType,
+              ui_type: uiType,
+              model: model,
+              choices: fieldChoices,
+            };
+          } catch (e) {
+            console.error('Error parsing operators from data attribute:', e);
+          }
+        }
+      }
+      
+      // Fall back to document_fields if not found in data attribute
+      if (operators.length === 0 && filterableFieldsData?.document_fields?.[fieldValue]) {
+        const docFieldInfo = filterableFieldsData.document_fields[fieldValue];
+        operators = docFieldInfo.operators || [];
+        fieldInfo = docFieldInfo;
+      }
+      
+      // Try to get from field_groups
+      if (!fieldInfo) {
+        fieldInfo = getFieldInfo(fieldValue, filterType);
+        if (fieldInfo) {
+          operators = fieldInfo.operators || operators;
+        }
+      }
+    }
+    
+    operatorSelect.innerHTML = '';
+    if (operators.length > 0) {
+      operators.forEach(op => {
+        const option = document.createElement('option');
+        option.value = op;
+        option.textContent = getOperatorLabel(op);
+        operatorSelect.appendChild(option);
+      });
+      
+      // Remove existing event listeners to avoid duplicates
+      const newOperatorSelect = conditionDiv.querySelector('.condition-operator');
+      if (newOperatorSelect) {
+        // Clone and replace to remove old listeners
+        const newSelect = newOperatorSelect.cloneNode(true);
+        newOperatorSelect.parentNode.replaceChild(newSelect, newOperatorSelect);
+        
+        // Add new event listener
+        newSelect.addEventListener('change', function() {
+          updateValueInput(conditionId, fieldValue, filterType, this.value);
+        });
+      }
+      
+      // Update value input based on selected field and first operator
+      if (operators.length > 0) {
+        setTimeout(() => {
+          updateValueInput(conditionId, fieldValue, filterType, operators[0]);
+        }, 100);
+      }
+    } else {
+      // Add a placeholder option if no operators found
+      const option = document.createElement('option');
+      option.value = '';
+      option.textContent = '{% trans "-- انتخاب عملگر --" %}';
+      operatorSelect.appendChild(option);
+    }
+  }
+  
+  // Handle form submission - collect conditions data
+  const form = document.querySelector('form.entity-form');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      const conditions = [];
+      const conditionItems = document.querySelectorAll('.condition-item');
+      
+      conditionItems.forEach((item, index) => {
+        const filterType = item.querySelector('.condition-filter-type').value;
+        const operator = item.querySelector('.condition-operator').value;
+        const valueInput = item.querySelector('.condition-value');
+        let value = '';
+        if (valueInput) {
+          if (valueInput.tagName === 'SELECT') {
+            // For select elements, get selected value(s)
+            const selectedOptions = Array.from(valueInput.selectedOptions);
+            if (operator === 'in' || operator === 'not_in') {
+              value = selectedOptions.map(opt => opt.value).filter(v => v);
+            } else {
+              value = valueInput.value;
+            }
+          } else {
+            value = valueInput.value;
+          }
+        }
+        const logicalOperator = item.querySelector('.condition-logical-operator').value;
+        
+        let filterCategory, fieldName, fieldType;
+        
+        if (filterType === 'global') {
+          filterCategory = item.querySelector('.condition-filter-category').value;
+          const globalFilter = filterableFieldsData.global_filters[filterCategory];
+          fieldType = globalFilter ? globalFilter.field_type : '';
+        } else {
+          filterCategory = 'document_field';
+          fieldName = item.querySelector('.condition-field-name').value;
+          const fieldInfo = filterableFieldsData.document_fields[fieldName];
+          fieldType = fieldInfo ? fieldInfo.field_type : '';
+        }
+        
+        if (operator && value) {
+          conditions.push({
+            filter_type: filterType,
+            filter_category: filterCategory,
+            field_name: fieldName || '',
+            field_type: fieldType,
+            operator: operator,
+            value: value,
+            value_type: 'static',
+            logical_operator: logicalOperator,
+            sort_order: index + 1,
+            is_active: true,
+          });
+        }
+      });
+      
+      // Add hidden input with conditions data
+      if (conditions.length > 0) {
+        let conditionsInput = document.getElementById('conditions_data');
+        if (!conditionsInput) {
+          conditionsInput = document.createElement('input');
+          conditionsInput.type = 'hidden';
+          conditionsInput.id = 'conditions_data';
+          conditionsInput.name = 'conditions_data';
+          form.appendChild(conditionsInput);
+        }
+        conditionsInput.value = JSON.stringify(conditions);
+      }
+    });
+  }
+});
+</script>
+
+<link rel="stylesheet" href="{% static 'css/shared.css' %}">
+<link rel="stylesheet" href="{% static 'css/jalali-datepicker/jalali-datepicker.min.css' %}">
+<script src="{% static 'js/jalali-datepicker/jalali-datepicker.min.js' %}"></script>
+{% endblock %}
+

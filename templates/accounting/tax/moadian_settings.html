@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "تنظیمات سامانه مودیان" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="section-header">
+        <h1>{% trans "تنظیمات سامانه مودیان" %}</h1>
+        <p>{% trans "پیکربندی حافظه مالیاتی، کلیدها و گواهینامه‌ها برای ارتباط با سامانه مودیان" %}</p>
+    </div>
+
+    <div class="row">
+        <!-- Left Column: Existing Configurations -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h2>{% trans "پیکربندی‌های موجود" %}</h2>
+                </div>
+                <div class="card-body">
+                    {% if fiscal_memories %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>{% trans "شناسه" %}</th>
+                                        <th>{% trans "نام" %}</th>
+                                        <th>{% trans "وضعیت" %}</th>
+                                        <th>{% trans "عملیات" %}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for memory in fiscal_memories %}
+                                    <tr>
+                                        <td><strong>{{ memory.fiscal_id }}</strong></td>
+                                        <td>{{ memory.name|truncatechars:15 }}</td>
+                                        <td>
+                                            {% if memory.is_enabled == 1 %}
+                                                <span class="badge badge-success">{% trans "فعال" %}</span>
+                                            {% else %}
+                                                <span class="badge badge-secondary">{% trans "غیرفعال" %}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-info" onclick="editConfig({{ memory.id }})" title="{% trans 'ویرایش' %}">
+                                                ✏️
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" onclick="deleteConfig({{ memory.id }})" title="{% trans 'حذف' %}">
+                                                🗑️
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <p>{% trans "هیچ پیکربندی حافظه مالیاتی تعریف نشده است." %}</p>
+                            <p>{% trans "لطفاً فرم سمت راست را پر کنید تا اولین پیکربندی را ایجاد کنید." %}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Configuration Form -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h2>{% trans "افزودن/ویرایش پیکربندی حافظه مالیاتی" %}</h2>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" id="fiscalMemoryForm">
+                        {% csrf_token %}
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Basic Information -->
+                        <h4 class="form-section-title">{% trans "اطلاعات پایه" %}</h4>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.fiscal_id.id_for_label }}">{{ form.fiscal_id.label }} *</label>
+                                {{ form.fiscal_id }}
+                                {% if form.fiscal_id.errors %}
+                                    <div class="text-danger small">{{ form.fiscal_id.errors }}</div>
+                                {% endif %}
+                                {% if form.fiscal_id.help_text %}
+                                    <small class="form-text text-muted">{{ form.fiscal_id.help_text }}</small>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.name.id_for_label }}">{{ form.name.label }} *</label>
+                                {{ form.name }}
+                                {% if form.name.errors %}
+                                    <div class="text-danger small">{{ form.name.errors }}</div>
+                                {% endif %}
+                                {% if form.name.help_text %}
+                                    <small class="form-text text-muted">{{ form.name.help_text }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group col-md-8">
+                                <label for="{{ form.server_url.id_for_label }}">{{ form.server_url.label }} *</label>
+                                {{ form.server_url }}
+                                {% if form.server_url.errors %}
+                                    <div class="text-danger small">{{ form.server_url.errors }}</div>
+                                {% endif %}
+                                {% if form.server_url.help_text %}
+                                    <small class="form-text text-muted">{{ form.server_url.help_text }}</small>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group col-md-4">
+                                <label for="{{ form.is_enabled.id_for_label }}">{{ form.is_enabled.label }} *</label>
+                                {{ form.is_enabled }}
+                                {% if form.is_enabled.errors %}
+                                    <div class="text-danger small">{{ form.is_enabled.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.api_timeout.id_for_label }}">{{ form.api_timeout.label }} *</label>
+                                {{ form.api_timeout }}
+                                {% if form.api_timeout.errors %}
+                                    <div class="text-danger small">{{ form.api_timeout.errors }}</div>
+                                {% endif %}
+                                {% if form.api_timeout.help_text %}
+                                    <small class="form-text text-muted">{{ form.api_timeout.help_text }}</small>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.max_retry_count.id_for_label }}">{{ form.max_retry_count.label }} *</label>
+                                {{ form.max_retry_count }}
+                                {% if form.max_retry_count.errors %}
+                                    <div class="text-danger small">{{ form.max_retry_count.errors }}</div>
+                                {% endif %}
+                                {% if form.max_retry_count.help_text %}
+                                    <small class="form-text text-muted">{{ form.max_retry_count.help_text }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Keys and Certificates -->
+                        <h4 class="form-section-title">{% trans "کلیدها و گواهینامه‌ها" %}</h4>
+                        <p class="text-muted small">{% trans "می‌توانید کلیدها را به صورت فایل آپلود کنید یا مستقیماً متن را وارد نمایید" %}</p>
+                        
+                        <!-- Private Key -->
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.private_key_file.id_for_label }}">{{ form.private_key_file.label }}</label>
+                                {{ form.private_key_file }}
+                                {% if form.private_key_file.errors %}
+                                    <div class="text-danger small">{{ form.private_key_file.errors }}</div>
+                                {% endif %}
+                                {% if form.private_key_file.help_text %}
+                                    <small class="form-text text-muted">{{ form.private_key_file.help_text }}</small>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.private_key_password.id_for_label }}">{{ form.private_key_password.label }}</label>
+                                {{ form.private_key_password }}
+                                {% if form.private_key_password.errors %}
+                                    <div class="text-danger small">{{ form.private_key_password.errors }}</div>
+                                {% endif %}
+                                {% if form.private_key_password.help_text %}
+                                    <small class="form-text text-muted">{{ form.private_key_password.help_text }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group col-md-12">
+                                <label for="{{ form.private_key.id_for_label }}">{{ form.private_key.label }}</label>
+                                {{ form.private_key }}
+                                {% if form.private_key.errors %}
+                                    <div class="text-danger small">{{ form.private_key.errors }}</div>
+                                {% endif %}
+                                {% if form.private_key.help_text %}
+                                    <small class="form-text text-muted">{{ form.private_key.help_text }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Public Key -->
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.public_key_file.id_for_label }}">{{ form.public_key_file.label }}</label>
+                                {{ form.public_key_file }}
+                                {% if form.public_key_file.errors %}
+                                    <div class="text-danger small">{{ form.public_key_file.errors }}</div>
+                                {% endif %}
+                                {% if form.public_key_file.help_text %}
+                                    <small class="form-text text-muted">{{ form.public_key_file.help_text }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group col-md-12">
+                                <label for="{{ form.public_key.id_for_label }}">{{ form.public_key.label }}</label>
+                                {{ form.public_key }}
+                                {% if form.public_key.errors %}
+                                    <div class="text-danger small">{{ form.public_key.errors }}</div>
+                                {% endif %}
+                                {% if form.public_key.help_text %}
+                                    <small class="form-text text-muted">{{ form.public_key.help_text }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Certificate -->
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.certificate_file.id_for_label }}">{{ form.certificate_file.label }}</label>
+                                {{ form.certificate_file }}
+                                {% if form.certificate_file.errors %}
+                                    <div class="text-danger small">{{ form.certificate_file.errors }}</div>
+                                {% endif %}
+                                {% if form.certificate_file.help_text %}
+                                    <small class="form-text text-muted">{{ form.certificate_file.help_text }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group col-md-12">
+                                <label for="{{ form.certificate_text.id_for_label }}">{{ form.certificate_text.label }}</label>
+                                {{ form.certificate_text }}
+                                {% if form.certificate_text.errors %}
+                                    <div class="text-danger small">{{ form.certificate_text.errors }}</div>
+                                {% endif %}
+                                {% if form.certificate_text.help_text %}
+                                    <small class="form-text text-muted">{{ form.certificate_text.help_text }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Security Settings -->
+                        <h4 class="form-section-title">{% trans "تنظیمات امنیتی" %}</h4>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.signature_type.id_for_label }}">{{ form.signature_type.label }} *</label>
+                                {{ form.signature_type }}
+                                {% if form.signature_type.errors %}
+                                    <div class="text-danger small">{{ form.signature_type.errors }}</div>
+                                {% endif %}
+                                {% if form.signature_type.help_text %}
+                                    <small class="form-text text-muted">{{ form.signature_type.help_text }}</small>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.encryption_type.id_for_label }}">{{ form.encryption_type.label }} *</label>
+                                {{ form.encryption_type }}
+                                {% if form.encryption_type.errors %}
+                                    <div class="text-danger small">{{ form.encryption_type.errors }}</div>
+                                {% endif %}
+                                {% if form.encryption_type.help_text %}
+                                    <small class="form-text text-muted">{{ form.encryption_type.help_text }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Notes -->
+                        <div class="form-row">
+                            <div class="form-group col-md-12">
+                                <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+                                {{ form.notes }}
+                                {% if form.notes.errors %}
+                                    <div class="text-danger small">{{ form.notes.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <span class="icon-save"></span> {% trans "ذخیره" %}
+                            </button>
+                            <button type="reset" class="btn btn-secondary">
+                                {% trans "بازنشانی" %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+.form-section-title {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    color: #1f2937;
+    font-weight: 600;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 0.5rem;
+}
+
+.form-actions {
+    border-top: 1px solid #e5e7eb;
+    padding-top: 1rem;
+    margin-top: 1rem;
+}
+</style>
+
+<script>
+function editConfig(memoryId) {
+    // TODO: Load form with existing configuration
+    alert('{% trans "ویرایش پیکربندی" %} ' + memoryId + ' - {% trans "در حال پیاده‌سازی..." %}');
+}
+
+function deleteConfig(memoryId) {
+    if (!confirm('{% trans "آیا مطمئن هستید که می‌خواهید این پیکربندی را حذف کنید؟" %}')) {
+        return;
+    }
+    // TODO: Implement delete API call
+    alert('{% trans "حذف پیکربندی" %} ' + memoryId + ' - {% trans "در حال پیاده‌سازی..." %}');
+}
+</script>
+{% endblock %}

@@ -225,6 +225,13 @@ class User(AbstractUser, MetadataModel, EditableModel):
         related_name='default_users',
         help_text=_("Default company to use when user logs in")
     )
+    primary_groups = models.ManyToManyField(
+        'auth.Group',
+        related_name='primary_users',
+        blank=True,
+        verbose_name=_("Primary Groups"),
+        help_text=_("Groups that define same-group permissions for this user")
+    )
 
     REQUIRED_FIELDS = ["email"]
 
@@ -237,6 +244,11 @@ class User(AbstractUser, MetadataModel, EditableModel):
 
 
 class Company(TimeStampedModel, ActivatableModel, MetadataModel, EditableModel):
+    ENTITY_TYPE_CHOICES = [
+        (1, _('حقیقی')),
+        (2, _('حقوقی')),
+    ]
+    
     public_code = models.CharField(
         max_length=3,
         unique=True,
@@ -245,6 +257,11 @@ class Company(TimeStampedModel, ActivatableModel, MetadataModel, EditableModel):
     legal_name = models.CharField(max_length=180, unique=True)
     display_name = models.CharField(max_length=180, unique=True)
     display_name_en = models.CharField(max_length=180, blank=True)
+    entity_type = models.SmallIntegerField(
+        choices=ENTITY_TYPE_CHOICES,
+        default=2,
+        help_text=_('نوع مودی: حقیقی (1) یا حقوقی (2)'),
+    )
     registration_number = models.CharField(max_length=60, unique=True, null=True, blank=True)
     tax_id = models.CharField(max_length=60, unique=True, null=True, blank=True)
     phone_number = models.CharField(max_length=30, blank=True)

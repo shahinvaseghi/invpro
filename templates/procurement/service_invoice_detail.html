@@ -1,0 +1,59 @@
+{% extends "shared/generic/generic_detail.html" %}
+{% load i18n jalali_tags %}
+
+{% block info_banner_extra %}
+<div><strong>{% trans "Invoice Code" %}:</strong> <code>{{ service_invoice.invoice_code }}</code></div>
+<div><strong>{% trans "Status" %}:</strong>
+  <span class="badge badge-{{ service_invoice.invoice_status|default:'secondary' }}">
+    {{ service_invoice.get_invoice_status_display }}
+  </span>
+</div>
+{% endblock %}
+
+{% block detail_sections %}
+<div class="form-section">
+  <h3>{% trans "Invoice Information" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Supplier" %}</label>
+      <div class="readonly-field">{{ service_invoice.supplier.name }}</div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Invoice Date" %}</label>
+      <div class="readonly-field">{{ service_invoice.invoice_date|jalali_date }}</div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Invoice Number" %}</label>
+      <div class="readonly-field">{{ service_invoice.invoice_number|default:"-" }}</div>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-field full-width">
+      <label>{% trans "Service Description" %}</label>
+      <div class="readonly-field">{{ service_invoice.service_description|linebreaks }}</div>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Subtotal" %}</label>
+      <div class="readonly-field">{{ service_invoice.subtotal|floatformat:2 }}</div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "VAT" %} ({{ service_invoice.vat_rate }}%)</label>
+      <div class="readonly-field">{{ service_invoice.vat_amount|floatformat:2 }}</div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Total Amount" %}</label>
+      <div class="readonly-field"><strong>{{ service_invoice.total_amount|floatformat:2 }}</strong></div>
+    </div>
+  </div>
+</div>
+
+{% if service_invoice.notes %}
+<div class="form-section">
+  <h3>{% trans "Notes" %}</h3>
+  <div class="readonly-field">{{ service_invoice.notes|linebreaks }}</div>
+</div>
+{% endif %}
+{% endblock %}
+

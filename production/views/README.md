@@ -52,6 +52,29 @@
 
 ---
 
+## Template Migration Status
+
+### ✅ **منتقل شده (23 template) - 100%**
+- **BOM**: List ✅, Form ✅, Delete ✅
+- **Machine**: List ✅, Form ✅, Delete ✅
+- **Performance Record**: List ✅, Form ✅, Delete ✅
+- **Personnel**: List ✅, Form ✅, Delete ✅
+- **Process**: List ✅, Form ✅, Delete ✅
+- **Product Order**: List ✅, Form ✅, Delete ✅
+- **Transfer to Line**: List ✅, Form ✅, Delete ✅
+- **Work Line**: List ✅, Form ✅, Delete ✅
+
+**پیشرفت کلی: 23 / 23 (100%)** 🎉
+
+تمام template های منتقل شده از generic templates استفاده می‌کنند:
+- List templates: `shared/generic/generic_list.html`
+- Form templates: `shared/generic/generic_form.html`
+- Delete templates: `shared/generic/generic_confirm_delete.html`
+
+برای جزئیات بیشتر، به `docs/TEMPLATE_MIGRATION_CHECKLIST_PRODUCTION.md` مراجعه کنید.
+
+---
+
 ## مستندات کامل
 
 برای جزئیات کامل هر view، به کد منبع مراجعه کنید.

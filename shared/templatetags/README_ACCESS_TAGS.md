@@ -2,7 +2,9 @@
 
 **هدف**: Template tags برای بررسی مجوزهای دسترسی کاربران در templates
 
-این فایل شامل یک فیلتر template برای بررسی اینکه آیا کاربر مجوز دسترسی به یک feature خاص را دارد یا نه.
+این فایل شامل:
+- **1 Template Filter**: `feature_allowed`
+- **2 Template Tags**: `can_view_object`, `can_edit_object`
 
 ---
 
@@ -64,10 +66,107 @@
 
 ---
 
+## Template Tags
+
+### `can_view_object`
+
+**هدف**: بررسی اینکه آیا کاربر فعلی می‌تواند یک object خاص را مشاهده کند
+
+**استفاده در template**:
+```django
+{% load access_tags %}
+
+{% can_view_object object "inventory.receipts.temporary" as can_view %}
+{% if can_view %}
+    <a href="{% url 'inventory:receipt_temporary_detail' object.pk %}">View</a>
+{% endif %}
+```
+
+**پارامترهای ورودی**:
+- `context`: Template context (از `takes_context=True`)
+- `obj`: Object برای بررسی
+- `feature_code` (str, optional): Feature code (اگر خالی باشد، backward compatibility: return True)
+
+**مقدار بازگشتی**:
+- `bool`: `True` اگر کاربر بتواند object را مشاهده کند، `False` در غیر این صورت
+
+**منطق کار**:
+1. دریافت `request` از context
+2. اگر `request` یا `request.user` موجود نباشد، return `False`
+3. اگر `request.user.is_superuser` باشد، return `True`
+4. اگر `feature_code` خالی باشد (backward compatibility)، return `True`
+5. دریافت `company_id` از session
+6. دریافت permissions از `get_user_feature_permissions(request.user, company_id)`
+7. **استخراج resource_owner**:
+   - از `obj.created_by` (اولویت اول)
+   - یا از `obj.owner`
+   - یا از `obj.user`
+8. **بررسی view permissions** (به ترتیب اولویت):
+   - `view_all`: اگر `view_all` permission داشته باشد، return `True`
+   - `view_own`: اگر user owner باشد و `view_own` permission داشته باشد، return `True`
+   - `view_same_group`: اگر `view_same_group` permission داشته باشد و کاربران در same primary group باشند، return `True`
+9. return `False`
+
+**نکات مهم**:
+- از `are_users_in_same_primary_group` برای same group checks استفاده می‌کند
+- Owner detection: از `created_by`, `owner`, یا `user` attribute استفاده می‌کند
+- Permission priority: `view_all` > `view_own` > `view_same_group`
+
+---
+
+### `can_edit_object`
+
+**هدف**: بررسی اینکه آیا کاربر فعلی می‌تواند یک object خاص را ویرایش کند (همچنین بررسی lock status)
+
+**استفاده در template**:
+```django
+{% load access_tags %}
+
+{% can_edit_object object "inventory.receipts.temporary" as can_edit %}
+{% if can_edit %}
+    <a href="{% url 'inventory:receipt_temporary_edit' object.pk %}">Edit</a>
+{% endif %}
+```
+
+**پارامترهای ورودی**:
+- `context`: Template context (از `takes_context=True`)
+- `obj`: Object برای بررسی
+- `feature_code` (str, optional): Feature code (اگر خالی باشد، backward compatibility: return True)
+
+**مقدار بازگشتی**:
+- `bool`: `True` اگر کاربر بتواند object را ویرایش کند، `False` در غیر این صورت
+
+**منطق کار**:
+1. **بررسی lock status**:
+   - اگر `obj.is_locked == 1` باشد، return `False`
+2. دریافت `request` از context
+3. اگر `request` یا `request.user` موجود نباشد، return `False`
+4. اگر `request.user.is_superuser` باشد، return `True`
+5. اگر `feature_code` خالی باشد (backward compatibility)، return `True`
+6. دریافت `company_id` از session
+7. دریافت permissions از `get_user_feature_permissions(request.user, company_id)`
+8. **استخراج resource_owner**:
+   - از `obj.created_by` (اولویت اول)
+   - یا از `obj.owner`
+   - یا از `obj.user`
+9. **بررسی edit permissions** (به ترتیب اولویت):
+   - `edit_other`: اگر `edit_other` permission داشته باشد، return `True`
+   - `edit_own`: اگر user owner باشد و `edit_own` permission داشته باشد، return `True`
+   - `edit_same_group`: اگر `edit_same_group` permission داشته باشد و کاربران در same primary group باشند، return `True`
+10. return `False`
+
+**نکات مهم**:
+- Lock check: اگر object قفل باشد، همیشه return `False`
+- از `are_users_in_same_primary_group` برای same group checks استفاده می‌کند
+- Owner detection: از `created_by`, `owner`, یا `user` attribute استفاده می‌کند
+- Permission priority: `edit_other` > `edit_own` > `edit_same_group`
+
+---
+
 ## وابستگی‌ها
 
 - `django.template`: برای ساخت template tags
-- `shared.utils.permissions.has_feature_permission`: برای بررسی مجوز
+- `shared.utils.permissions`: `get_user_feature_permissions`, `has_feature_permission`, `are_users_in_same_primary_group`
 
 ---
 
@@ -173,7 +272,10 @@ Feature codes با فرمت `module.resource.action` هستند:
 2. **Default Action**: اگر action مشخص نشود، پیش‌فرض `'view'` است
 3. **Feature Code Format**: Feature codes باید با فرمت `module.resource.action` باشند
 4. **Performance**: بررسی مجوز سریع است و برای استفاده در templates مناسب است
-5. **Security**: این فیلتر فقط برای نمایش UI استفاده می‌شود. بررسی مجوز واقعی باید در views انجام شود
+5. **Security**: این فیلتر و tags فقط برای نمایش UI استفاده می‌شوند. بررسی مجوز واقعی باید در views انجام شود
+6. **Same Group Permissions**: `can_view_object` و `can_edit_object` از `are_users_in_same_primary_group` برای same group checks استفاده می‌کنند
+7. **Lock Protection**: `can_edit_object` بررسی می‌کند که object قفل نباشد (`is_locked != 1`)
+8. **Owner Detection**: برای `can_view_object` و `can_edit_object`، owner از `created_by`, `owner`, یا `user` attribute استخراج می‌شود
 
 ---
 

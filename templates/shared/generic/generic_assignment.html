@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ assignment_title|default:"Assignment" }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      {% for crumb in breadcrumbs %}
+        <span class="separator">/</span>
+        {% if crumb.url %}
+          <a href="{{ crumb.url }}">{{ crumb.label }}</a>
+        {% else %}
+          <span>{{ crumb.label }}</span>
+        {% endif %}
+      {% endfor %}
+      {% block breadcrumb_extra %}{% endblock %}
+    </nav>
+    
+    <h1 class="page-title">{{ assignment_title|default:"Assignment" }}</h1>
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}" style="margin-bottom: 1rem; padding: 1rem; border-radius: 4px; {% if message.tags == 'error' %}background-color: #fee; border: 1px solid #fcc; color: #c00;{% elif message.tags == 'success' %}background-color: #efe; border: 1px solid #cfc; color: #0c0;{% elif message.tags == 'warning' %}background-color: #ffe; border: 1px solid #ffc; color: #cc0;{% else %}background-color: #eef; border: 1px solid #ccf; color: #00c;{% endif %}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="form-container">
+    {% if info_banner %}
+    <div class="info-banner">
+      {% for item in info_banner %}
+        <div>
+          <strong>{{ item.label }}:</strong> 
+          {% if item.type == 'code' %}
+            <code>{{ item.value }}</code>
+          {% elif item.type == 'badge' %}
+            {% if item.value %}
+              <span class="badge badge-active">{{ item.true_label|default:"Active" }}</span>
+            {% else %}
+              <span class="badge badge-inactive">{{ item.false_label|default:"Inactive" }}</span>
+            {% endif %}
+          {% elif item.type == 'date' %}
+            {{ item.value|date:"Y-m-d" }}
+          {% else %}
+            {{ item.value|default:"-" }}
+          {% endif %}
+        </div>
+      {% endfor %}
+      {% block info_banner_extra %}{% endblock %}
+    </div>
+    {% endif %}
+
+    {% block action_bar %}
+    {% if action_bar_buttons %}
+    <div class="action-bar">
+      {% for button in action_bar_buttons %}
+        {% if button.type == 'link' %}
+          <a href="{{ button.url }}" class="btn btn-{{ button.color|default:'secondary' }}">
+            {{ button.label }}
+          </a>
+        {% elif button.type == 'form' %}
+          <form method="post" action="{{ button.url }}" class="inline-form">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-{{ button.color|default:'warning' }}">
+              {{ button.label }}
+            </button>
+          </form>
+        {% elif button.type == 'button' %}
+          <button type="button" onclick="{{ button.onclick }}" class="btn btn-{{ button.color|default:'primary' }}">
+            {{ button.label }}
+          </button>
+        {% endif %}
+      {% endfor %}
+      {% block action_bar_extra %}{% endblock %}
+    </div>
+    {% endif %}
+    {% endblock %}
+
+    {% block assignment_content %}
+    {% if editable_table %}
+    <form method="post" class="assignment-form" {% if form_id %}id="{{ form_id }}"{% endif %}>
+      {% csrf_token %}
+      
+      {% if form_description %}
+      <div class="form-description">
+        <p>{{ form_description }}</p>
+      </div>
+      {% endif %}
+
+      {% if table_data %}
+      <div class="editable-table-container">
+        <table class="editable-table">
+          <thead>
+            <tr>
+              {% for header in table_headers %}
+                <th>{{ header.label }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% block editable_table_rows %}
+            {% for row in table_data %}
+            <tr {% if row.row_id %}data-row-id="{{ row.row_id }}"{% endif %}>
+              {% for cell in row.cells %}
+                <td>
+                  {% if cell.type == 'input' %}
+                    <input type="{{ cell.input_type|default:'text' }}" 
+                           name="{{ cell.name }}" 
+                           value="{{ cell.value|default:'' }}"
+                           class="form-control"
+                           {% if cell.required %}required{% endif %}
+                           {% if cell.placeholder %}placeholder="{{ cell.placeholder }}"{% endif %}
+                           {% if cell.min %}min="{{ cell.min }}"{% endif %}
+                           {% if cell.max %}max="{{ cell.max }}"{% endif %}
+                           {% if cell.step %}step="{{ cell.step }}"{% endif %}
+                           {% if cell.readonly %}readonly{% endif %}>
+                  {% elif cell.type == 'textarea' %}
+                    <textarea name="{{ cell.name }}" 
+                              class="form-control"
+                              rows="{{ cell.rows|default:2 }}"
+                              {% if cell.required %}required{% endif %}
+                              {% if cell.placeholder %}placeholder="{{ cell.placeholder }}"{% endif %}>{{ cell.value|default:'' }}</textarea>
+                  {% elif cell.type == 'select' %}
+                    <select name="{{ cell.name }}" class="form-control" {% if cell.required %}required{% endif %}>
+                      <option value="">{{ cell.placeholder|default:"---" }}</option>
+                      {% for option in cell.options %}
+                        <option value="{{ option.value }}" {% if option.selected %}selected{% endif %}>
+                          {{ option.label }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                  {% elif cell.type == 'checkbox' %}
+                    <input type="checkbox" 
+                           name="{{ cell.name }}" 
+                           value="{{ cell.value|default:'1' }}"
+                           {% if cell.checked %}checked{% endif %}
+                           class="form-check-input">
+                  {% elif cell.type == 'code' %}
+                    <code>{{ cell.value|default:"-" }}</code>
+                  {% elif cell.type == 'badge' %}
+                    {% if cell.value %}
+                      <span class="badge badge-active">{{ cell.true_label|default:"Active" }}</span>
+                    {% else %}
+                      <span class="badge badge-inactive">{{ cell.false_label|default:"Inactive" }}</span>
+                    {% endif %}
+                  {% elif cell.type == 'button' %}
+                    <button type="button" 
+                            class="btn btn-{{ cell.color|default:'primary' }} btn-sm"
+                            {% if cell.onclick %}onclick="{{ cell.onclick }}"{% endif %}
+                            {% if cell.data_attr %}data-{{ cell.data_attr.name }}="{{ cell.data_attr.value }}"{% endif %}>
+                      {{ cell.label }}
+                    </button>
+                  {% else %}
+                    {{ cell.value|default:"-" }}
+                  {% endif %}
+                </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+            {% endblock %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
+      {% if summary_info %}
+      <div class="summary-info">
+        {% for item in summary_info %}
+          <div>
+            <strong>{{ item.label }}:</strong> {{ item.value }}
+          </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">{{ submit_button_text|default:"Save" }}</button>
+        <a href="{{ cancel_url|default:request.META.HTTP_REFERER|default:'/' }}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+        {% block form_actions_extra %}{% endblock %}
+      </div>
+    </form>
+    {% else %}
+      {% block static_content %}{% endblock %}
+    {% endif %}
+    {% endblock %}
+  </div>
+</div>
+
+<style>
+.form-container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.info-banner {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.inline-form {
+  display: inline-flex;
+}
+
+.form-description {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #f0f9ff;
+  border-left: 4px solid #3b82f6;
+  border-radius: 4px;
+}
+
+.editable-table-container {
+  margin: 1.5rem 0;
+  overflow-x: auto;
+}
+
+.editable-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.editable-table th,
+.editable-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.editable-table th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+}
+
+.editable-table input[type="text"],
+.editable-table input[type="number"],
+.editable-table textarea,
+.editable-table select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.editable-table input:focus,
+.editable-table textarea:focus,
+.editable-table select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.summary-info {
+  display: flex;
+  gap: 2rem;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-start;
+  padding-top: 1.5rem;
+  margin-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.alert {
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border: 1px solid;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.alert-success {
+  background-color: #d1fae5;
+  border-color: #10b981;
+  color: #065f46;
+}
+
+.alert-error,
+.alert-danger {
+  background-color: #fee2e2;
+  border-color: #ef4444;
+  color: #991b1b;
+}
+
+.alert-info {
+  background-color: #dbeafe;
+  border-color: #3b82f6;
+  color: #1e40af;
+}
+
+.alert-warning {
+  background-color: #fef3c7;
+  border-color: #f59e0b;
+  color: #92400e;
+}
+</style>
+
+{% block assignment_scripts %}{% endblock %}
+{% endblock %}
+

@@ -1,0 +1,38 @@
+{% extends "shared/generic/generic_form.html" %}
+{% load i18n static %}
+
+{% block form_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tafsiliLevelSelect = document.getElementById('id_tafsili_level');
+    const subAccountsSelect = document.getElementById('id_sub_accounts');
+    
+    if (!tafsiliLevelSelect || !subAccountsSelect) {
+        return;
+    }
+    
+    function toggleSubAccountsDisabled() {
+        const isTafsiliLevelSelected = tafsiliLevelSelect.value !== '';
+        
+        if (isTafsiliLevelSelected) {
+            // Disable sub_accounts field
+            subAccountsSelect.disabled = true;
+            // Clear any selected values
+            Array.from(subAccountsSelect.options).forEach(option => {
+                option.selected = false;
+            });
+        } else {
+            // Enable sub_accounts field
+            subAccountsSelect.disabled = false;
+        }
+    }
+    
+    // Check initial state
+    toggleSubAccountsDisabled();
+    
+    // Listen for changes
+    tafsiliLevelSelect.addEventListener('change', toggleSubAccountsDisabled);
+});
+</script>
+{% endblock %}
+

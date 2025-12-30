@@ -1,0 +1,3584 @@
+================================================================================
+STANDARDS CHECKER REPORT
+================================================================================
+
+Check Type:     MODULE
+Target:         inventory
+Date/Time:      2025-12-24 21:23:23
+Total Files:    79
+Files with Issues: 77
+Total Issues:   721
+
+================================================================================
+
+SUMMARY BY SEVERITY
+--------------------------------------------------------------------------------
+Critical: 7
+Errors:   7
+Warnings: 605
+
+================================================================================
+
+DETAILED ISSUES BY FILE
+================================================================================
+
+File: inventory/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for __init__.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: inventory/admin.py
+Issues: 58
+--------------------------------------------------------------------------------
+
+[WARNING] (54 issues)
+  1. Line 10
+     Class 'ItemTypeAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 30
+     Class 'ItemCategoryAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  3. Line 50
+     Class 'ItemSubcategoryAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  4. Line 71
+     Class 'WarehouseAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  5. Line 117
+     Class 'ItemAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  6. Line 178
+     Class 'ItemSpecAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  7. Line 186
+     Class 'ItemUnitAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  8. Line 194
+     Class 'ItemWarehouseAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  9. Line 202
+     Class 'ItemSubstituteAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  10. Line 210
+     Class 'SupplierAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  11. Line 260
+     Class 'SupplierCategoryAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  12. Line 268
+     Class 'SupplierSubcategoryAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  13. Line 276
+     Class 'SupplierItemAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  14. Line 284
+     Class 'PurchaseRequestAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  15. Line 292
+     Class 'ReceiptTemporaryAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  16. Line 409
+     Class 'ReceiptPermanentAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  17. Line 523
+     Class 'ReceiptConsignmentAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  18. Line 530
+     Class 'ItemLotAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  19. Line 538
+     Class 'IssuePermanentAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  20. Line 545
+     Class 'IssueConsumptionAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  21. Line 552
+     Class 'IssueConsignmentAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  22. Line 559
+     Class 'StocktakingDeficitAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  23. Line 566
+     Class 'StocktakingSurplusAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  24. Line 573
+     Class 'StocktakingRecordAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  25. Line 580
+     Class 'WarehouseRequestAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  26. Line 423
+     Class 'Media' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  27. Line 320
+     Class 'FilteredForm' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  28. Line 89
+     View function 'get_search_results' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  29. Line 100
+     View function 'get_queryset' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  30. Line 123
+     View function 'get_search_results' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  31. Line 134
+     View function 'get_queryset' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  32. Line 236
+     View function 'get_search_results' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  33. Line 247
+     View function 'get_queryset' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  34. Line 306
+     View function 'get_formset' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  35. Line 428
+     View function 'get_form' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  36. Line 471
+     View function 'save_model' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  37. Line 89
+     View function 'get_search_results' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  38. Line 100
+     View function 'get_queryset' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  39. Line 123
+     View function 'get_search_results' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  40. Line 134
+     View function 'get_queryset' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  41. Line 236
+     View function 'get_search_results' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  42. Line 247
+     View function 'get_queryset' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  43. Line 306
+     View function 'get_formset' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  44. Line 428
+     View function 'get_form' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  45. Line 471
+     View function 'save_model' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  46. Line 306
+     Function 'get_formset' is too long (100 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  47. Line 321
+     Function '__init__' is too long (81 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  48. Line 123
+     Function 'get_search_results' appears to be duplicate of 'get_search_results'
+     Suggestion: Consider extracting common code to a shared function
+
+  49. Line 134
+     Function 'get_queryset' appears to be duplicate of 'get_queryset'
+     Suggestion: Consider extracting common code to a shared function
+
+  50. Line 236
+     Function 'get_search_results' appears to be duplicate of 'get_search_results'
+     Suggestion: Consider extracting common code to a shared function
+
+  51. Line 247
+     Function 'get_queryset' appears to be duplicate of 'get_queryset'
+     Suggestion: Consider extracting common code to a shared function
+
+  52. Line 306
+     Function 'get_formset' has high cyclomatic complexity (12, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  53. Line 471
+     Function 'save_model' has high cyclomatic complexity (13, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  54. Line 321
+     Function '__init__' has high cyclomatic complexity (11, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (4 issues)
+  1. Line 1
+     No test file found for admin.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 100
+     Manual company filter detected - consider using apply_company_filter() or CompanyScopedViewMixin
+     Suggestion: Use 'apply_company_filter' from shared.filters or 'CompanyScopedViewMixin' from shared.mixins
+
+  3. Line 134
+     Manual company filter detected - consider using apply_company_filter() or CompanyScopedViewMixin
+     Suggestion: Use 'apply_company_filter' from shared.filters or 'CompanyScopedViewMixin' from shared.mixins
+
+  4. Line 247
+     Manual company filter detected - consider using apply_company_filter() or CompanyScopedViewMixin
+     Suggestion: Use 'apply_company_filter' from shared.filters or 'CompanyScopedViewMixin' from shared.mixins
+
+
+================================================================================
+
+File: inventory/apps.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 4
+     Class 'InventoryConfig' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for apps.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: inventory/fields.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for fields.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: inventory/forms.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[ERROR] (1 issues)
+  1. Line 14
+     Potential N+1 query detected in loop - accessing ForeignKey attributes
+     Suggestion: Use select_related() before the loop to prefetch related objects
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for forms.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: inventory/forms/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for __init__.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: inventory/forms/base.py
+Issues: 20
+--------------------------------------------------------------------------------
+
+[WARNING] (19 issues)
+  1. Line 297
+     Function 'add' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  2. Line 661
+     Function 'add' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  3. Line 614
+     Function 'confirmed_by_label' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  4. Line 624
+     Function 'approver_label' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  5. Line 153
+     Function '__init__' is too long (73 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  6. Line 227
+     Function '_filter_company_scoped_fields' is too long (57 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  7. Line 767
+     Function '__init__' is too long (78 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  8. Line 926
+     Function 'clean' is too long (81 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  9. Line 629
+     Function '_resolve_item' appears to be duplicate of '_resolve_item'
+     Suggestion: Consider extracting common code to a shared function
+
+  10. Line 655
+     Function '_get_item_allowed_units' appears to be duplicate of '_get_item_allowed_units'
+     Suggestion: Consider extracting common code to a shared function
+
+  11. Line 661
+     Function 'add' appears to be duplicate of 'add'
+     Suggestion: Consider extracting common code to a shared function
+
+  12. Line 153
+     Function '__init__' has high cyclomatic complexity (25, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  13. Line 227
+     Function '_filter_company_scoped_fields' has high cyclomatic complexity (14, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  14. Line 315
+     Function '_resolve_item' has high cyclomatic complexity (11, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  15. Line 512
+     Function '_validate_serials' has high cyclomatic complexity (11, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  16. Line 552
+     Function '__init__' has high cyclomatic complexity (13, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  17. Line 629
+     Function '_resolve_item' has high cyclomatic complexity (11, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  18. Line 767
+     Function '__init__' has high cyclomatic complexity (22, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  19. Line 926
+     Function 'clean' has high cyclomatic complexity (13, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for base.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: inventory/forms/issue.py
+Issues: 35
+--------------------------------------------------------------------------------
+
+[WARNING] (34 issues)
+  1. Line 62
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 153
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  3. Line 228
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  4. Line 421
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  5. Line 940
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  6. Line 1065
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  7. Line 1244
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  8. Line 1377
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  9. Line 1458
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  10. Line 711
+     Function 'add' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  11. Line 424
+     Function '__init__' is too long (107 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  12. Line 559
+     Function '_set_warehouse_queryset' is too long (56 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  13. Line 837
+     Function 'clean' is too long (73 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  14. Line 1098
+     Function '_update_querysets_after_company_id' is too long (63 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  15. Line 1473
+     Function '__init__' is too long (62 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  16. Line 1574
+     Function 'clean' is too long (63 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  17. Line 413
+     Class 'IssueLineBaseForm' is too long (514 lines, max 500)
+     Suggestion: Consider breaking this class into smaller classes or using mixins
+
+  18. Line 192
+     Function 'clean' appears to be duplicate of 'clean'
+     Suggestion: Consider extracting common code to a shared function
+
+  19. Line 260
+     Function 'clean_document_date' appears to be duplicate of 'clean_document_date'
+     Suggestion: Consider extracting common code to a shared function
+
+  20. Line 267
+     Function 'clean_document_code' appears to be duplicate of 'clean_document_code'
+     Suggestion: Consider extracting common code to a shared function
+
+  21. Line 274
+     Function 'clean' appears to be duplicate of 'clean'
+     Suggestion: Consider extracting common code to a shared function
+
+  22. Line 1402
+     Function 'clean_document_date' appears to be duplicate of 'clean_document_date'
+     Suggestion: Consider extracting common code to a shared function
+
+  23. Line 1409
+     Function 'clean_document_code' appears to be duplicate of 'clean_document_code'
+     Suggestion: Consider extracting common code to a shared function
+
+  24. Line 1574
+     Function 'clean' appears to be duplicate of 'clean'
+     Suggestion: Consider extracting common code to a shared function
+
+  25. Line 424
+     Function '__init__' has high cyclomatic complexity (31, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  26. Line 559
+     Function '_set_warehouse_queryset' has high cyclomatic complexity (14, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  27. Line 668
+     Function '_resolve_item' has high cyclomatic complexity (14, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  28. Line 727
+     Function '_set_unit_choices' has high cyclomatic complexity (14, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  29. Line 837
+     Function 'clean' has high cyclomatic complexity (16, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  30. Line 965
+     Function '_update_destination_type_queryset' has high cyclomatic complexity (11, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  31. Line 1098
+     Function '_update_querysets_after_company_id' has high cyclomatic complexity (20, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  32. Line 1270
+     Function '_update_destination_type_queryset' has high cyclomatic complexity (12, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  33. Line 1473
+     Function '__init__' has high cyclomatic complexity (17, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  34. Line 1574
+     Function 'clean' has high cyclomatic complexity (16, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for issue.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: inventory/forms/master_data.py
+Issues: 21
+--------------------------------------------------------------------------------
+
+[WARNING] (13 issues)
+  1. Line 158
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 177
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  3. Line 196
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  4. Line 222
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  5. Line 238
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  6. Line 289
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  7. Line 476
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  8. Line 643
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  9. Line 301
+     Function '__init__' is too long (61 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  10. Line 559
+     Function 'clean' is too long (68 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  11. Line 383
+     Function 'clean' has high cyclomatic complexity (14, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  12. Line 559
+     Function 'clean' has high cyclomatic complexity (25, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  13. Line 739
+     Function 'is_valid' has high cyclomatic complexity (14, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (8 issues)
+  1. Line 1
+     No test file found for master_data.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 155
+     Form class 'ItemTypeForm' missing input validation
+     Suggestion: Add clean_<field>() methods or field validators for input sanitization
+
+  3. Line 174
+     Form class 'ItemCategoryForm' missing input validation
+     Suggestion: Add clean_<field>() methods or field validators for input sanitization
+
+  4. Line 193
+     Form class 'ItemSubcategoryForm' missing input validation
+     Suggestion: Add clean_<field>() methods or field validators for input sanitization
+
+  5. Line 213
+     Form class 'WarehouseForm' missing input validation
+     Suggestion: Add clean_<field>() methods or field validators for input sanitization
+
+  6. Line 235
+     Form class 'SupplierForm' missing input validation
+     Suggestion: Add clean_<field>() methods or field validators for input sanitization
+
+  7. Line 629
+     Form class 'ItemUnitForm' missing input validation
+     Suggestion: Add clean_<field>() methods or field validators for input sanitization
+
+  8. Line 476
+     Form class 'Meta' missing input validation
+     Suggestion: Add clean_<field>() methods or field validators for input sanitization
+
+
+================================================================================
+
+File: inventory/forms/receipt.py
+Issues: 26
+--------------------------------------------------------------------------------
+
+[WARNING] (25 issues)
+  1. Line 48
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 155
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  3. Line 297
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  4. Line 432
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  5. Line 920
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  6. Line 990
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  7. Line 1035
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  8. Line 808
+     Function 'add' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  9. Line 435
+     Function '__init__' is too long (189 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  10. Line 749
+     Function '_resolve_item' is too long (52 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  11. Line 168
+     Function '__init__' appears to be duplicate of '__init__'
+     Suggestion: Consider extracting common code to a shared function
+
+  12. Line 215
+     Function 'clean_document_code' appears to be duplicate of 'clean_document_code'
+     Suggestion: Consider extracting common code to a shared function
+
+  13. Line 223
+     Function 'clean_document_date' appears to be duplicate of 'clean_document_date'
+     Suggestion: Consider extracting common code to a shared function
+
+  14. Line 231
+     Function 'clean' appears to be duplicate of 'clean'
+     Suggestion: Consider extracting common code to a shared function
+
+  15. Line 325
+     Function '__init__' appears to be duplicate of '__init__'
+     Suggestion: Consider extracting common code to a shared function
+
+  16. Line 367
+     Function 'clean_document_code' appears to be duplicate of 'clean_document_code'
+     Suggestion: Consider extracting common code to a shared function
+
+  17. Line 375
+     Function 'clean_document_date' appears to be duplicate of 'clean_document_date'
+     Suggestion: Consider extracting common code to a shared function
+
+  18. Line 383
+     Function 'clean' appears to be duplicate of 'clean'
+     Suggestion: Consider extracting common code to a shared function
+
+  19. Line 252
+     Function 'save' has high cyclomatic complexity (11, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  20. Line 325
+     Function '__init__' has high cyclomatic complexity (11, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  21. Line 383
+     Function 'clean' has high cyclomatic complexity (12, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  22. Line 435
+     Function '__init__' has high cyclomatic complexity (47, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  23. Line 702
+     Function '_set_warehouse_queryset' has high cyclomatic complexity (12, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  24. Line 749
+     Function '_resolve_item' has high cyclomatic complexity (19, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  25. Line 937
+     Function 'clean_item' has high cyclomatic complexity (19, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for receipt.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: inventory/forms/request.py
+Issues: 17
+--------------------------------------------------------------------------------
+
+[WARNING] (15 issues)
+  1. Line 42
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 106
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  3. Line 333
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  4. Line 404
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  5. Line 231
+     Function 'add' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  6. Line 601
+     Function 'add' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  7. Line 126
+     Function '__init__' is too long (72 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  8. Line 427
+     Function '__init__' is too long (77 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  9. Line 380
+     Function 'clean_approver' appears to be duplicate of 'clean_approver'
+     Suggestion: Consider extracting common code to a shared function
+
+  10. Line 523
+     Function '_set_unit_choices_for_item' appears to be duplicate of '_set_unit_choices_for_item'
+     Suggestion: Consider extracting common code to a shared function
+
+  11. Line 536
+     Function 'clean_unit' appears to be duplicate of 'clean_unit'
+     Suggestion: Consider extracting common code to a shared function
+
+  12. Line 675
+     Function 'save' appears to be duplicate of 'save'
+     Suggestion: Consider extracting common code to a shared function
+
+  13. Line 601
+     Function 'add' appears to be duplicate of 'add'
+     Suggestion: Consider extracting common code to a shared function
+
+  14. Line 126
+     Function '__init__' has high cyclomatic complexity (25, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  15. Line 427
+     Function '__init__' has high cyclomatic complexity (26, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (2 issues)
+  1. Line 1
+     No test file found for request.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 42
+     Form class 'Meta' missing input validation
+     Suggestion: Add clean_<field>() methods or field validators for input sanitization
+
+
+================================================================================
+
+File: inventory/forms/stocktaking.py
+Issues: 17
+--------------------------------------------------------------------------------
+
+[WARNING] (16 issues)
+  1. Line 33
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 106
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  3. Line 196
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  4. Line 333
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  5. Line 437
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  6. Line 229
+     Bare except clause should specify exception type
+     Suggestion: Use: except SpecificException as e: instead of bare except:
+
+  7. Line 249
+     Bare except clause should specify exception type
+     Suggestion: Use: except SpecificException as e: instead of bare except:
+
+  8. Line 269
+     Bare except clause should specify exception type
+     Suggestion: Use: except SpecificException as e: instead of bare except:
+
+  9. Line 209
+     Function 'save' is too long (68 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  10. Line 295
+     Function 'full_clean' appears to be duplicate of 'full_clean'
+     Suggestion: Consider extracting common code to a shared function
+
+  11. Line 360
+     Function 'clean_unit' appears to be duplicate of 'clean_unit'
+     Suggestion: Consider extracting common code to a shared function
+
+  12. Line 378
+     Function 'clean' appears to be duplicate of 'clean'
+     Suggestion: Consider extracting common code to a shared function
+
+  13. Line 151
+     Function 'clean' has high cyclomatic complexity (12, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  14. Line 378
+     Function 'clean' has high cyclomatic complexity (12, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  15. Line 462
+     Function '__init__' has high cyclomatic complexity (17, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  16. Line 507
+     Function 'save' has high cyclomatic complexity (11, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for stocktaking.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: inventory/inventory_balance.py
+Issues: 7
+--------------------------------------------------------------------------------
+
+[WARNING] (6 issues)
+  1. Line 461
+     Use logger instead of print() for logging
+     Suggestion: Import logging and use: logger = logging.getLogger(__name__); logger.info('message')
+
+  2. Line 462
+     Use logger instead of print() for logging
+     Suggestion: Import logging and use: logger = logging.getLogger(__name__); logger.info('message')
+
+  3. Line 64
+     Function 'calculate_movements_after_baseline' is too long (157 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  4. Line 223
+     Function 'calculate_item_balance' is too long (70 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  5. Line 295
+     Function 'calculate_warehouse_balances' is too long (171 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  6. Line 64
+     Function 'calculate_movements_after_baseline' has high cyclomatic complexity (20, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for inventory_balance.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: inventory/management/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for __init__.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: inventory/management/commands/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for __init__.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: inventory/management/commands/cleanup_test_receipts.py
+Issues: 4
+--------------------------------------------------------------------------------
+
+[WARNING] (4 issues)
+  1. Line 5
+     Class 'Command' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 8
+     Function 'add_arguments' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  3. Line 15
+     Function 'handle' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  4. Line 21
+     Function '_show_data' is too long (54 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+
+================================================================================
+
+File: inventory/migrations/0001_initial.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 11
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0002_warehouserequest_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0003_item_full_item_code_alter_item_item_code.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0004_remove_issueconsignment_activated_at_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0005_issueconsignment_department_unit_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0006_issueconsignment_created_by_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0014_stocktaking_created_updated_by.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 5
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0015_purchaserequest_is_locked_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0016_itemserial_remove_issueconsignment_updated_at_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0017_remove_issueconsignment_consignment_receipt_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0018_add_entered_price_unit.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0019_make_consignment_receipt_optional.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0020_change_stocktaking_users.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0021_alter_receiptpermanent_options_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0022_alter_purchaserequest_approver_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0023_remove_person_from_inventory.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0024_add_warehouse_request_to_issue_permanent.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0025_add_secondary_batch_and_serial_numbers.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0026_add_personnel_machines_to_workline.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0027_move_workline_to_production.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0028_move_workline_to_production.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0029_add_purchase_request_line.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0030_migrate_purchase_request_to_lines.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 34
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0031_add_receipt_temporary_line.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0032_add_notes_to_receipt_temporary.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0033_add_warehouse_request_line.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0034_add_stocktaking_line_models.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 99
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0035_remove_price_fields_from_receipts_and_issues.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0036_add_qc_approval_fields_to_receipt_temporary_line.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0037_add_qc_rejection_fields_to_receipt_temporary_line.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0038_add_qc_rejection_detail_model.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0039_issueconsignment_editing_by_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0040_add_supplier_to_receipt_temporary_line.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0041_add_fiscal_year_to_documents.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0042_add_warehouse_transfer_issue.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 11
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0043_add_production_transfer_to_warehouse_transfer.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0044_link_existing_warehouse_transfers.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 46
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/migrations/0045_add_item_supply_planning_fields.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: inventory/models.py
+Issues: 125
+--------------------------------------------------------------------------------
+
+[WARNING] (125 issues)
+  1. Line 1
+     Model 'FiscalYearMixin' has no corresponding test class
+     Suggestion: Create test class 'FiscalYearMixinTest' in test_models.py
+
+  2. Line 1
+     Model 'QCRejectionDetail' has no corresponding test class
+     Suggestion: Create test class 'QCRejectionDetailTest' in test_models.py
+
+  3. Line 37
+     Class 'InventoryBaseModel' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  4. Line 47
+     Class 'InventorySortableModel' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  5. Line 123
+     Class 'InventoryDocumentBase' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  6. Line 134
+     Class 'ItemType' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  7. Line 176
+     Class 'ItemCategory' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  8. Line 218
+     Class 'ItemSubcategory' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  9. Line 266
+     Class 'Warehouse' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  10. Line 315
+     Class 'Item' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  11. Line 471
+     Class 'ItemSpec' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  12. Line 503
+     Class 'ItemUnit' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  13. Line 555
+     Class 'ItemWarehouse' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  14. Line 583
+     Class 'ItemSubstitute' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  15. Line 641
+     Class 'Supplier' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  16. Line 686
+     Class 'SupplierCategory' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  17. Line 714
+     Class 'SupplierSubcategory' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  18. Line 742
+     Class 'SupplierItem' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  19. Line 785
+     Class 'PurchaseRequest' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  20. Line 1156
+     Class 'ItemLot' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  21. Line 1218
+     Class 'ItemSerial' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  22. Line 1314
+     Class 'ItemSerialHistory' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  23. Line 2178
+     Class 'StocktakingRecord' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  24. Line 43
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  25. Line 48
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  26. Line 67
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  27. Line 130
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  28. Line 144
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  29. Line 166
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  30. Line 186
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  31. Line 208
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  32. Line 233
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  33. Line 255
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  34. Line 277
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  35. Line 299
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  36. Line 384
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  37. Line 392
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  38. Line 483
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  39. Line 497
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  40. Line 531
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  41. Line 549
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  42. Line 569
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  43. Line 613
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  44. Line 633
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  45. Line 658
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  46. Line 676
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  47. Line 700
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  48. Line 728
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  49. Line 771
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  50. Line 786
+     Class 'Priority' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  51. Line 792
+     Class 'Status' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  52. Line 842
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  53. Line 874
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  54. Line 954
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  55. Line 966
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  56. Line 984
+     Class 'Status' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  57. Line 1026
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  58. Line 1034
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  59. Line 1072
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  60. Line 1080
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  61. Line 1136
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  62. Line 1144
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  63. Line 1184
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  64. Line 1192
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  65. Line 1219
+     Class 'Status' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  66. Line 1276
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  67. Line 1300
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  68. Line 1315
+     Class 'EventType' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  69. Line 1348
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  70. Line 1362
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  71. Line 1405
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  72. Line 1409
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  73. Line 1435
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  74. Line 1481
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  75. Line 1493
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  76. Line 1526
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  77. Line 1538
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  78. Line 1576
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  79. Line 1580
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  80. Line 1610
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  81. Line 1622
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  82. Line 1649
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  83. Line 1699
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  84. Line 1719
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  85. Line 1765
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  86. Line 1808
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  87. Line 1816
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  88. Line 1843
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  89. Line 1851
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  90. Line 1876
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  91. Line 1884
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  92. Line 1908
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  93. Line 1949
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  94. Line 1961
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  95. Line 1988
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  96. Line 2009
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  97. Line 2078
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  98. Line 2090
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  99. Line 2158
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  100. Line 2170
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  101. Line 2212
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  102. Line 2220
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  103. Line 2376
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  104. Line 2421
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  105. Line 2433
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  106. Line 208
+     Function 'save' appears to be duplicate of 'save'
+     Suggestion: Consider extracting common code to a shared function
+
+  107. Line 549
+     Function 'save' appears to be duplicate of 'save'
+     Suggestion: Consider extracting common code to a shared function
+
+  108. Line 1077
+     Function '__str__' appears to be duplicate of '__str__'
+     Suggestion: Consider extracting common code to a shared function
+
+  109. Line 1141
+     Function '__str__' appears to be duplicate of '__str__'
+     Suggestion: Consider extracting common code to a shared function
+
+  110. Line 1490
+     Function '__str__' appears to be duplicate of '__str__'
+     Suggestion: Consider extracting common code to a shared function
+
+  111. Line 1535
+     Function '__str__' appears to be duplicate of '__str__'
+     Suggestion: Consider extracting common code to a shared function
+
+  112. Line 1619
+     Function '__str__' appears to be duplicate of '__str__'
+     Suggestion: Consider extracting common code to a shared function
+
+  113. Line 1708
+     Function '__str__' appears to be duplicate of '__str__'
+     Suggestion: Consider extracting common code to a shared function
+
+  114. Line 1719
+     Function 'save' appears to be duplicate of 'save'
+     Suggestion: Consider extracting common code to a shared function
+
+  115. Line 1848
+     Function '__str__' appears to be duplicate of '__str__'
+     Suggestion: Consider extracting common code to a shared function
+
+  116. Line 1881
+     Function '__str__' appears to be duplicate of '__str__'
+     Suggestion: Consider extracting common code to a shared function
+
+  117. Line 1884
+     Function 'save' appears to be duplicate of 'save'
+     Suggestion: Consider extracting common code to a shared function
+
+  118. Line 1913
+     Function '__str__' appears to be duplicate of '__str__'
+     Suggestion: Consider extracting common code to a shared function
+
+  119. Line 2014
+     Function '__str__' appears to be duplicate of '__str__'
+     Suggestion: Consider extracting common code to a shared function
+
+  120. Line 2167
+     Function '__str__' appears to be duplicate of '__str__'
+     Suggestion: Consider extracting common code to a shared function
+
+  121. Line 2170
+     Function 'save' appears to be duplicate of 'save'
+     Suggestion: Consider extracting common code to a shared function
+
+  122. Line 392
+     Function 'save' has high cyclomatic complexity (11, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  123. Line 874
+     Function 'save' has high cyclomatic complexity (16, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  124. Line 1300
+     Function 'save' has high cyclomatic complexity (11, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  125. Line 2357
+     Function 'save' has high cyclomatic complexity (12, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+================================================================================
+
+File: inventory/services/serials.py
+Issues: 13
+--------------------------------------------------------------------------------
+
+[WARNING] (12 issues)
+  1. Line 27
+     Function 'generate_receipt_serials' is too long (84 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  2. Line 135
+     Function 'finalize_issue_serials' is too long (81 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  3. Line 219
+     Function '_reserve_serials' is too long (64 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  4. Line 286
+     Function '_release_serials' is too long (60 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  5. Line 368
+     Function 'generate_receipt_line_serials' is too long (86 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  6. Line 485
+     Function 'finalize_issue_line_serials' is too long (82 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  7. Line 570
+     Function '_reserve_line_serials' is too long (66 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  8. Line 639
+     Function '_release_line_serials' is too long (62 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  9. Line 27
+     Function 'generate_receipt_serials' has high cyclomatic complexity (12, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  10. Line 135
+     Function 'finalize_issue_serials' has high cyclomatic complexity (11, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  11. Line 368
+     Function 'generate_receipt_line_serials' has high cyclomatic complexity (11, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  12. Line 485
+     Function 'finalize_issue_line_serials' has high cyclomatic complexity (11, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for serials.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: inventory/templatetags/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for __init__.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: inventory/templatetags/jalali_tags.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for jalali_tags.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: inventory/tests.py
+Issues: 13
+--------------------------------------------------------------------------------
+
+[WARNING] (8 issues)
+  1. Line 10
+     Class 'InventoryModelTests' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 71
+     Function 'create_item' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  3. Line 85
+     Function 'test_item_code_and_batch_generation' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  4. Line 91
+     Function 'test_purchase_request_populates_codes' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  5. Line 105
+     Function 'test_receipt_permanent_auto_sets_codes' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  6. Line 119
+     Function 'test_item_lot_generation' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  7. Line 11
+     Function 'setUp' should use snake_case
+     Suggestion: Rename to set_up
+
+  8. Line 11
+     Function 'setUp' is too long (59 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+
+[INFO] (5 issues)
+  1. Line 1
+     Test file could benefit from factory pattern
+     Suggestion: Consider using factory classes for test data creation
+
+  2. Line 85
+     Test method 'test_item_code_and_batch_generation' missing docstring
+     Suggestion: Add docstring explaining what the test verifies
+
+  3. Line 91
+     Test method 'test_purchase_request_populates_codes' missing docstring
+     Suggestion: Add docstring explaining what the test verifies
+
+  4. Line 105
+     Test method 'test_receipt_permanent_auto_sets_codes' missing docstring
+     Suggestion: Add docstring explaining what the test verifies
+
+  5. Line 119
+     Test method 'test_item_lot_generation' missing docstring
+     Suggestion: Add docstring explaining what the test verifies
+
+
+================================================================================
+
+File: inventory/tests/test_models.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 23
+     Function 'setUp' should use snake_case
+     Suggestion: Rename to set_up
+
+  2. Line 23
+     Function 'setUp' is too long (51 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+
+[INFO] (1 issues)
+  1. Line 1
+     Test file could benefit from factory pattern
+     Suggestion: Consider using factory classes for test data creation
+
+
+================================================================================
+
+File: inventory/urls.py
+Issues: 8
+--------------------------------------------------------------------------------
+
+[INFO] (8 issues)
+  1. Line 1
+     No test file found for urls.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 1
+     API endpoints should be versioned
+     Suggestion: Use versioned URLs like /api/v1/endpoint/
+
+  3. Line 1
+     API endpoints should be versioned
+     Suggestion: Use versioned URLs like /api/v1/endpoint/
+
+  4. Line 1
+     API endpoints should be versioned
+     Suggestion: Use versioned URLs like /api/v1/endpoint/
+
+  5. Line 1
+     API endpoints should be versioned
+     Suggestion: Use versioned URLs like /api/v1/endpoint/
+
+  6. Line 1
+     API endpoints should be versioned
+     Suggestion: Use versioned URLs like /api/v1/endpoint/
+
+  7. Line 1
+     API views missing rate limiting configuration
+     Suggestion: Configure throttling classes in settings or view-level throttling
+
+  8. Line 1
+     API view should have proper error handling
+     Suggestion: Use try-except blocks or DRF exceptions (ValidationError, APIException)
+
+
+================================================================================
+
+File: inventory/utils/codes.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for codes.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: inventory/utils/jalali.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for jalali.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: inventory/views.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[ERROR] (1 issues)
+  1. Line 14
+     Potential N+1 query detected in loop - accessing ForeignKey attributes
+     Suggestion: Use select_related() before the loop to prefetch related objects
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for views.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: inventory/views/__init__.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[INFO] (3 issues)
+  1. Line 1
+     No test file found for __init__.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 1
+     API views missing rate limiting configuration
+     Suggestion: Configure throttling classes in settings or view-level throttling
+
+  3. Line 1
+     API view should have proper error handling
+     Suggestion: Use try-except blocks or DRF exceptions (ValidationError, APIException)
+
+
+================================================================================
+
+File: inventory/views/api.py
+Issues: 42
+--------------------------------------------------------------------------------
+
+[WARNING] (6 issues)
+  1. Line 50
+     Function 'add' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  2. Line 20
+     Function 'get_item_allowed_units' is too long (54 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  3. Line 150
+     Function 'get_filtered_items' is too long (86 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  4. Line 239
+     Function 'get_item_units' is too long (51 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  5. Line 342
+     Function 'get_temporary_receipt_data' is too long (90 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  6. Line 150
+     Function 'get_filtered_items' has high cyclomatic complexity (13, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (36 issues)
+  1. Line 1
+     No test file found for api.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 23
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  3. Line 28
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  4. Line 34
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  5. Line 46
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  6. Line 73
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  7. Line 82
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  8. Line 106
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  9. Line 114
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  10. Line 146
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  11. Line 154
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  12. Line 235
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  13. Line 243
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  14. Line 248
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  15. Line 289
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  16. Line 298
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  17. Line 304
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  18. Line 316
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  19. Line 337
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  20. Line 346
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  21. Line 351
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  22. Line 377
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  23. Line 431
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  24. Line 442
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  25. Line 445
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  26. Line 450
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  27. Line 484
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  28. Line 494
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  29. Line 512
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  30. Line 522
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  31. Line 527
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  32. Line 561
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  33. Line 510
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  34. Line 131
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  35. Line 456
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  36. Line 537
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+
+================================================================================
+
+File: inventory/views/balance.py
+Issues: 13
+--------------------------------------------------------------------------------
+
+[WARNING] (8 issues)
+  1. Line 485
+     View function 'get' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  2. Line 481
+     View class 'InventoryBalanceAPIView' missing feature_code attribute
+     Suggestion: Add feature_code = 'module.feature.name' to enable permission checking
+
+  3. Line 302
+     Bare except clause should specify exception type
+     Suggestion: Use: except SpecificException as e: instead of bare except:
+
+  4. Line 371
+     Bare except clause should specify exception type
+     Suggestion: Use: except SpecificException as e: instead of bare except:
+
+  5. Line 338
+     Bare except clause should specify exception type
+     Suggestion: Use: except SpecificException as e: instead of bare except:
+
+  6. Line 30
+     Function 'get_context_data' is too long (64 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  7. Line 105
+     Function 'get_context_data' is too long (374 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  8. Line 105
+     Function 'get_context_data' has high cyclomatic complexity (36, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (5 issues)
+  1. Line 1
+     No test file found for balance.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 1
+     API views missing rate limiting configuration
+     Suggestion: Configure throttling classes in settings or view-level throttling
+
+  3. Line 492
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  4. Line 516
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  5. Line 514
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+
+================================================================================
+
+File: inventory/views/base.py
+Issues: 29
+--------------------------------------------------------------------------------
+
+[WARNING] (27 issues)
+  1. Line 324
+     Function 'dispatch' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  2. Line 388
+     Function 'post' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  3. Line 478
+     Function 'post' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  4. Line 324
+     View function 'dispatch' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  5. Line 380
+     View function 'after_lock' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  6. Line 384
+     View function 'before_lock' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  7. Line 388
+     View function 'post' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  8. Line 435
+     View function 'after_unlock' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  9. Line 439
+     View function 'before_unlock' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  10. Line 443
+     View function 'dispatch' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  11. Line 478
+     View function 'post' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  12. Line 520
+     View function 'build_line_formset' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  13. Line 594
+     Bare except clause should specify exception type
+     Suggestion: Use: except SpecificException as e: instead of bare except:
+
+  14. Line 616
+     Bare except clause should specify exception type
+     Suggestion: Use: except SpecificException as e: instead of bare except:
+
+  15. Line 646
+     Bare except clause should specify exception type
+     Suggestion: Use: except SpecificException as e: instead of bare except:
+
+  16. Line 75
+     Function 'add_view_edit_permissions_to_context' is too long (58 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  17. Line 134
+     Function 'can_view_object' is too long (55 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  18. Line 190
+     Function 'can_edit_object' is too long (60 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  19. Line 251
+     Function 'filter_queryset_by_permissions' is too long (61 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  20. Line 570
+     Function 'get_context_data' is too long (79 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  21. Line 665
+     Function '_save_line_formset' is too long (80 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  22. Line 816
+     Function '_save_unit_formset' is too long (96 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  23. Line 134
+     Function 'can_view_object' has high cyclomatic complexity (11, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  24. Line 190
+     Function 'can_edit_object' has high cyclomatic complexity (12, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  25. Line 520
+     Function 'build_line_formset' has high cyclomatic complexity (12, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  26. Line 665
+     Function '_save_line_formset' has high cyclomatic complexity (18, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  27. Line 816
+     Function '_save_unit_formset' has high cyclomatic complexity (16, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (2 issues)
+  1. Line 1
+     No test file found for base.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 30
+     Manual company filter detected - consider using apply_company_filter() or CompanyScopedViewMixin
+     Suggestion: Use 'apply_company_filter' from shared.filters or 'CompanyScopedViewMixin' from shared.mixins
+
+
+================================================================================
+
+File: inventory/views/create_issue_from_warehouse_request.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 21
+     View class 'CreateIssueFromWarehouseRequestView' missing feature_code attribute
+     Suggestion: Add feature_code = 'module.feature.name' to enable permission checking
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for create_issue_from_warehouse_request.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: inventory/views/issues.py
+Issues: 48
+--------------------------------------------------------------------------------
+
+[ERROR] (1 issues)
+  1. Line 1477
+     Class 'IssueLineSerialAssignmentBaseView' uses 'FormView' instead of 'BaseFormView'
+     Suggestion: Replace 'from django.views.generic import FormView' with 'from shared.views.base import BaseFormView'
+
+
+[WARNING] (46 issues)
+  1. Line 484
+     View function 'before_lock' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  2. Line 515
+     View function 'after_lock' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  3. Line 960
+     View function 'before_lock' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  4. Line 991
+     View function 'after_lock' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  5. Line 1432
+     View function 'before_lock' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  6. Line 1463
+     View function 'after_lock' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  7. Line 1489
+     View function 'dispatch' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  8. Line 236
+     Function 'form_valid' is too long (56 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  9. Line 727
+     Function 'form_valid' is too long (56 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  10. Line 1199
+     Function 'form_valid' is too long (56 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  11. Line 1749
+     Function 'form_valid' is too long (56 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  12. Line 386
+     Function 'get_fieldsets' appears to be duplicate of 'get_fieldsets'
+     Suggestion: Consider extracting common code to a shared function
+
+  13. Line 400
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  14. Line 473
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  15. Line 545
+     Function 'get_prefetch_related' appears to be duplicate of 'get_prefetch_related'
+     Suggestion: Consider extracting common code to a shared function
+
+  16. Line 549
+     Function 'apply_custom_filters' appears to be duplicate of 'apply_custom_filters'
+     Suggestion: Consider extracting common code to a shared function
+
+  17. Line 603
+     Function 'get_empty_state_title' appears to be duplicate of 'get_empty_state_title'
+     Suggestion: Consider extracting common code to a shared function
+
+  18. Line 611
+     Function 'get_empty_state_icon' appears to be duplicate of 'get_empty_state_icon'
+     Suggestion: Consider extracting common code to a shared function
+
+  19. Line 631
+     Function 'get_stats_labels' appears to be duplicate of 'get_stats_labels'
+     Suggestion: Consider extracting common code to a shared function
+
+  20. Line 784
+     Function 'get_fieldsets' appears to be duplicate of 'get_fieldsets'
+     Suggestion: Consider extracting common code to a shared function
+
+  21. Line 828
+     Function 'get_formset_kwargs' appears to be duplicate of 'get_formset_kwargs'
+     Suggestion: Consider extracting common code to a shared function
+
+  22. Line 862
+     Function 'get_fieldsets' appears to be duplicate of 'get_fieldsets'
+     Suggestion: Consider extracting common code to a shared function
+
+  23. Line 876
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  24. Line 891
+     Function 'dispatch' appears to be duplicate of 'dispatch'
+     Suggestion: Consider extracting common code to a shared function
+
+  25. Line 941
+     Function 'get_object_details' appears to be duplicate of 'get_object_details'
+     Suggestion: Consider extracting common code to a shared function
+
+  26. Line 949
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  27. Line 1017
+     Function 'get_select_related' appears to be duplicate of 'get_select_related'
+     Suggestion: Consider extracting common code to a shared function
+
+  28. Line 1025
+     Function 'apply_custom_filters' appears to be duplicate of 'apply_custom_filters'
+     Suggestion: Consider extracting common code to a shared function
+
+  29. Line 1079
+     Function 'get_empty_state_title' appears to be duplicate of 'get_empty_state_title'
+     Suggestion: Consider extracting common code to a shared function
+
+  30. Line 1087
+     Function 'get_empty_state_icon' appears to be duplicate of 'get_empty_state_icon'
+     Suggestion: Consider extracting common code to a shared function
+
+  31. Line 1107
+     Function 'get_stats_labels' appears to be duplicate of 'get_stats_labels'
+     Suggestion: Consider extracting common code to a shared function
+
+  32. Line 1256
+     Function 'get_fieldsets' appears to be duplicate of 'get_fieldsets'
+     Suggestion: Consider extracting common code to a shared function
+
+  33. Line 1300
+     Function 'get_formset_kwargs' appears to be duplicate of 'get_formset_kwargs'
+     Suggestion: Consider extracting common code to a shared function
+
+  34. Line 1334
+     Function 'get_fieldsets' appears to be duplicate of 'get_fieldsets'
+     Suggestion: Consider extracting common code to a shared function
+
+  35. Line 1348
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  36. Line 1363
+     Function 'dispatch' appears to be duplicate of 'dispatch'
+     Suggestion: Consider extracting common code to a shared function
+
+  37. Line 1413
+     Function 'get_object_details' appears to be duplicate of 'get_object_details'
+     Suggestion: Consider extracting common code to a shared function
+
+  38. Line 1421
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  39. Line 1637
+     Function 'apply_custom_filters' appears to be duplicate of 'apply_custom_filters'
+     Suggestion: Consider extracting common code to a shared function
+
+  40. Line 1687
+     Function 'get_empty_state_title' appears to be duplicate of 'get_empty_state_title'
+     Suggestion: Consider extracting common code to a shared function
+
+  41. Line 1695
+     Function 'get_empty_state_icon' appears to be duplicate of 'get_empty_state_icon'
+     Suggestion: Consider extracting common code to a shared function
+
+  42. Line 1715
+     Function 'get_stats_labels' appears to be duplicate of 'get_stats_labels'
+     Suggestion: Consider extracting common code to a shared function
+
+  43. Line 1806
+     Function 'get_fieldsets' appears to be duplicate of 'get_fieldsets'
+     Suggestion: Consider extracting common code to a shared function
+
+  44. Line 1839
+     Function 'get_formset_kwargs' appears to be duplicate of 'get_formset_kwargs'
+     Suggestion: Consider extracting common code to a shared function
+
+  45. Line 1910
+     Function 'get_fieldsets' appears to be duplicate of 'get_fieldsets'
+     Suggestion: Consider extracting common code to a shared function
+
+  46. Line 1924
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for issues.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: inventory/views/issues_from_warehouse_request.py
+Issues: 11
+--------------------------------------------------------------------------------
+
+[ERROR] (3 issues)
+  1. Line 27
+     Class 'IssuePermanentCreateFromWarehouseRequestView' uses 'CreateView' instead of 'BaseCreateView'
+     Suggestion: Replace 'from django.views.generic import CreateView' with 'from shared.views.base import BaseCreateView'
+
+  2. Line 147
+     Class 'IssueConsumptionCreateFromWarehouseRequestView' uses 'CreateView' instead of 'BaseCreateView'
+     Suggestion: Replace 'from django.views.generic import CreateView' with 'from shared.views.base import BaseCreateView'
+
+  3. Line 273
+     Class 'IssueConsignmentCreateFromWarehouseRequestView' uses 'CreateView' instead of 'BaseCreateView'
+     Suggestion: Replace 'from django.views.generic import CreateView' with 'from shared.views.base import BaseCreateView'
+
+
+[WARNING] (7 issues)
+  1. Line 160
+     Function 'get_warehouse_request' appears to be duplicate of 'get_warehouse_request'
+     Suggestion: Consider extracting common code to a shared function
+
+  2. Line 171
+     Function 'get_context_data' appears to be duplicate of 'get_context_data'
+     Suggestion: Consider extracting common code to a shared function
+
+  3. Line 266
+     Function 'get_fieldsets' appears to be duplicate of 'get_fieldsets'
+     Suggestion: Consider extracting common code to a shared function
+
+  4. Line 286
+     Function 'get_warehouse_request' appears to be duplicate of 'get_warehouse_request'
+     Suggestion: Consider extracting common code to a shared function
+
+  5. Line 297
+     Function 'get_context_data' appears to be duplicate of 'get_context_data'
+     Suggestion: Consider extracting common code to a shared function
+
+  6. Line 337
+     Function 'form_valid' appears to be duplicate of 'form_valid'
+     Suggestion: Consider extracting common code to a shared function
+
+  7. Line 384
+     Function 'get_fieldsets' appears to be duplicate of 'get_fieldsets'
+     Suggestion: Consider extracting common code to a shared function
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for issues_from_warehouse_request.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: inventory/views/item_import.py
+Issues: 11
+--------------------------------------------------------------------------------
+
+[WARNING] (10 issues)
+  1. Line 31
+     View function 'get' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  2. Line 204
+     View function 'post' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  3. Line 28
+     View class 'ItemExcelTemplateDownloadView' missing feature_code attribute
+     Suggestion: Add feature_code = 'module.feature.name' to enable permission checking
+
+  4. Line 200
+     View class 'ItemExcelImportView' missing feature_code attribute
+     Suggestion: Add feature_code = 'module.feature.name' to enable permission checking
+
+  5. Line 31
+     Function 'get' is too long (167 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  6. Line 204
+     Function 'post' is too long (98 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  7. Line 395
+     Function '_create_item' is too long (63 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  8. Line 31
+     Function 'get' has high cyclomatic complexity (12, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  9. Line 204
+     Function 'post' has high cyclomatic complexity (14, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  10. Line 354
+     Function '_validate_item_data' has high cyclomatic complexity (19, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for item_import.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: inventory/views/master_data.py
+Issues: 29
+--------------------------------------------------------------------------------
+
+[WARNING] (28 issues)
+  1. Line 216
+     Function 'post' is too long (53 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  2. Line 476
+     Function 'post' is too long (53 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  3. Line 1069
+     Function 'form_valid' is too long (92 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  4. Line 1228
+     Function 'form_valid' is too long (157 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  5. Line 164
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  6. Line 295
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  7. Line 358
+     Function 'get_search_placeholder' appears to be duplicate of 'get_search_placeholder'
+     Suggestion: Consider extracting common code to a shared function
+
+  8. Line 424
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  9. Line 547
+     Function 'get_object_details' appears to be duplicate of 'get_object_details'
+     Suggestion: Consider extracting common code to a shared function
+
+  10. Line 555
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  11. Line 688
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  12. Line 701
+     Function 'get_select_related' appears to be duplicate of 'get_select_related'
+     Suggestion: Consider extracting common code to a shared function
+
+  13. Line 838
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  14. Line 1428
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  15. Line 1501
+     Function 'get_select_related' appears to be duplicate of 'get_select_related'
+     Suggestion: Consider extracting common code to a shared function
+
+  16. Line 1572
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  17. Line 1702
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  18. Line 1736
+     Function 'get_context_data' appears to be duplicate of 'get_context_data'
+     Suggestion: Consider extracting common code to a shared function
+
+  19. Line 1828
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  20. Line 2018
+     Function '_sync_supplier_links' appears to be duplicate of '_sync_supplier_links'
+     Suggestion: Consider extracting common code to a shared function
+
+  21. Line 2079
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  22. Line 2092
+     Function 'get_select_related' appears to be duplicate of 'get_select_related'
+     Suggestion: Consider extracting common code to a shared function
+
+  23. Line 2135
+     Function 'get_select_related' appears to be duplicate of 'get_select_related'
+     Suggestion: Consider extracting common code to a shared function
+
+  24. Line 2164
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  25. Line 2294
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  26. Line 2420
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  27. Line 1069
+     Function 'form_valid' has high cyclomatic complexity (15, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  28. Line 1228
+     Function 'form_valid' has high cyclomatic complexity (28, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for master_data.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: inventory/views/receipts.py
+Issues: 46
+--------------------------------------------------------------------------------
+
+[CRITICAL] (2 issues)
+  1. Line 139
+     Using mark_safe - ensure content is sanitized
+     Suggestion: Review security best practices in DEVELOPMENT_GUIDE.md
+
+  2. Line 141
+     Using mark_safe - ensure content is sanitized
+     Suggestion: Review security best practices in DEVELOPMENT_GUIDE.md
+
+
+[ERROR] (1 issues)
+  1. Line 47
+     Class 'DocumentDeleteViewBase' uses 'DeleteView' instead of 'BaseDeleteView'
+     Suggestion: Replace 'from django.views.generic import DeleteView' with 'from shared.views.base import BaseDeleteView'
+
+
+[WARNING] (42 issues)
+  1. Line 2355
+     View function 'dispatch' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  2. Line 2400
+     View function 'get' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  3. Line 2404
+     View function 'post' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  4. Line 2461
+     View function 'dispatch' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  5. Line 2517
+     View function 'get' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  6. Line 2521
+     View function 'post' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  7. Line 88
+     View class 'ReceiptFormMixin' missing feature_code attribute
+     Suggestion: Add feature_code = 'module.feature.name' to enable permission checking
+
+  8. Line 102
+     Function 'get_context_data' is too long (109 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  9. Line 965
+     Function 'form_valid' is too long (69 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  10. Line 1419
+     Function 'get_context_data' is too long (178 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  11. Line 1598
+     Function 'form_valid' is too long (58 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  12. Line 1673
+     Function 'get_context_data' is too long (172 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  13. Line 1846
+     Function 'form_valid' is too long (61 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  14. Line 1924
+     Function 'get_context_data' is too long (190 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  15. Line 685
+     Function 'get_fieldsets' appears to be duplicate of 'get_fieldsets'
+     Suggestion: Consider extracting common code to a shared function
+
+  16. Line 699
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  17. Line 714
+     Function 'dispatch' appears to be duplicate of 'dispatch'
+     Suggestion: Consider extracting common code to a shared function
+
+  18. Line 769
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  19. Line 908
+     Function 'get_empty_state_icon' appears to be duplicate of 'get_empty_state_icon'
+     Suggestion: Consider extracting common code to a shared function
+
+  20. Line 1081
+     Function 'get_formset_kwargs' appears to be duplicate of 'get_formset_kwargs'
+     Suggestion: Consider extracting common code to a shared function
+
+  21. Line 1127
+     Function 'get_fieldsets' appears to be duplicate of 'get_fieldsets'
+     Suggestion: Consider extracting common code to a shared function
+
+  22. Line 1141
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  23. Line 1156
+     Function 'dispatch' appears to be duplicate of 'dispatch'
+     Suggestion: Consider extracting common code to a shared function
+
+  24. Line 1203
+     Function 'get_object_details' appears to be duplicate of 'get_object_details'
+     Suggestion: Consider extracting common code to a shared function
+
+  25. Line 1211
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  26. Line 1302
+     Function 'get_empty_state_icon' appears to be duplicate of 'get_empty_state_icon'
+     Suggestion: Consider extracting common code to a shared function
+
+  27. Line 1306
+     Function 'get_context_data' appears to be duplicate of 'get_context_data'
+     Suggestion: Consider extracting common code to a shared function
+
+  28. Line 1661
+     Function 'get_purchase_request' appears to be duplicate of 'get_purchase_request'
+     Suggestion: Consider extracting common code to a shared function
+
+  29. Line 1912
+     Function 'get_purchase_request' appears to be duplicate of 'get_purchase_request'
+     Suggestion: Consider extracting common code to a shared function
+
+  30. Line 2115
+     Function 'form_valid' appears to be duplicate of 'form_valid'
+     Suggestion: Consider extracting common code to a shared function
+
+  31. Line 2196
+     Function 'get_formset_kwargs' appears to be duplicate of 'get_formset_kwargs'
+     Suggestion: Consider extracting common code to a shared function
+
+  32. Line 2244
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  33. Line 2265
+     Function 'dispatch' appears to be duplicate of 'dispatch'
+     Suggestion: Consider extracting common code to a shared function
+
+  34. Line 2312
+     Function 'get_object_details' appears to be duplicate of 'get_object_details'
+     Suggestion: Consider extracting common code to a shared function
+
+  35. Line 2320
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  36. Line 2493
+     Function 'get_context_data' appears to be duplicate of 'get_context_data'
+     Suggestion: Consider extracting common code to a shared function
+
+  37. Line 2517
+     Function 'get' appears to be duplicate of 'get'
+     Suggestion: Consider extracting common code to a shared function
+
+  38. Line 102
+     Function 'get_context_data' has high cyclomatic complexity (25, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  39. Line 965
+     Function 'form_valid' has high cyclomatic complexity (16, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  40. Line 1419
+     Function 'get_context_data' has high cyclomatic complexity (21, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  41. Line 1673
+     Function 'get_context_data' has high cyclomatic complexity (21, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  42. Line 1924
+     Function 'get_context_data' has high cyclomatic complexity (21, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for receipts.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: inventory/views/requests.py
+Issues: 29
+--------------------------------------------------------------------------------
+
+[CRITICAL] (5 issues)
+  1. Line 99
+     Using mark_safe - ensure content is sanitized
+     Suggestion: Review security best practices in DEVELOPMENT_GUIDE.md
+
+  2. Line 101
+     Using mark_safe - ensure content is sanitized
+     Suggestion: Review security best practices in DEVELOPMENT_GUIDE.md
+
+  3. Line 785
+     Using mark_safe - ensure content is sanitized
+     Suggestion: Review security best practices in DEVELOPMENT_GUIDE.md
+
+  4. Line 786
+     Using mark_safe - ensure content is sanitized
+     Suggestion: Review security best practices in DEVELOPMENT_GUIDE.md
+
+  5. Line 1373
+     Potential SQL injection with format()
+     Suggestion: Use parameterized queries or ORM methods instead
+
+
+[WARNING] (22 issues)
+  1. Line 87
+     Function 'add' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  2. Line 44
+     View class 'PurchaseRequestFormMixin' missing feature_code attribute
+     Suggestion: Add feature_code = 'module.feature.name' to enable permission checking
+
+  3. Line 651
+     View class 'PurchaseRequestApproveView' missing feature_code attribute
+     Suggestion: Add feature_code = 'module.feature.name' to enable permission checking
+
+  4. Line 707
+     View class 'WarehouseRequestFormMixin' missing feature_code attribute
+     Suggestion: Add feature_code = 'module.feature.name' to enable permission checking
+
+  5. Line 1534
+     View class 'WarehouseRequestApproveView' missing feature_code attribute
+     Suggestion: Add feature_code = 'module.feature.name' to enable permission checking
+
+  6. Line 1664
+     View class 'CreateReceiptFromPurchaseRequestView' missing feature_code attribute
+     Suggestion: Add feature_code = 'module.feature.name' to enable permission checking
+
+  7. Line 56
+     Function 'get_context_data' is too long (66 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  8. Line 282
+     Function 'form_valid' is too long (138 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  9. Line 719
+     Function 'get_context_data' is too long (89 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  10. Line 969
+     Function 'form_valid' is too long (322 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  11. Line 1366
+     Function 'form_valid' is too long (158 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  12. Line 1717
+     Function 'get_context_data' is too long (80 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  13. Line 569
+     Function 'get_fieldsets' appears to be duplicate of 'get_fieldsets'
+     Suggestion: Consider extracting common code to a shared function
+
+  14. Line 712
+     Function 'get_form_kwargs' appears to be duplicate of 'get_form_kwargs'
+     Suggestion: Consider extracting common code to a shared function
+
+  15. Line 1313
+     Function 'get_select_related' appears to be duplicate of 'get_select_related'
+     Suggestion: Consider extracting common code to a shared function
+
+  16. Line 1525
+     Function 'get_fieldsets' appears to be duplicate of 'get_fieldsets'
+     Suggestion: Consider extracting common code to a shared function
+
+  17. Line 1596
+     Function 'dispatch' appears to be duplicate of 'dispatch'
+     Suggestion: Consider extracting common code to a shared function
+
+  18. Line 56
+     Function 'get_context_data' has high cyclomatic complexity (18, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  19. Line 282
+     Function 'form_valid' has high cyclomatic complexity (21, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  20. Line 719
+     Function 'get_context_data' has high cyclomatic complexity (21, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  21. Line 969
+     Function 'form_valid' has high cyclomatic complexity (37, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  22. Line 1366
+     Function 'form_valid' has high cyclomatic complexity (16, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (2 issues)
+  1. Line 1
+     No test file found for requests.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 486
+     Manual company filter detected - consider using apply_company_filter() or CompanyScopedViewMixin
+     Suggestion: Use 'apply_company_filter' from shared.filters or 'CompanyScopedViewMixin' from shared.mixins
+
+
+================================================================================
+
+File: inventory/views/stocktaking.py
+Issues: 37
+--------------------------------------------------------------------------------
+
+[WARNING] (36 issues)
+  1. Line 38
+     View class 'StocktakingFormMixin' missing feature_code attribute
+     Suggestion: Add feature_code = 'module.feature.name' to enable permission checking
+
+  2. Line 581
+     Bare except clause should specify exception type
+     Suggestion: Use: except SpecificException as e: instead of bare except:
+
+  3. Line 612
+     Bare except clause should specify exception type
+     Suggestion: Use: except SpecificException as e: instead of bare except:
+
+  4. Line 633
+     Bare except clause should specify exception type
+     Suggestion: Use: except SpecificException as e: instead of bare except:
+
+  5. Line 780
+     Bare except clause should specify exception type
+     Suggestion: Use: except SpecificException as e: instead of bare except:
+
+  6. Line 842
+     Bare except clause should specify exception type
+     Suggestion: Use: except SpecificException as e: instead of bare except:
+
+  7. Line 865
+     Bare except clause should specify exception type
+     Suggestion: Use: except SpecificException as e: instead of bare except:
+
+  8. Line 658
+     Bare except clause should specify exception type
+     Suggestion: Use: except SpecificException as e: instead of bare except:
+
+  9. Line 679
+     Bare except clause should specify exception type
+     Suggestion: Use: except SpecificException as e: instead of bare except:
+
+  10. Line 706
+     Bare except clause should specify exception type
+     Suggestion: Use: except SpecificException as e: instead of bare except:
+
+  11. Line 802
+     Bare except clause should specify exception type
+     Suggestion: Use: except SpecificException as e: instead of bare except:
+
+  12. Line 823
+     Bare except clause should specify exception type
+     Suggestion: Use: except SpecificException as e: instead of bare except:
+
+  13. Line 753
+     Bare except clause should specify exception type
+     Suggestion: Use: except SpecificException as e: instead of bare except:
+
+  14. Line 56
+     Function 'get_context_data' is too long (65 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  15. Line 210
+     Function 'form_valid' is too long (63 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  16. Line 559
+     Function 'form_valid' is too long (323 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  17. Line 303
+     Function 'get_prefetch_related' appears to be duplicate of 'get_prefetch_related'
+     Suggestion: Consider extracting common code to a shared function
+
+  18. Line 307
+     Function 'get_select_related' appears to be duplicate of 'get_select_related'
+     Suggestion: Consider extracting common code to a shared function
+
+  19. Line 460
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  20. Line 484
+     Function 'get_prefetch_related' appears to be duplicate of 'get_prefetch_related'
+     Suggestion: Consider extracting common code to a shared function
+
+  21. Line 488
+     Function 'get_select_related' appears to be duplicate of 'get_select_related'
+     Suggestion: Consider extracting common code to a shared function
+
+  22. Line 883
+     Function 'get_fieldsets' appears to be duplicate of 'get_fieldsets'
+     Suggestion: Consider extracting common code to a shared function
+
+  23. Line 912
+     Function 'get_prefetch_related' appears to be duplicate of 'get_prefetch_related'
+     Suggestion: Consider extracting common code to a shared function
+
+  24. Line 916
+     Function 'get_select_related' appears to be duplicate of 'get_select_related'
+     Suggestion: Consider extracting common code to a shared function
+
+  25. Line 964
+     Function 'get_queryset' appears to be duplicate of 'get_queryset'
+     Suggestion: Consider extracting common code to a shared function
+
+  26. Line 975
+     Function 'get_formset_kwargs' appears to be duplicate of 'get_formset_kwargs'
+     Suggestion: Consider extracting common code to a shared function
+
+  27. Line 1017
+     Function 'dispatch' appears to be duplicate of 'dispatch'
+     Suggestion: Consider extracting common code to a shared function
+
+  28. Line 1061
+     Function 'get_object_details' appears to be duplicate of 'get_object_details'
+     Suggestion: Consider extracting common code to a shared function
+
+  29. Line 1069
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  30. Line 1193
+     Function 'get_select_related' appears to be duplicate of 'get_select_related'
+     Suggestion: Consider extracting common code to a shared function
+
+  31. Line 1238
+     Function 'get_queryset' appears to be duplicate of 'get_queryset'
+     Suggestion: Consider extracting common code to a shared function
+
+  32. Line 1251
+     Function 'get_fieldsets' appears to be duplicate of 'get_fieldsets'
+     Suggestion: Consider extracting common code to a shared function
+
+  33. Line 1270
+     Function 'dispatch' appears to be duplicate of 'dispatch'
+     Suggestion: Consider extracting common code to a shared function
+
+  34. Line 1323
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  35. Line 56
+     Function 'get_context_data' has high cyclomatic complexity (14, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  36. Line 559
+     Function 'form_valid' has high cyclomatic complexity (43, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for stocktaking.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: inventory/widgets.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for widgets.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+

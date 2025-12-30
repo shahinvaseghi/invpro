@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load jalali_tags %}
+{% load static %}
+
+{% block title %}{{ form_title|default:"Create Rework Document" }} · invproj{% endblock %}
+
+{% block content %}
+<section class="page-section">
+  <header class="section-header">
+    <h1>{{ form_title|default:"Create Rework Document" }}</h1>
+  </header>
+
+  <form method="post" id="{{ form_id|default:'rework-form' }}" class="rework-form">
+    {% csrf_token %}
+    
+    <!-- Order Selection -->
+    <div class="form-section form-section-bg">
+      <h3>{% trans "Select Production Order" %}</h3>
+      <div class="form-group">
+        <label for="{{ form.order.id_for_label }}">{{ form.order.label }}</label>
+        {{ form.order }}
+        {% if form.order.errors %}
+          <div class="error-message">
+            {{ form.order.errors }}
+          </div>
+        {% endif %}
+        <button type="button" id="load-operations-btn" class="btn btn-primary btn-mt">
+          {% trans "Load Operations" %}
+        </button>
+      </div>
+    </div>
+
+    {% if selected_order %}
+      <!-- Operations Lists -->
+      <div class="operations-section">
+        <!-- List 1: Operations without performance documents -->
+        <div class="operations-list-section">
+          <h3>{% trans "Operations Without Performance Documents" %}</h3>
+          {% if list1_operations %}
+            <div class="operations-list">
+              {% for operation in list1_operations %}
+              <div class="operation-item">
+                <label>
+                  <input type="radio" name="operation" value="{{ operation.pk }}">
+                  <div>
+                    <strong>{% trans "Sequence" %}: {{ operation.sequence_order }}</strong> - 
+                    {{ operation.name|default:"—" }}
+                    {% if operation.work_line %}
+                      <br><small>{% trans "Work Line" %}: {{ operation.work_line.name }}</small>
+                    {% endif %}
+                  </div>
+                </label>
+              </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="text-muted-gray">{% trans "All operations have performance documents." %}</p>
+          {% endif %}
+        </div>
+
+        <!-- List 2: Operations with QC-rejected performance documents -->
+        <div class="operations-list-section">
+          <h3>{% trans "Operations with QC-Rejected Performance Documents" %}</h3>
+          {% if list2_operations %}
+            <div class="operations-list">
+              {% for item in list2_operations %}
+              <div class="operation-item" style="padding: 1rem; margin-bottom: 0.5rem; background: white; border: 1px solid #ddd; border-radius: 4px;">
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                  <input type="radio" name="operation" value="{{ item.operation.pk }}" data-performance-id="{{ item.performance.pk }}" style="margin-right: 0.5rem;">
+                  <div>
+                    <strong>{% trans "Sequence" %}: {{ item.operation.sequence_order }}</strong> - 
+                    {{ item.operation.name|default:"—" }}
+                    <br><small>
+                      {% trans "Performance Code" %}: <code>{{ item.performance.performance_code }}</code>
+                      {% if item.qc_status.qc_notes %}
+                        <br>{% trans "QC Notes" %}: {{ item.qc_status.qc_notes|truncatewords:10 }}
+                      {% endif %}
+                    </small>
+                  </div>
+                </label>
+              </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="text-muted-gray">{% trans "No operations with QC-rejected performance documents." %}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Form Fields -->
+      <div class="form-section form-section-bg">
+        <h3>{% trans "Rework Document Details" %}</h3>
+        
+        <div class="form-group hidden">
+          {{ form.operation }}
+        </div>
+        
+        <div class="form-group hidden">
+          {{ form.original_performance }}
+        </div>
+        
+        <div class="form-group">
+          <label for="{{ form.reason.id_for_label }}">{{ form.reason.label }}</label>
+          {{ form.reason }}
+          {% if form.reason.errors %}
+            <div class="error-message">
+              {{ form.reason.errors }}
+            </div>
+          {% endif %}
+        </div>
+        
+        <div class="form-group">
+          <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+          {{ form.notes }}
+          {% if form.notes.errors %}
+            <div class="error-message">
+              {{ form.notes.errors }}
+            </div>
+          {% endif %}
+        </div>
+        
+        <div class="form-group">
+          <label for="{{ form.approved_by.id_for_label }}">{{ form.approved_by.label }}</label>
+          {{ form.approved_by }}
+          {% if form.approved_by.errors %}
+            <div class="error-message">
+              {{ form.approved_by.errors }}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Form Actions -->
+    <div class="form-actions form-actions-flex">
+      <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+      <a href="{{ cancel_url|default:'#' }}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+    </div>
+  </form>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const orderSelect = document.getElementById('{{ form.order.id_for_label }}');
+  const loadOperationsBtn = document.getElementById('load-operations-btn');
+  const operationInputs = document.querySelectorAll('input[name="operation"]');
+  const originalPerformanceField = document.getElementById('{{ form.original_performance.id_for_label }}');
+  
+  // Load operations when button is clicked
+  if (loadOperationsBtn && orderSelect) {
+    loadOperationsBtn.addEventListener('click', function() {
+      const orderId = orderSelect.value;
+      if (orderId) {
+        // Reload page with order parameter
+        const url = new URL(window.location.href);
+        url.searchParams.set('order', orderId);
+        window.location.href = url.toString();
+      } else {
+        alert('{% trans "Please select an order first." %}');
+      }
+    });
+  }
+  
+  // Auto-select original_performance when operation from list 2 is selected
+  operationInputs.forEach(function(input) {
+    input.addEventListener('change', function() {
+      const performanceId = this.getAttribute('data-performance-id');
+      if (performanceId && originalPerformanceField) {
+        originalPerformanceField.value = performanceId;
+      } else if (originalPerformanceField) {
+        originalPerformanceField.value = '';
+      }
+    });
+  });
+  
+  // Form validation
+  const form = document.getElementById('{{ form_id|default:"rework-form" }}');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      const selectedOperation = document.querySelector('input[name="operation"]:checked');
+      if (!selectedOperation) {
+        e.preventDefault();
+        alert('{% trans "Please select an operation." %}');
+        return false;
+      }
+      
+      const orderValue = orderSelect ? orderSelect.value : '';
+      if (!orderValue) {
+        e.preventDefault();
+        alert('{% trans "Please select an order." %}');
+        return false;
+      }
+    });
+  }
+});
+</script>
+
+<link rel="stylesheet" href="{% static 'css/shared.css' %}">
+{% endblock %}
+

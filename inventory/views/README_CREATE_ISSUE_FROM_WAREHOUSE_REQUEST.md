@@ -14,7 +14,7 @@
 
 ## وابستگی‌ها
 
-- `inventory.views.base`: `InventoryBaseView`
+- `inventory.views.base`: `BaseCreateDocumentFromRequestView`, `InventoryBaseView`
 - `inventory.models`: `WarehouseRequest`
 - `shared.mixins`: `FeaturePermissionRequiredMixin`
 - `django.views.generic.TemplateView`
@@ -30,120 +30,81 @@
 
 ## CreateIssueFromWarehouseRequestView
 
+**Inheritance**: `BaseCreateDocumentFromRequestView`
+
 **Type**: `FeaturePermissionRequiredMixin, InventoryBaseView, TemplateView`
 
 **Template**: `inventory/create_issue_from_warehouse_request.html`
 
-**Attributes**:
-- `issue_type`: `None` (باید در subclass تنظیم شود: `'permanent'`, `'consumption'`, `'consignment'`)
+**Attributes** (از BaseCreateDocumentFromRequestView):
+- `document_type`: `'issue'`
+- `document_subtype`: باید در subclass تنظیم شود (`'permanent'`, `'consumption'`, `'consignment'`)
+- `request_model`: `models.WarehouseRequest`
+- `is_multi_line`: `False` (WarehouseRequest تک خط است)
 - `template_name`: `'inventory/create_issue_from_warehouse_request.html'`
 - `required_action`: `'create_issue_from_warehouse_request'`
 
+**نکته مهم**: این view از `BaseCreateDocumentFromRequestView` استفاده می‌کند که تمام منطق دریافت request، پردازش POST، و redirect را handle می‌کند. فقط `get_context_data()` override شده است.
+
 **متدها**:
-
-#### `get_warehouse_request(self, pk: int) -> WarehouseRequest`
-
-**توضیح**: دریافت warehouse request و بررسی permissions.
-
-**پارامترهای ورودی**:
-- `pk`: شناسه warehouse request
-
-**مقدار بازگشتی**:
-- `WarehouseRequest`: warehouse request object
-
-**منطق**:
-1. بررسی `active_company_id`
-2. دریافت warehouse request با فیلتر:
-   - `company_id`
-   - `request_status='approved'`
-   - `is_enabled=1`
-
-**نکات مهم**:
-- فقط approved requests قابل استفاده هستند
-
----
 
 #### `get_context_data(self, **kwargs: Dict[str, Any]) -> Dict[str, Any]`
 
-**توضیح**: نمایش form برای review warehouse request و adjust quantity.
+**توضیح**: Override از `BaseCreateDocumentFromRequestView.get_context_data()` برای اضافه کردن متغیرهای context برای backward compatibility با templates.
 
-**Context Variables**:
+**Context Variables** (از base class):
 - `warehouse_request`: warehouse request object
-- `issue_type`: نوع issue (`'permanent'`, `'consumption'`, `'consignment'`)
-- `issue_type_name`: نام فارسی نوع issue
+- `issue_type`: نوع issue (از `document_subtype`)
+- `issue_type_name`: نام فارسی نوع issue (از `get_type_name()`)
 - `remaining_quantity`: مقدار باقیمانده (quantity_requested - quantity_issued)
 - `default_quantity`: مقدار پیش‌فرض (برابر remaining_quantity)
 
 **منطق**:
-1. دریافت warehouse request
-2. محاسبه remaining quantity
-3. تنظیم default quantity
+1. فراخوانی `super().get_context_data(**kwargs)` که تمام منطق base class را اجرا می‌کند
+2. اضافه کردن `issue_type` و `issue_type_name` برای backward compatibility با templates قدیمی
 
----
-
-#### `post(self, request, *args, **kwargs) -> HttpResponseRedirect`
-
-**توضیح**: پردازش quantity انتخاب شده و redirect به issue creation.
-
-**Request POST Data**:
-- `quantity`: مقدار انتخاب شده (required)
-- `notes`: یادداشت‌های اختیاری (optional)
-
-**منطق**:
-1. دریافت quantity از form
-2. Parse کردن به Decimal
-3. بررسی quantity > 0
-4. بررسی quantity <= remaining_quantity (اگر بیشتر باشد، adjust می‌شود)
-5. ذخیره داده‌ها در session:
-   - Key: `warehouse_request_{pk}_issue_{issue_type}_data`
-   - Data: `{'warehouse_request_id': pk, 'quantity': str(quantity), 'notes': notes}`
-6. Redirect به issue creation view
-
-**Redirect URLs**:
-- Permanent: `inventory:issue_permanent_create_from_warehouse_request`
-- Consumption: `inventory:issue_consumption_create_from_warehouse_request`
-- Consignment: `inventory:issue_consignment_create_from_warehouse_request`
-
-**Error Handling**:
-- اگر quantity <= 0: error message
-- اگر quantity > remaining: warning message و adjust
-- اگر parse error: error message
+**نکات مهم**:
+- منطق اصلی در `BaseCreateDocumentFromRequestView` است
+- `get_request_object()` از base class استفاده می‌کند که request را با فیلتر `request_status='approved'` دریافت می‌کند
+- `post()` از base class استفاده می‌کند که `process_single_line_post()` را فراخوانی می‌کند
+- Session key: `warehouse_request_{pk}_issue_{document_subtype}_data`
+- Redirect URLs از `get_redirect_url()` در base class استفاده می‌کنند
 
 ---
 
 ## CreatePermanentIssueFromWarehouseRequestView
 
-**Type**: `CreateIssueFromWarehouseRequestView`
+**Inheritance**: `CreateIssueFromWarehouseRequestView`
 
 **Attributes**:
-- `issue_type`: `'permanent'`
+- `document_subtype`: `'permanent'`
 - `feature_code`: `'inventory.issues.permanent'`
 
-**توضیحات**: Subclass برای permanent issue
+**توضیحات**: Subclass برای permanent issue. فقط `document_subtype` و `feature_code` را تنظیم می‌کند.
 
 ---
 
 ## CreateConsumptionIssueFromWarehouseRequestView
 
-**Type**: `CreateIssueFromWarehouseRequestView`
+**Inheritance**: `CreateIssueFromWarehouseRequestView`
 
 **Attributes**:
-- `issue_type`: `'consumption'`
+- `document_subtype`: `'consumption'`
 - `feature_code`: `'inventory.issues.consumption'`
 
-**توضیحات**: Subclass برای consumption issue
+**توضیحات**: Subclass برای consumption issue. فقط `document_subtype` و `feature_code` را تنظیم می‌کند.
 
 ---
 
 ## CreateConsignmentIssueFromWarehouseRequestView
 
-**Type**: `CreateIssueFromWarehouseRequestView`
+**Inheritance**: `CreateIssueFromWarehouseRequestView`
 
 **Attributes**:
-- `issue_type`: `'consignment'`
+- `document_subtype`: `'consignment'`
 - `feature_code`: `'inventory.issues.consignment'`
 
-**توضیحات**: Subclass برای consignment issue
+**توضیحات**: Subclass برای consignment issue. فقط `document_subtype` و `feature_code` را تنظیم می‌کند.
 
 ---
 
@@ -165,12 +126,15 @@
 
 ### 4. Workflow
 1. User warehouse request را انتخاب می‌کند
-2. User issue type را انتخاب می‌کند
-3. User quantity را review و adjust می‌کند
-4. User submit می‌کند
-5. Data در session ذخیره می‌شود
-6. Redirect به issue creation view
-7. Issue creation view از session data استفاده می‌کند
+2. User issue type را انتخاب می‌کند (permanent/consumption/consignment)
+3. `BaseCreateDocumentFromRequestView.get_context_data()` فرم را نمایش می‌دهد
+4. User quantity را review و adjust می‌کند
+5. User submit می‌کند
+6. `BaseCreateDocumentFromRequestView.post()` فراخوانی می‌شود
+7. `process_single_line_post()` quantity را پردازش می‌کند
+8. Data در session ذخیره می‌شود (key: `warehouse_request_{pk}_issue_{subtype}_data`)
+9. Redirect به issue creation view (از `get_redirect_url()`)
+10. Issue creation view از session data استفاده می‌کند
 
 ### 5. Logging
 - Debug logging برای troubleshooting

@@ -29,12 +29,16 @@
 
 **Type**: `FeaturePermissionRequiredMixin, QCBaseView, ListView`
 
-**Template**: `qc/temporary_receipts.html`
+**Template**: `qc/temporary_receipts.html` (extends `shared/generic/generic_list.html`)
+
+**Generic Templates**:
+- **List Template**: `qc/temporary_receipts.html` extends `shared/generic/generic_list.html`
+  - Overrides: `breadcrumb_extra`, `before_table`, `table_headers`, `table_rows`
 
 **Attributes**:
 - `model`: `ReceiptTemporary`
 - `template_name`: `'qc/temporary_receipts.html'`
-- `context_object_name`: `'receipts'`
+- `context_object_name`: `'object_list'` (changed from `'receipts'`)
 - `paginate_by`: `50`
 - `feature_code`: `'qc.inspections'`
 - `required_action`: `'view'`
@@ -50,10 +54,13 @@
 
 **منطق**:
 1. فیلتر بر اساس:
-   - `status = AWAITING_INSPECTION`
-   - `is_locked = 0`
    - `is_enabled = 1`
-2. `select_related('supplier', 'created_by')` برای بهینه‌سازی query
+2. `select_related('supplier', 'created_by', 'qc_approved_by')` برای بهینه‌سازی query
+3. `prefetch_related('lines__item', 'lines__warehouse')` برای نمایش اطلاعات خطوط
+4. مرتب‌سازی بر اساس:
+   - `status` (1 = AWAITING_INSPECTION, 2 = CLOSED, 3 = APPROVED)
+   - `-document_date` (جدیدترین اول)
+   - `document_code`
 
 **نکات مهم**:
 - `ReceiptTemporary` یک header-only model است
@@ -64,14 +71,26 @@
 
 #### `get_context_data(**kwargs) -> Dict[str, Any]`
 
-**توضیح**: اضافه کردن عنوان صفحه به context.
+**توضیح**: اضافه کردن context variables برای generic list template.
 
-**Context Variables**:
-- `receipts`: queryset رسیدها (paginated)
+**Context Variables برای Generic Template**:
+- `object_list`: queryset رسیدها (paginated) - renamed from `receipts`
 - `page_title`: `_('Temporary Receipts - QC Inspection')`
+- `breadcrumbs`: لیست breadcrumb items (QC > Temporary Receipts)
+- `table_headers`: `[]` (overridden in template)
+- `show_actions`: `True`
+- `empty_state_title`: `_('No Receipts')`
+- `empty_state_message`: `_('There are no temporary receipts.')`
+- `empty_state_icon`: `'📋'`
+- `print_enabled`: `True`
+- `show_filters`: `False` (no filters for now)
+
+**Context Variables برای QC-Specific Features**:
+- `stats`: Dictionary با `awaiting_qc`, `approved`, `rejected` counts
+- `receipt.rejected_lines_count`: تعداد خطوط رد شده برای هر receipt (اضافه شده به attribute)
 
 **مقدار بازگشتی**:
-- `Dict[str, Any]`: context با `page_title` اضافه شده
+- `Dict[str, Any]`: context با تمام متغیرهای لازم برای generic template
 
 **URL**: `/qc/temporary-receipts/`
 

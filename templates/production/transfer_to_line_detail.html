@@ -1,0 +1,48 @@
+{% extends "shared/generic/generic_detail.html" %}
+{% load i18n jalali_tags %}
+
+{% block info_banner_extra %}
+<div><strong>{% trans "Transfer Date" %}:</strong> {{ object.transfer_date|jalali_date }}</div>
+{% endblock %}
+
+{% block detail_sections %}
+{{ block.super }}
+
+{% if not object.items.exists %}
+<div class="alert alert-info" style="margin-top: 1rem;">
+  {% trans "No transfer items found for this request." %}
+</div>
+{% endif %}
+
+{% if object.created_at or object.updated_at or object.created_by or object.edited_by %}
+<div class="form-section">
+  <h3>{% trans "Audit Information" %}</h3>
+  <div class="form-row">
+    {% if object.created_by %}
+    <div class="form-field">
+      <label>{% trans "Created By" %}</label>
+      <div class="readonly-field">{{ object.created_by.get_full_name|default:object.created_by.username }}</div>
+    </div>
+    {% endif %}
+    {% if object.created_at %}
+    <div class="form-field">
+      <label>{% trans "Created At" %}</label>
+      <div class="readonly-field">{{ object.created_at|jalali_date:"%Y/%m/%d %H:%M" }}</div>
+    </div>
+    {% endif %}
+    {% if object.edited_by %}
+    <div class="form-field">
+      <label>{% trans "Edited By" %}</label>
+      <div class="readonly-field">{{ object.edited_by.get_full_name|default:object.edited_by.username }}</div>
+    </div>
+    {% endif %}
+    {% if object.updated_at %}
+    <div class="form-field">
+      <label>{% trans "Last Updated" %}</label>
+      <div class="readonly-field">{{ object.updated_at|jalali_date:"%Y/%m/%d %H:%M" }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,414 @@
+================================================================================
+STANDARDS CHECKER REPORT
+================================================================================
+
+Check Type:     MANUAL
+Target:         bugtest.py
+Date/Time:      2025-12-27 12:19:14
+Total Files:    1
+Files with Issues: 1
+Total Issues:   94
+
+================================================================================
+
+SUMMARY BY SEVERITY
+--------------------------------------------------------------------------------
+Critical: 3
+Errors:   7
+Warnings: 69
+
+================================================================================
+
+DETAILED ISSUES BY FILE
+================================================================================
+
+File: bugtest.py
+Issues: 94
+--------------------------------------------------------------------------------
+
+[CRITICAL] (3 issues)
+  1. Line 76
+     Hardcoded SECRET_KEY - use environment variables
+     Suggestion: Review security best practices in DEVELOPMENT_GUIDE.md
+
+  2. Line 77
+     Hardcoded API key - use environment variables
+     Suggestion: Review security best practices in DEVELOPMENT_GUIDE.md
+
+  3. Line 81
+     Using mark_safe - ensure content is sanitized
+     Suggestion: Review security best practices in DEVELOPMENT_GUIDE.md
+
+
+[ERROR] (7 issues)
+  1. Line 19
+     Class 'ItemListView' uses 'ListView' instead of 'BaseListView'
+     Suggestion: Replace 'from django.views.generic import ListView' with 'from shared.views.base import BaseListView'
+
+  2. Line 22
+     Class 'ItemCreateView' uses 'CreateView' instead of 'BaseCreateView'
+     Suggestion: Replace 'from django.views.generic import CreateView' with 'from shared.views.base import BaseCreateView'
+
+  3. Line 25
+     Class 'ItemUpdateView' uses 'UpdateView' instead of 'BaseUpdateView'
+     Suggestion: Replace 'from django.views.generic import UpdateView' with 'from shared.views.base import BaseUpdateView'
+
+  4. Line 28
+     Class 'ItemDeleteView' uses 'DeleteView' instead of 'BaseDeleteView'
+     Suggestion: Replace 'from django.views.generic import DeleteView' with 'from shared.views.base import BaseDeleteView'
+
+  5. Line 31
+     Class 'ItemDetailView' uses 'DetailView' instead of 'BaseDetailView'
+     Suggestion: Replace 'from django.views.generic import DetailView' with 'from shared.views.base import BaseDetailView'
+
+  6. Line 34
+     Class 'ItemFormView' uses 'FormView' instead of 'BaseFormView'
+     Suggestion: Replace 'from django.views.generic import FormView' with 'from shared.views.base import BaseFormView'
+
+  7. Line 248
+     Sensitive data should not be logged
+     Suggestion: Remove sensitive data from log messages or mask it
+
+
+[WARNING] (69 issues)
+  1. Line 19
+     Class 'ItemListView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 22
+     Class 'ItemCreateView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  3. Line 25
+     Class 'ItemUpdateView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  4. Line 28
+     Class 'ItemDeleteView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  5. Line 31
+     Class 'ItemDetailView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  6. Line 34
+     Class 'ItemFormView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  7. Line 42
+     Class 'UserModel' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  8. Line 53
+     Function 'calculate_total' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  9. Line 56
+     Function 'process_order' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  10. Line 61
+     Class 'OrderProcessor' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  11. Line 70
+     Function 'get_user_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  12. Line 80
+     Function 'render_user_content' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  13. Line 88
+     Class 'user_service' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  14. Line 91
+     Class 'order_processor' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  15. Line 95
+     Function 'GetUserData' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  16. Line 98
+     Function 'ProcessOrder' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  17. Line 108
+     Function 'get_items_with_categories' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  18. Line 116
+     Function 'get_orders_with_lines' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  19. Line 124
+     Function 'get_user_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  20. Line 133
+     Function 'search_items' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  21. Line 141
+     Function 'filter_by_status' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  22. Line 149
+     Class 'MyView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  23. Line 158
+     Function 'unprotected_view' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  24. Line 162
+     Class 'UnprotectedListView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  25. Line 174
+     Function 'test' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  26. Line 177
+     Function 'testUser' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  27. Line 180
+     Function 'test_user' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  28. Line 184
+     Function 'test_order_creation' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  29. Line 189
+     Class 'OrderTest' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  30. Line 202
+     Class 'MyAPIView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  31. Line 207
+     Class 'BadAPIView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  32. Line 219
+     Class 'BadModel' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  33. Line 231
+     Function 'process_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  34. Line 236
+     Function 'risky_function' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  35. Line 247
+     Function 'login_user' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  36. Line 255
+     Function 'very_long_function' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  37. Line 361
+     Class 'VeryLongClass' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  38. Line 46
+     Function 'get_name' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  39. Line 49
+     Function 'process_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  40. Line 62
+     Function 'process' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  41. Line 190
+     Function 'test_something' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  42. Line 203
+     Function 'get' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  43. Line 208
+     Function 'get' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  44. Line 362
+     Function 'method1' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  45. Line 365
+     Function 'method2' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  46. Line 368
+     Function 'method3' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  47. Line 371
+     Function 'method4' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  48. Line 374
+     Function 'method5' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  49. Line 88
+     Class 'user_service' should use PascalCase
+     Suggestion: Rename to UserService
+
+  50. Line 91
+     Class 'order_processor' should use PascalCase
+     Suggestion: Rename to OrderProcessor
+
+  51. Line 95
+     Function 'GetUserData' should use snake_case
+     Suggestion: Rename to get_user_data
+
+  52. Line 98
+     Function 'ProcessOrder' should use snake_case
+     Suggestion: Rename to process_order
+
+  53. Line 177
+     Function 'testUser' should use snake_case
+     Suggestion: Rename to test_user
+
+  54. Line 133
+     View function 'search_items' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  55. Line 141
+     View function 'filter_by_status' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  56. Line 158
+     View function 'unprotected_view' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  57. Line 203
+     View function 'get' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  58. Line 208
+     View function 'get' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  59. Line 133
+     View function 'search_items' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  60. Line 141
+     View function 'filter_by_status' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  61. Line 158
+     View function 'unprotected_view' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  62. Line 203
+     View function 'get' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  63. Line 208
+     View function 'get' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  64. Line 174
+     Test method name 'test' is too short or unclear
+     Suggestion: Use descriptive names like 'test_user_creation_with_valid_data'
+
+  65. Line 177
+     Test method 'testUser' should use snake_case
+     Suggestion: Rename to test_user
+
+  66. Line 202
+     API View class 'MyAPIView' should inherit from BaseAPIView instead of APIView
+     Suggestion: Use BaseAPIView, BaseViewSet, or BaseModelViewSet for consistent API behavior
+
+  67. Line 207
+     API View class 'BadAPIView' should inherit from BaseAPIView instead of APIView
+     Suggestion: Use BaseAPIView, BaseViewSet, or BaseModelViewSet for consistent API behavior
+
+  68. Line 240
+     Bare except clause should specify exception type
+     Suggestion: Use: except SpecificException as e: instead of bare except:
+
+  69. Line 255
+     Function 'very_long_function' is too long (104 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+
+[INFO] (15 issues)
+  1. Line 247
+     Sensitive function 'login_user' missing rate limiting
+     Suggestion: Add @ratelimit decorator or implement rate limiting middleware
+
+  2. Line 1
+     API views missing rate limiting configuration
+     Suggestion: Configure throttling classes in settings or view-level throttling
+
+  3. Line 174
+     Test method 'test' missing docstring
+     Suggestion: Add docstring explaining what the test verifies
+
+  4. Line 177
+     Test method 'testUser' missing docstring
+     Suggestion: Add docstring explaining what the test verifies
+
+  5. Line 180
+     Test method 'test_user' missing docstring
+     Suggestion: Add docstring explaining what the test verifies
+
+  6. Line 184
+     Test method 'test_order_creation' missing docstring
+     Suggestion: Add docstring explaining what the test verifies
+
+  7. Line 190
+     Test method 'test_something' missing docstring
+     Suggestion: Add docstring explaining what the test verifies
+
+  8. Line 174
+     Test method 'test' could use AAA pattern comments
+     Suggestion: Add comments: # Arrange, # Act, # Assert to structure the test
+
+  9. Line 177
+     Test method 'testUser' could use AAA pattern comments
+     Suggestion: Add comments: # Arrange, # Act, # Assert to structure the test
+
+  10. Line 190
+     Test method 'test_something' could use AAA pattern comments
+     Suggestion: Add comments: # Arrange, # Act, # Assert to structure the test
+
+  11. Line 204
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  12. Line 73
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  13. Line 81
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  14. Line 159
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  15. Line 209
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+
+================================================================================
+

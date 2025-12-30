@@ -1,0 +1,1039 @@
+"""
+Models for accounting module.
+"""
+from decimal import Decimal
+from typing import Optional
+
+from django.conf import settings
+from django.core.validators import MinValueValidator, RegexValidator
+from django.db import models
+from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
+
+from shared.models import (
+    ActivatableModel,
+    CompanyScopedModel,
+    LockableModel,
+    MetadataModel,
+    SortableModel,
+    TimeStampedModel,
+    NUMERIC_CODE_VALIDATOR,
+    ENABLED_FLAG_CHOICES,
+)
+
+from inventory.utils.codes import generate_sequential_code
+
+
+POSITIVE_DECIMAL = MinValueValidator(Decimal("0"))
+
+
+class AccountingBaseModel(
+    CompanyScopedModel,
+    TimeStampedModel,
+    ActivatableModel,
+    MetadataModel,
+):
+    """Base model for all accounting models."""
+    class Meta:
+        abstract = True
+
+
+class FiscalYearMixin(models.Model):
+    """
+    Mixin to auto-populate fiscal_year_id from document_date.
+    Use this mixin for models that have document_date and need fiscal_year_id.
+    """
+    fiscal_year = models.ForeignKey(
+        'FiscalYear',
+        on_delete=models.PROTECT,
+        related_name='%(app_label)s_%(class)s_set',
+        null=True,
+        blank=True,
+        help_text=_("Fiscal year for this document (auto-populated from document_date)"),
+    )
+    
+    class Meta:
+        abstract = True
+    
+    def get_document_date_field_name(self):
+        """
+        Override this method if document_date field has a different name.
+        Default: 'document_date'
+        """
+        return 'document_date'
+    
+    def save(self, *args, **kwargs):
+        """Auto-populate fiscal_year_id from document_date."""
+        if not self.fiscal_year_id:
+            date_field_name = self.get_document_date_field_name()
+            document_date = getattr(self, date_field_name, None)
+            
+            if document_date and self.company_id:
+                fiscal_year = get_fiscal_year_from_date(
+                    company_id=self.company_id,
+                    document_date=document_date
+                )
+                if fiscal_year:
+                    self.fiscal_year = fiscal_year
+        
+        super().save(*args, **kwargs)
+    
+    def clean(self):
+        """Validate that document_date is within fiscal_year range."""
+        from django.core.exceptions import ValidationError
+        
+        date_field_name = self.get_document_date_field_name()
+        document_date = getattr(self, date_field_name, None)
+        
+        if document_date and self.fiscal_year:
+            if document_date < self.fiscal_year.start_date:
+                raise ValidationError(
+                    _("Document date (%(date)s) is before fiscal year start date (%(start)s).") % {
+                        'date': document_date,
+                        'start': self.fiscal_year.start_date,
+                    }
+                )
+            if document_date > self.fiscal_year.end_date:
+                raise ValidationError(
+                    _("Document date (%(date)s) is after fiscal year end date (%(end)s).") % {
+                        'date': document_date,
+                        'end': self.fiscal_year.end_date,
+                    }
+                )
+        
+        super().clean()
+
+
+class AccountingSortableModel(AccountingBaseModel, SortableModel):
+    """Base model for sortable accounting entities."""
+    class Meta:
+        abstract = True
+
+
+class AccountingDocumentBase(AccountingBaseModel, LockableModel, FiscalYearMixin):
+    """Base model for accounting documents."""
+    document_code = models.CharField(max_length=30, blank=True, editable=False)
+    document_date = models.DateField(default=timezone.now)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        abstract = True
+
+
+# Fiscal Year Management
+class FiscalYear(AccountingBaseModel):
+    """Fiscal year definition for accounting periods."""
+    fiscal_year_code = models.CharField(
+        max_length=10,
+        validators=[NUMERIC_CODE_VALIDATOR],
+        help_text=_("Fiscal year code (e.g., '1403')"),
+    )
+    fiscal_year_name = models.CharField(
+        max_length=100,
+        help_text=_("Fiscal year name"),
+    )
+    start_date = models.DateField(
+        help_text=_("Fiscal year start date"),
+    )
+    end_date = models.DateField(
+        help_text=_("Fiscal year end date"),
+    )
+    is_current = models.PositiveSmallIntegerField(
+        choices=ENABLED_FLAG_CHOICES,
+        default=0,
+        help_text=_("Current fiscal year flag"),
+    )
+    is_closed = models.PositiveSmallIntegerField(
+        choices=ENABLED_FLAG_CHOICES,
+        default=0,
+        help_text=_("Closed fiscal year flag"),
+    )
+    closed_at = models.DateTimeField(null=True, blank=True)
+    closed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="accounting_fiscal_years_closed",
+        null=True,
+        blank=True,
+    )
+    opening_document_id = models.BigIntegerField(
+        null=True,
+        blank=True,
+        help_text=_("Reference to opening entry document (will be FK to AccountingDocument)"),
+    )
+    closing_document_id = models.BigIntegerField(
+        null=True,
+        blank=True,
+        help_text=_("Reference to closing entry document (will be FK to AccountingDocument)"),
+    )
+
+    class Meta:
+        verbose_name = _("Fiscal Year")
+        verbose_name_plural = _("Fiscal Years")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "fiscal_year_code"),
+                name="accounting_fiscal_year_code_unique",
+            ),
+        ]
+        ordering = ("company", "-fiscal_year_code")
+
+    def __str__(self) -> str:
+        return f"{self.fiscal_year_code} - {self.fiscal_year_name}"
+
+    def clean(self):
+        """Validate fiscal year dates."""
+        from django.core.exceptions import ValidationError
+        if self.start_date and self.end_date:
+            if self.start_date >= self.end_date:
+                raise ValidationError(_("End date must be after start date."))
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+
+class Period(AccountingBaseModel):
+    """Accounting period within a fiscal year (typically monthly)."""
+    fiscal_year = models.ForeignKey(
+        FiscalYear,
+        on_delete=models.CASCADE,
+        related_name="periods",
+    )
+    period_code = models.CharField(
+        max_length=10,
+        help_text=_("Period code (e.g., '1403-01')"),
+    )
+    period_name = models.CharField(
+        max_length=100,
+        help_text=_("Period name"),
+    )
+    start_date = models.DateField(
+        help_text=_("Period start date"),
+    )
+    end_date = models.DateField(
+        help_text=_("Period end date"),
+    )
+    is_closed = models.PositiveSmallIntegerField(
+        choices=ENABLED_FLAG_CHOICES,
+        default=0,
+        help_text=_("Closed period flag"),
+    )
+    closed_at = models.DateTimeField(null=True, blank=True)
+    closed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="accounting_periods_closed",
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        verbose_name = _("Period")
+        verbose_name_plural = _("Periods")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "fiscal_year", "period_code"),
+                name="accounting_period_code_unique",
+            ),
+        ]
+        ordering = ("company", "fiscal_year", "period_code")
+
+    def __str__(self) -> str:
+        return f"{self.period_code} - {self.period_name}"
+
+    def clean(self):
+        """Validate period dates."""
+        from django.core.exceptions import ValidationError
+        if self.start_date and self.end_date:
+            if self.start_date >= self.end_date:
+                raise ValidationError(_("End date must be after start date."))
+        if self.fiscal_year:
+            if self.start_date < self.fiscal_year.start_date:
+                raise ValidationError(_("Period start date must be within fiscal year."))
+            if self.end_date > self.fiscal_year.end_date:
+                raise ValidationError(_("Period end date must be within fiscal year."))
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+
+# Chart of Accounts
+class Account(AccountingSortableModel):
+    """Chart of Accounts - General, Subsidiary, and Detail accounts."""
+    ACCOUNT_TYPE_CHOICES = [
+        ('ASSET', _('دارایی')),
+        ('LIABILITY', _('بدهی')),
+        ('EQUITY', _('حقوق صاحبان سهام')),
+        ('REVENUE', _('درآمد')),
+        ('EXPENSE', _('هزینه')),
+    ]
+
+    ACCOUNT_LEVEL_CHOICES = [
+        (1, _('کل')),
+        (2, _('معین')),
+        (3, _('تفصیلی')),
+    ]
+
+    NORMAL_BALANCE_CHOICES = [
+        ('DEBIT', _('بدهکار')),
+        ('CREDIT', _('بستانکار')),
+    ]
+
+    account_code = models.CharField(
+        max_length=20,
+        validators=[NUMERIC_CODE_VALIDATOR],
+        help_text=_("کد سلسله مراتبی حساب (مثال: '1.01.001')"),
+    )
+    account_name = models.CharField(
+        max_length=200,
+        help_text=_("نام حساب (فارسی)"),
+    )
+    account_name_en = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text=_("نام حساب (انگلیسی)"),
+    )
+    account_type = models.CharField(
+        max_length=30,
+        choices=ACCOUNT_TYPE_CHOICES,
+        help_text=_("نوع حساب"),
+    )
+    account_level = models.PositiveSmallIntegerField(
+        choices=ACCOUNT_LEVEL_CHOICES,
+        help_text=_("سطح حساب: 1=کل، 2=معین، 3=تفصیلی"),
+    )
+    parent_account = models.ForeignKey(
+        'self',
+        on_delete=models.PROTECT,
+        related_name='child_accounts',
+        null=True,
+        blank=True,
+        help_text=_("حساب والد برای ساختار سلسله مراتبی"),
+    )
+    normal_balance = models.CharField(
+        max_length=10,
+        choices=NORMAL_BALANCE_CHOICES,
+        help_text=_("طرف تراز مورد انتظار"),
+    )
+    is_system_account = models.PositiveSmallIntegerField(
+        choices=ENABLED_FLAG_CHOICES,
+        default=0,
+        help_text=_("حساب‌های تولید شده توسط سیستم قابل حذف نیستند"),
+    )
+    opening_balance = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[POSITIVE_DECIMAL],
+        help_text=_("مانده ابتدای سال مالی جاری"),
+    )
+    current_balance = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        editable=False,
+        help_text=_("مانده جاری (محاسبه شده)"),
+    )
+    description = models.TextField(
+        blank=True,
+        help_text=_("توضیحات حساب و یادداشت‌های استفاده"),
+    )
+
+    class Meta:
+        verbose_name = _("حساب")
+        verbose_name_plural = _("حساب‌ها")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "account_code"),
+                name="accounting_account_code_unique",
+            ),
+        ]
+        ordering = ("company", "account_code")
+
+    def __str__(self) -> str:
+        return f"{self.account_code} - {self.account_name}"
+
+    def clean(self):
+        """Validate account structure."""
+        from django.core.exceptions import ValidationError
+        
+        # Validate parent account
+        if self.parent_account:
+            if self.parent_account.company_id != self.company_id:
+                raise ValidationError(_("Parent account must belong to the same company."))
+            if self.parent_account.account_level >= self.account_level:
+                raise ValidationError(_("Parent account level must be less than child account level."))
+        
+        # Validate normal balance based on account type
+        if self.account_type in ['ASSET', 'EXPENSE']:
+            if self.normal_balance != 'DEBIT':
+                raise ValidationError(_("Assets and Expenses must have DEBIT normal balance."))
+        elif self.account_type in ['LIABILITY', 'EQUITY', 'REVENUE']:
+            if self.normal_balance != 'CREDIT':
+                raise ValidationError(_("Liabilities, Equity, and Revenue must have CREDIT normal balance."))
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+
+class SubAccountGLAccountRelation(AccountingBaseModel):
+    """
+    Many-to-many relationship between Sub Accounts (معین) and GL Accounts (کل).
+    Allows a sub account to belong to multiple GL accounts.
+    """
+    sub_account = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        related_name='gl_account_relations',
+        limit_choices_to={'account_level': 2},
+        help_text=_("حساب معین"),
+    )
+    gl_account = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        related_name='sub_account_relations_as_gl',
+        limit_choices_to={'account_level': 1},
+        help_text=_("حساب کل"),
+    )
+    is_primary = models.PositiveSmallIntegerField(
+        choices=ENABLED_FLAG_CHOICES,
+        default=0,
+        help_text=_("حساب کل اصلی (برای نمایش پیش‌فرض)"),
+    )
+    notes = models.TextField(
+        blank=True,
+        help_text=_("یادداشت‌های اضافی"),
+    )
+
+    class Meta:
+        verbose_name = _("رابطه معین-کل")
+        verbose_name_plural = _("روابط معین-کل")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "sub_account", "gl_account"),
+                name="accounting_sub_gl_relation_unique",
+            ),
+        ]
+        ordering = ("company", "sub_account", "-is_primary", "gl_account")
+
+    def __str__(self) -> str:
+        return f"{self.sub_account.account_code} → {self.gl_account.account_code}"
+
+    def clean(self):
+        """Validate relation."""
+        from django.core.exceptions import ValidationError
+        
+        if self.sub_account.account_level != 2:
+            raise ValidationError(_("Sub account must be level 2 (معین)."))
+        if self.gl_account.account_level != 1:
+            raise ValidationError(_("GL account must be level 1 (کل)."))
+        if self.sub_account.company_id != self.gl_account.company_id:
+            raise ValidationError(_("Both accounts must belong to the same company."))
+        if self.sub_account.account_type != self.gl_account.account_type:
+            raise ValidationError(_("Sub account and GL account must have the same account type."))
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+
+class TafsiliSubAccountRelation(AccountingBaseModel):
+    """
+    Many-to-many relationship between Tafsili Accounts (تفصیلی) and Sub Accounts (معین).
+    Allows a tafsili account to belong to multiple sub accounts (floating tafsili).
+    """
+    tafsili_account = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        related_name='sub_account_relations_as_tafsili',
+        limit_choices_to={'account_level': 3},
+        help_text=_("حساب تفصیلی"),
+    )
+    sub_account = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        related_name='tafsili_account_relations',
+        limit_choices_to={'account_level': 2},
+        help_text=_("حساب معین"),
+    )
+    is_primary = models.PositiveSmallIntegerField(
+        choices=ENABLED_FLAG_CHOICES,
+        default=0,
+        help_text=_("حساب معین اصلی (برای نمایش پیش‌فرض)"),
+    )
+    notes = models.TextField(
+        blank=True,
+        help_text=_("یادداشت‌های اضافی"),
+    )
+
+    class Meta:
+        verbose_name = _("رابطه تفصیلی-معین")
+        verbose_name_plural = _("روابط تفصیلی-معین")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "tafsili_account", "sub_account"),
+                name="accounting_tafsili_sub_relation_unique",
+            ),
+        ]
+        ordering = ("company", "tafsili_account", "-is_primary", "sub_account")
+
+    def __str__(self) -> str:
+        return f"{self.tafsili_account.account_code} → {self.sub_account.account_code}"
+
+    def clean(self):
+        """Validate relation."""
+        from django.core.exceptions import ValidationError
+        
+        if self.tafsili_account.account_level != 3:
+            raise ValidationError(_("Tafsili account must be level 3 (تفصیلی)."))
+        if self.sub_account.account_level != 2:
+            raise ValidationError(_("Sub account must be level 2 (معین)."))
+        if self.tafsili_account.company_id != self.sub_account.company_id:
+            raise ValidationError(_("Both accounts must belong to the same company."))
+        if self.tafsili_account.account_type != self.sub_account.account_type:
+            raise ValidationError(_("Tafsili account and Sub account must have the same account type."))
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+
+class TafsiliHierarchy(AccountingBaseModel):
+    """
+    Hierarchical structure for multi-level tafsili categorization.
+    Allows creating tree structures for better organization and classification of tafsili accounts.
+    """
+    code = models.CharField(
+        max_length=50,
+        validators=[NUMERIC_CODE_VALIDATOR],
+        help_text=_("کد تفصیلی چند سطحی (یکتا در شرکت)"),
+    )
+    name = models.CharField(
+        max_length=200,
+        help_text=_("نام تفصیلی چند سطحی"),
+    )
+    name_en = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text=_("نام تفصیلی چند سطحی (انگلیسی)"),
+    )
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        related_name='children',
+        null=True,
+        blank=True,
+        help_text=_("تفصیلی چند سطحی والد (برای ساختار درختی)"),
+    )
+    tafsili_account = models.ForeignKey(
+        Account,
+        on_delete=models.SET_NULL,
+        related_name='hierarchies',
+        null=True,
+        blank=True,
+        limit_choices_to={'account_level': 3},
+        help_text=_("تفصیلی اصلی مرتبط (اختیاری - برای ریشه‌های درخت)"),
+    )
+    level = models.PositiveSmallIntegerField(
+        default=1,
+        editable=False,
+        help_text=_("سطح در درخت (1=ریشه، 2=زیرگروه اول، ...)"),
+    )
+    sort_order = models.PositiveSmallIntegerField(
+        default=0,
+        help_text=_("ترتیب نمایش"),
+    )
+    description = models.TextField(
+        blank=True,
+        help_text=_("توضیحات"),
+    )
+
+    class Meta:
+        verbose_name = _("تفصیلی چند سطحی")
+        verbose_name_plural = _("تفصیلی‌های چند سطحی")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "code"),
+                name="accounting_tafsili_hierarchy_code_unique",
+            ),
+        ]
+        ordering = ("company", "level", "sort_order", "code")
+
+    def __str__(self) -> str:
+        return f"{self.code} - {self.name}"
+
+    def clean(self):
+        """Validate hierarchy structure."""
+        from django.core.exceptions import ValidationError
+        
+        # Validate parent
+        if self.parent:
+            if self.parent.company_id != self.company_id:
+                raise ValidationError(_("تفصیلی چند سطحی والد باید متعلق به همان شرکت باشد."))
+            
+            # Prevent circular references
+            current = self.parent
+            depth = 0
+            while current and depth < 100:  # Safety limit
+                if current.id == self.id:
+                    raise ValidationError(_("نمی‌توان یک تفصیلی چند سطحی را والد خودش قرار داد."))
+                current = current.parent
+                depth += 1
+        
+        # Validate tafsili_account if provided
+        if self.tafsili_account:
+            if self.tafsili_account.company_id != self.company_id:
+                raise ValidationError(_("تفصیلی اصلی باید متعلق به همان شرکت باشد."))
+            if self.tafsili_account.account_level != 3:
+                raise ValidationError(_("تفصیلی اصلی باید سطح 3 (تفصیلی) باشد."))
+
+    def save(self, *args, **kwargs):
+        # Calculate level based on parent
+        if self.parent:
+            self.level = self.parent.level + 1
+        else:
+            self.level = 1
+        
+        self.clean()
+        super().save(*args, **kwargs)
+        
+        # Update children levels if level changed
+        if self.pk:
+            for child in self.children.all():
+                child.save()  # This will recalculate child's level
+
+    def get_full_path(self):
+        """Get full path from root to this node."""
+        path = [self.name]
+        current = self.parent
+        while current:
+            path.insert(0, current.name)
+            current = current.parent
+        return ' > '.join(path)
+
+    def get_full_code_path(self):
+        """Get full code path from root to this node."""
+        path = [self.code]
+        current = self.parent
+        while current:
+            path.insert(0, current.code)
+            current = current.parent
+        return ' > '.join(path)
+
+
+class AccountBalance(AccountingBaseModel):
+    """Period-based account balance tracking."""
+    account = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        related_name="balances",
+    )
+    fiscal_year = models.ForeignKey(
+        FiscalYear,
+        on_delete=models.CASCADE,
+        related_name="account_balances",
+    )
+    period_start = models.DateField(
+        help_text=_("Start date of balance period"),
+    )
+    period_end = models.DateField(
+        help_text=_("End date of balance period"),
+    )
+    debit_total = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[POSITIVE_DECIMAL],
+    )
+    credit_total = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[POSITIVE_DECIMAL],
+    )
+    opening_balance = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        default=Decimal('0.00'),
+    )
+    closing_balance = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        default=Decimal('0.00'),
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("Account Balance")
+        verbose_name_plural = _("Account Balances")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "account", "fiscal_year", "period_start", "period_end"),
+                name="accounting_account_balance_unique",
+            ),
+        ]
+        ordering = ("company", "fiscal_year", "period_start")
+
+    def __str__(self) -> str:
+        return f"{self.account.account_code} - {self.period_start} to {self.period_end}"
+
+
+# Accounting Documents
+class AccountingDocument(AccountingDocumentBase):
+    """Accounting document - core transactional record following double-entry bookkeeping."""
+    DOCUMENT_TYPE_CHOICES = [
+        ('MANUAL', _('Manual Entry')),
+        ('AUTOMATIC', _('Automatic Entry')),
+        ('OPENING', _('Opening Entry')),
+        ('CLOSING', _('Closing Entry')),
+        ('ADJUSTMENT', _('Adjustment')),
+    ]
+
+    STATUS_CHOICES = [
+        ('DRAFT', _('Draft')),
+        ('POSTED', _('Posted')),
+        ('LOCKED', _('Locked')),
+        ('REVERSED', _('Reversed')),
+        ('CANCELLED', _('Cancelled')),
+    ]
+
+    document_number = models.CharField(
+        max_length=30,
+        unique=True,
+        editable=False,
+        help_text=_("Auto-generated document number"),
+    )
+    document_type = models.CharField(
+        max_length=30,
+        choices=DOCUMENT_TYPE_CHOICES,
+        help_text=_("Document classification"),
+    )
+    # fiscal_year is inherited from AccountingDocumentBase (FiscalYearMixin)
+    # Override to make it required (not nullable)
+    fiscal_year = models.ForeignKey(
+        FiscalYear,
+        on_delete=models.PROTECT,
+        related_name="documents",
+        null=False,  # Required for AccountingDocument
+        help_text=_("Fiscal year for document (auto-populated from document_date)"),
+    )
+    period = models.ForeignKey(
+        Period,
+        on_delete=models.SET_NULL,
+        related_name="documents",
+        null=True,
+        blank=True,
+        help_text=_("Optional period reference"),
+    )
+    description = models.TextField(
+        help_text=_("Document description/explanation"),
+    )
+    reference_number = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text=_("External reference (invoice number, receipt number, etc.)"),
+    )
+    reference_type = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text=_("Type of reference (e.g., 'INVENTORY_RECEIPT', 'SALES_INVOICE')"),
+    )
+    reference_id = models.BigIntegerField(
+        null=True,
+        blank=True,
+        help_text=_("Foreign key to referenced document"),
+    )
+    total_debit = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[POSITIVE_DECIMAL],
+        help_text=_("Sum of all debit lines"),
+    )
+    total_credit = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[POSITIVE_DECIMAL],
+        help_text=_("Sum of all credit lines (must equal total_debit)"),
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='DRAFT',
+        help_text=_("Document workflow status"),
+    )
+    posted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=_("When document was posted"),
+    )
+    posted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="accounting_documents_posted",
+        null=True,
+        blank=True,
+        help_text=_("User who posted the document"),
+    )
+    locked_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=_("When document was locked"),
+    )
+    locked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="accounting_documents_locked",
+        null=True,
+        blank=True,
+        help_text=_("User who locked the document"),
+    )
+    reversed_document = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        related_name='reversal_documents',
+        null=True,
+        blank=True,
+        help_text=_("Reference to reversal document if reversed"),
+    )
+    attachment_count = models.PositiveSmallIntegerField(
+        default=0,
+        help_text=_("Number of attached files"),
+    )
+
+    class Meta:
+        verbose_name = _("Accounting Document")
+        verbose_name_plural = _("Accounting Documents")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "document_number"),
+                name="accounting_document_number_unique",
+            ),
+            models.CheckConstraint(
+                check=models.Q(total_debit=models.F('total_credit')),
+                name="accounting_document_balanced",
+            ),
+        ]
+        ordering = ("company", "-document_date", "-document_number")
+
+    def __str__(self) -> str:
+        return f"{self.document_number} - {self.document_date}"
+
+    def clean(self):
+        """Validate document totals."""
+        from django.core.exceptions import ValidationError
+        if self.total_debit != self.total_credit:
+            raise ValidationError(_("Total debits must equal total credits."))
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+
+class DocumentAttachment(AccountingBaseModel):
+    """
+    Attachment files for accounting documents (e.g., invoice images, receipts).
+    Allows uploading and linking files to accounting documents.
+    """
+    FILE_TYPE_CHOICES = [
+        ('INVOICE', _('فاکتور')),
+        ('RECEIPT', _('رسید')),
+        ('CONTRACT', _('قرارداد')),
+        ('CHECK', _('چک')),
+        ('OTHER', _('سایر')),
+    ]
+    
+    document = models.ForeignKey(
+        AccountingDocument,
+        on_delete=models.CASCADE,
+        related_name='attachments',
+        null=True,
+        blank=True,
+        help_text=_("سند حسابداری مرتبط (اختیاری)"),
+    )
+    document_number = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text=_("شماره سند (برای جستجو و فیلتر)"),
+    )
+    file = models.FileField(
+        upload_to='accounting/documents/%Y/%m/',
+        help_text=_("فایل پیوست"),
+    )
+    file_type = models.CharField(
+        max_length=30,
+        choices=FILE_TYPE_CHOICES,
+        default='OTHER',
+        help_text=_("نوع فایل"),
+    )
+    file_name = models.CharField(
+        max_length=255,
+        help_text=_("نام اصلی فایل"),
+    )
+    file_size = models.PositiveIntegerField(
+        help_text=_("حجم فایل به بایت"),
+    )
+    mime_type = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text=_("نوع MIME فایل"),
+    )
+    description = models.TextField(
+        blank=True,
+        help_text=_("توضیحات فایل"),
+    )
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="accounting_attachments_uploaded",
+        null=True,
+        blank=True,
+        help_text=_("کاربری که فایل را آپلود کرده"),
+    )
+    uploaded_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text=_("تاریخ و زمان آپلود"),
+    )
+
+    class Meta:
+        verbose_name = _("پیوست سند")
+        verbose_name_plural = _("پیوست‌های اسناد")
+        ordering = ("company", "-uploaded_at", "document_number")
+        indexes = [
+            models.Index(fields=("company", "document"), name="acc_attach_doc_idx"),
+            models.Index(fields=("company", "document_number"), name="acc_attach_docnum_idx"),
+            models.Index(fields=("company", "file_type"), name="acc_attach_type_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.file_name} - {self.document_number or 'بدون سند'}"
+
+    def save(self, *args, **kwargs):
+        """Auto-populate file metadata."""
+        if self.file and not self.file_name:
+            self.file_name = self.file.name.split('/')[-1]
+        if self.file and not self.file_size:
+            try:
+                self.file_size = self.file.size
+            except (AttributeError, OSError):
+                pass
+        if not self.uploaded_by and hasattr(self, '_uploaded_by'):
+            self.uploaded_by = self._uploaded_by
+        super().save(*args, **kwargs)
+
+    def get_file_size_display(self):
+        """Get human-readable file size."""
+        size = self.file_size
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if size < 1024.0:
+                return f"{size:.2f} {unit}"
+            size /= 1024.0
+        return f"{size:.2f} TB"
+
+
+class AccountingDocumentLine(AccountingBaseModel):
+    """Line items for accounting documents."""
+    document = models.ForeignKey(
+        AccountingDocument,
+        on_delete=models.CASCADE,
+        related_name="lines",
+        help_text=_("Parent document"),
+    )
+    line_number = models.PositiveSmallIntegerField(
+        help_text=_("Sequential line number within document"),
+    )
+    account = models.ForeignKey(
+        Account,
+        on_delete=models.PROTECT,
+        related_name="document_lines",
+        help_text=_("Account being debited or credited"),
+    )
+    debit_amount = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[POSITIVE_DECIMAL],
+        help_text=_("Debit amount (must be 0 if credit_amount > 0)"),
+    )
+    credit_amount = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[POSITIVE_DECIMAL],
+        help_text=_("Credit amount (must be 0 if debit_amount > 0)"),
+    )
+    description = models.TextField(
+        blank=True,
+        help_text=_("Line item description"),
+    )
+    party_id = models.BigIntegerField(
+        null=True,
+        blank=True,
+        help_text=_("Optional party reference (will be FK to accounting_party)"),
+    )
+    cost_center_id = models.BigIntegerField(
+        null=True,
+        blank=True,
+        help_text=_("Optional cost center allocation (will be FK to accounting_cost_center)"),
+    )
+    project_id = models.BigIntegerField(
+        null=True,
+        blank=True,
+        help_text=_("Optional project reference"),
+    )
+    vat_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text=_("VAT rate percentage if applicable"),
+    )
+    vat_amount = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text=_("VAT amount if applicable"),
+    )
+    reference = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text=_("Additional reference for line item"),
+    )
+
+    class Meta:
+        verbose_name = _("Accounting Document Line")
+        verbose_name_plural = _("Accounting Document Lines")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "document", "line_number"),
+                name="accounting_document_line_unique",
+            ),
+            models.CheckConstraint(
+                check=(
+                    models.Q(debit_amount__gt=0, credit_amount=0) |
+                    models.Q(debit_amount=0, credit_amount__gt=0)
+                ),
+                name="accounting_document_line_debit_or_credit",
+            ),
+        ]
+        ordering = ("company", "document", "line_number")
+
+    def __str__(self) -> str:
+        return f"{self.document.document_number} - Line {self.line_number}"
+
+    def clean(self):
+        """Validate line amounts."""
+        from django.core.exceptions import ValidationError
+        if self.debit_amount > 0 and self.credit_amount > 0:
+            raise ValidationError(_("Line must be either debit or credit, not both."))
+        if self.debit_amount == 0 and self.credit_amount == 0:
+            raise ValidationError(_("Line must have either debit or credit amount."))
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)

@@ -394,6 +394,7 @@
 **Fields**:
 - تمام fields از `ReceiptLineBaseForm`
 - `expected_receipt_date`: تاریخ مورد انتظار تبدیل (JalaliDateInput)
+- `supplier`: تأمین‌کننده برای این ردیف (هر ردیف می‌تواند تأمین‌کننده مستقل داشته باشد)
 - `line_notes`: یادداشت‌های خط (Textarea)
 
 ---

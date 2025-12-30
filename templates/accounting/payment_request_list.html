@@ -1,0 +1,72 @@
+{% extends "shared/generic/generic_list.html" %}
+{% load i18n jalali_tags %}
+
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Payment Requests" %}</span>
+{% endblock %}
+
+{% block filter_fields %}
+<div class="form-group">
+  <label for="status">{% trans "Status" %}</label>
+  <select name="request_status" id="status" class="form-control">
+    <option value="">-- {% trans "All" %} --</option>
+    <option value="draft" {% if request.GET.request_status == 'draft' %}selected{% endif %}>{% trans "Draft" %}</option>
+    <option value="approved" {% if request.GET.request_status == 'approved' %}selected{% endif %}>{% trans "Approved" %}</option>
+    <option value="paid" {% if request.GET.request_status == 'paid' %}selected{% endif %}>{% trans "Paid" %}</option>
+    <option value="cancelled" {% if request.GET.request_status == 'cancelled' %}selected{% endif %}>{% trans "Cancelled" %}</option>
+  </select>
+</div>
+<div class="form-group">
+  <label for="payment_type">{% trans "Payment Type" %}</label>
+  <select name="payment_type" id="payment_type" class="form-control">
+    <option value="">-- {% trans "All" %} --</option>
+    <option value="purchase_invoice" {% if request.GET.payment_type == 'purchase_invoice' %}selected{% endif %}>{% trans "Purchase Invoice" %}</option>
+    <option value="service_invoice" {% if request.GET.payment_type == 'service_invoice' %}selected{% endif %}>{% trans "Service Invoice" %}</option>
+    <option value="direct_expense" {% if request.GET.payment_type == 'direct_expense' %}selected{% endif %}>{% trans "Direct Expense" %}</option>
+    <option value="prepayment" {% if request.GET.payment_type == 'prepayment' %}selected{% endif %}>{% trans "Prepayment" %}</option>
+  </select>
+</div>
+{% endblock %}
+
+{% block table_headers %}
+<th>{% trans "Request Code" %}</th>
+<th>{% trans "Request Date" %}</th>
+<th>{% trans "Payment Type" %}</th>
+<th>{% trans "Party" %}</th>
+<th>{% trans "Amount" %}</th>
+<th>{% trans "Status" %}</th>
+<th>{% trans "Actions" %}</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for request in object_list %}
+<tr>
+  <td><code>{{ request.request_code }}</code></td>
+  <td>{{ request.request_date|jalali_date }}</td>
+  <td>{{ request.get_payment_type_display }}</td>
+  <td>{{ request.party.party_name|default:"-" }}</td>
+  <td class="table-cell-right"><strong>{{ request.amount|floatformat:2 }}</strong></td>
+  <td>
+    <span class="badge badge-{{ request.request_status|default:'secondary' }}">
+      {{ request.get_request_status_display }}
+    </span>
+  </td>
+  <td>
+    <a href="{% url 'accounting:payment_request_detail' request.pk %}" class="btn btn-sm btn-info">{% trans "View" %}</a>
+    {% if request.request_status == 'draft' %}
+      <a href="{% url 'accounting:payment_request_edit' request.pk %}" class="btn btn-sm btn-primary">{% trans "Edit" %}</a>
+      <a href="{% url 'accounting:payment_request_delete' request.pk %}" class="btn btn-sm btn-danger">{% trans "Delete" %}</a>
+    {% endif %}
+  </td>
+</tr>
+{% empty %}
+<tr>
+  <td colspan="7" class="text-center">
+    <div class="empty-state">
+      <p>{% trans "No payment requests found." %}</p>
+    </div>
+  </td>
+</tr>
+{% endfor %}
+{% endblock %}

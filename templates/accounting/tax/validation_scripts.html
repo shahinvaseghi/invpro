@@ -1,0 +1,228 @@
+{% load i18n static %}
+
+<script>
+// CSRF Token helper
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
+
+function validateDocument(documentId) {
+    const fiscalMemoryId = prompt('{% trans "لطفاً شناسه حافظه مالیاتی را وارد کنید" %}:');
+    if (!fiscalMemoryId) {
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('document_id', documentId);
+    formData.append('fiscal_memory_id', fiscalMemoryId);
+    
+    fetch('{% url "accounting:tax_api_validate_document" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('{% trans "سند معتبر است و آماده ارسال می‌باشد" %}');
+            // Show validation results in modal
+            showValidationResults(data.invoice_data);
+        } else {
+            alert('{% trans "خطا" %}: ' + data.error + '\n' + (data.errors || []).join('\n'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('{% trans "خطا در اعتبارسنجی سند" %}');
+    });
+}
+
+function submitDocument(documentId) {
+    if (!confirm('{% trans "آیا مطمئن هستید که می‌خواهید این سند را به سامانه مودیان ارسال کنید؟" %}')) {
+        return;
+    }
+    
+    const fiscalMemoryId = prompt('{% trans "لطفاً شناسه حافظه مالیاتی را وارد کنید" %}:');
+    if (!fiscalMemoryId) {
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('document_id', documentId);
+    formData.append('fiscal_memory_id', fiscalMemoryId);
+    
+    // Show loading indicator
+    const submitButton = event.target;
+    const originalText = submitButton.textContent;
+    submitButton.disabled = true;
+    submitButton.textContent = '{% trans "در حال ارسال..." %}';
+    
+    fetch('{% url "accounting:tax_api_submit_invoice" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('{% trans "صورتحساب با موفقیت ارسال شد" %}\n' + 
+                  '{% trans "شناسه ارسال" %}: ' + data.submission_id);
+            // Reload page to show updated submissions
+            window.location.reload();
+        } else {
+            alert('{% trans "خطا" %}: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('{% trans "خطا در ارسال سند" %}');
+    })
+    .finally(() => {
+        submitButton.disabled = false;
+        submitButton.textContent = originalText;
+    });
+}
+
+function testConnection(fiscalMemoryId) {
+    const formData = new FormData();
+    formData.append('fiscal_memory_id', fiscalMemoryId);
+    
+    const testButton = event.target;
+    const originalText = testButton.textContent;
+    testButton.disabled = true;
+    testButton.textContent = '{% trans "در حال تست..." %}';
+    
+    fetch('{% url "accounting:tax_api_test_connection" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('{% trans "اتصال موفق بود" %}');
+        } else {
+            alert('{% trans "خطا" %}: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('{% trans "خطا در تست اتصال" %}');
+    })
+    .finally(() => {
+        testButton.disabled = false;
+        testButton.textContent = originalText;
+    });
+}
+
+function checkStatus(submissionId) {
+    const formData = new FormData();
+    formData.append('submission_id', submissionId);
+    
+    const checkButton = event.target;
+    const originalText = checkButton.textContent;
+    checkButton.disabled = true;
+    checkButton.textContent = '{% trans "در حال بررسی..." %}';
+    
+    fetch('{% url "accounting:tax_api_check_status" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('{% trans "وضعیت" %}: ' + data.status + '\n' + data.message);
+            // Reload page to show updated status
+            window.location.reload();
+        } else {
+            alert('{% trans "خطا" %}: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('{% trans "خطا در بررسی وضعیت" %}');
+    })
+    .finally(() => {
+        checkButton.disabled = false;
+        checkButton.textContent = originalText;
+    });
+}
+
+function viewLogs(submissionId) {
+    fetch('{% url "accounting:tax_api_view_logs" %}?submission_id=' + submissionId, {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': csrftoken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showLogsModal(data.logs);
+        } else {
+            alert('{% trans "خطا" %}: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('{% trans "خطا در مشاهده لاگ‌ها" %}');
+    });
+}
+
+function showLogsModal(logs) {
+    // Create modal content
+    let modalContent = '<div class="table-responsive"><table class="table table-striped">';
+    modalContent += '<thead><tr><th>{% trans "نوع" %}</th><th>{% trans "پیام" %}</th><th>{% trans "تاریخ" %}</th></tr></thead><tbody>';
+    
+    logs.forEach(log => {
+        modalContent += `<tr>
+            <td>${log.log_type}</td>
+            <td>${log.log_message}</td>
+            <td>${log.created_at}</td>
+        </tr>`;
+    });
+    
+    modalContent += '</tbody></table></div>';
+    
+    // Show in modal (assuming you have Bootstrap modal)
+    const modalBody = document.getElementById('validationModalBody');
+    if (modalBody) {
+        modalBody.innerHTML = modalContent;
+        $('#validationModal').modal('show');
+    } else {
+        // Fallback: show in alert
+        alert(logs.map(log => `${log.log_type}: ${log.log_message}`).join('\n'));
+    }
+}
+
+function showValidationResults(invoiceData) {
+    const modalBody = document.getElementById('validationModalBody');
+    if (modalBody) {
+        modalBody.innerHTML = '<pre>' + JSON.stringify(invoiceData, null, 2) + '</pre>';
+        $('#validationModal').modal('show');
+    }
+}
+</script>
+

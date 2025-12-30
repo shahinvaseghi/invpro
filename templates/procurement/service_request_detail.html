@@ -1,0 +1,56 @@
+{% extends "shared/generic/generic_detail.html" %}
+{% load i18n jalali_tags %}
+
+{% block info_banner_extra %}
+<div><strong>{% trans "Request Code" %}:</strong> <code>{{ service_request.request_code }}</code></div>
+<div><strong>{% trans "Status" %}:</strong>
+  <span class="badge badge-{{ service_request.status|default:'secondary' }}">
+    {{ service_request.get_status_display }}
+  </span>
+</div>
+{% endblock %}
+
+{% block detail_sections %}
+<div class="form-section">
+  <h3>{% trans "Service Request Information" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Service Description" %}</label>
+      <div class="readonly-field">{{ service_request.service_description|linebreaks }}</div>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Supplier" %}</label>
+      <div class="readonly-field">{{ service_request.supplier.name|default:"-" }}</div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Priority" %}</label>
+      <div class="readonly-field">
+        <span class="badge badge-{{ service_request.priority|default:'secondary' }}">
+          {{ service_request.get_priority_display }}
+        </span>
+      </div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Needed By Date" %}</label>
+      <div class="readonly-field">{{ service_request.needed_by_date|jalali_date|default:"-" }}</div>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Estimated Cost" %}</label>
+      <div class="readonly-field">{{ service_request.estimated_cost|floatformat:2|default:"-" }}</div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Requested By" %}</label>
+      <div class="readonly-field">{{ service_request.requested_by.get_full_name|default:service_request.requested_by.username }}</div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Approver" %}</label>
+      <div class="readonly-field">{{ service_request.approver.get_full_name|default:service_request.approver.username|default:"-" }}</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

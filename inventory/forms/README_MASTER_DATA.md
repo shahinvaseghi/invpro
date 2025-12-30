@@ -465,6 +465,9 @@
 - `secondary_batch_number` (CharField): بچ نامبر ثانویه (max 50 کاراکتر)
 - `tax_id` (CharField): شناسه مالیاتی
 - `tax_title` (CharField): عنوان مالیاتی
+- `supply_type` (CharField): نوع تامین
+- `planning_type` (CharField): نوع برنامه ریزی
+- `lead_time` (IntegerField): زمان تامین (روز)
 - `min_stock` (DecimalField): حداقل موجودی
 - `description` (CharField): توضیح کوتاه
 - `notes` (TextField): یادداشت‌ها
@@ -474,6 +477,7 @@
 - `is_sellable` (IntegerCheckboxField): قابل فروش است (0 یا 1)
 - `has_lot_tracking` (IntegerCheckboxField): نیاز به رهگیری لات دارد (0 یا 1)
 - `requires_temporary_receipt` (IntegerCheckboxField): ورود از طریق رسید موقت (0 یا 1)
+- `serial_in_qc` (IntegerCheckboxField): سریال در QC (0 یا 1)
 - `is_enabled` (IntegerCheckboxField): فعال باشد (0 یا 1، initial=1)
 
 #### Fields اضافی:
@@ -488,7 +492,8 @@
 - `min_stock`: `NumberInput` با `class='form-control'` و `step='0.001'`
 - `notes`: `Textarea` با `class='form-control'` و `rows=3`
 - `sort_order`: `NumberInput` با `class='form-control'`
-- `is_sellable`, `has_lot_tracking`, `requires_temporary_receipt`, `is_enabled`: `IntegerCheckboxInput` با `class='form-check-input'`
+- `is_sellable`, `has_lot_tracking`, `requires_temporary_receipt`, `serial_in_qc`, `is_enabled`: `IntegerCheckboxInput` با `class='form-check-input'`
+- `lead_time`: `NumberInput` با `class='form-control'` و `min='0'`, `step='1'`
 - `default_unit`, `primary_unit`: `Select` با `class='form-control'`
 - `allowed_warehouses`: `CheckboxSelectMultiple` با `class='checkbox-grid'`
 
@@ -502,6 +507,9 @@
 - `secondary_batch_number`: 'بچ نامبر ثانویه'
 - `tax_id`: 'شناسه مالیاتی'
 - `tax_title`: 'عنوان مالیاتی'
+- `supply_type`: 'نوع تامین'
+- `planning_type`: 'نوع برنامه ریزی'
+- `lead_time`: 'زمان تامین (روز)'
 - `min_stock`: 'حداقل موجودی'
 - `description`: 'توضیح کوتاه'
 - `notes`: 'یادداشت‌ها'
@@ -509,6 +517,7 @@
 - `is_sellable`: 'قابل فروش است'
 - `has_lot_tracking`: 'نیاز به رهگیری لات دارد'
 - `requires_temporary_receipt`: 'ورود از طریق رسید موقت'
+- `serial_in_qc`: 'سریال در QC'
 - `is_enabled`: 'فعال باشد'
 - `default_unit`: 'واحد اصلی'
 - `primary_unit`: 'واحد گزارش (برای گزارش‌گیری)'

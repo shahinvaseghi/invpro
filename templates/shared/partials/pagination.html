@@ -1,0 +1,68 @@
+{% load i18n %}
+
+{% if is_paginated %}
+<div class="pagination-container" style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin: 2rem 0; flex-wrap: wrap;">
+  
+  {# Previous button #}
+  {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+       class="btn btn-secondary" 
+       style="padding: 0.5rem 1rem; background-color: #6c757d; color: white; border: none; border-radius: 4px; text-decoration: none; font-weight: 500;">
+      {% trans "Previous" %}
+    </a>
+  {% else %}
+    <span class="btn btn-secondary" style="padding: 0.5rem 1rem; background-color: #e9ecef; color: #6c757d; border: none; border-radius: 4px; cursor: not-allowed; opacity: 0.6;">
+      {% trans "Previous" %}
+    </span>
+  {% endif %}
+
+  {# Page numbers #}
+  <div class="page-numbers" style="display: flex; gap: 0.25rem; align-items: center;">
+    {% for num in page_obj.paginator.page_range %}
+      {% if page_obj.number == num %}
+        <span class="page-number current" 
+              style="padding: 0.5rem 0.75rem; background-color: #0d6efd; color: white; border-radius: 4px; font-weight: 600;">
+          {{ num }}
+        </span>
+      {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+        <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+           class="page-number" 
+           style="padding: 0.5rem 0.75rem; background-color: white; color: #0d6efd; border: 1px solid #0d6efd; border-radius: 4px; text-decoration: none; font-weight: 500;">
+          {{ num }}
+        </a>
+      {% elif num == 1 or num == page_obj.paginator.num_pages %}
+        <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+           class="page-number" 
+           style="padding: 0.5rem 0.75rem; background-color: white; color: #0d6efd; border: 1px solid #0d6efd; border-radius: 4px; text-decoration: none; font-weight: 500;">
+          {{ num }}
+        </a>
+      {% elif num == page_obj.number|add:'-4' or num == page_obj.number|add:'4' %}
+        <span class="page-ellipsis" style="padding: 0.5rem; color: #6c757d;">
+          ...
+        </span>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  {# Next button #}
+  {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+       class="btn btn-secondary" 
+       style="padding: 0.5rem 1rem; background-color: #6c757d; color: white; border: none; border-radius: 4px; text-decoration: none; font-weight: 500;">
+      {% trans "Next" %}
+    </a>
+  {% else %}
+    <span class="btn btn-secondary" style="padding: 0.5rem 1rem; background-color: #e9ecef; color: #6c757d; border: none; border-radius: 4px; cursor: not-allowed; opacity: 0.6;">
+      {% trans "Next" %}
+    </span>
+  {% endif %}
+
+  {# Page info #}
+  <div class="page-info" style="margin-left: 1rem; color: #6c757d; font-size: 0.875rem;">
+    {% blocktrans with page=page_obj.number num_pages=page_obj.paginator.num_pages count=page_obj.paginator.count %}
+      Page {{ page }} of {{ num_pages }} ({{ count }} total)
+    {% endblocktrans %}
+  </div>
+</div>
+{% endif %}
+

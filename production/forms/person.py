@@ -87,6 +87,9 @@ class PersonForm(forms.ModelForm):
             self.fields['company_units'].help_text = _('Please select a company first.')
 
         self.fields['company_units'].required = False
+        
+        # Make username not required by default since it's conditionally required based on checkbox
+        self.fields['username'].required = False
 
         # If editing and username equals personnel_code, check the box
         if self.instance.pk and self.instance.username == self.instance.personnel_code:

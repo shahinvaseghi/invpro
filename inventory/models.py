@@ -16,6 +16,7 @@ from shared.models import (
     TimeStampedModel,
     User,
 )
+from accounting.models import get_fiscal_year_from_date
 from .utils.codes import generate_sequential_code
 
 
@@ -48,7 +49,78 @@ class InventorySortableModel(InventoryBaseModel, SortableModel):
         abstract = True
 
 
-class InventoryDocumentBase(InventoryBaseModel, LockableModel):
+class FiscalYearMixin(models.Model):
+    """
+    Mixin to auto-populate fiscal_year_id from document_date or request_date.
+    Use this mixin for models that have document_date/request_date and need fiscal_year_id.
+    """
+    fiscal_year = models.ForeignKey(
+        'accounting.FiscalYear',
+        on_delete=models.PROTECT,
+        related_name='%(app_label)s_%(class)s_set',
+        null=True,
+        blank=True,
+        help_text=_("Fiscal year for this document (auto-populated from document_date)"),
+        db_index=True,  # Index for faster queries
+    )
+    
+    class Meta:
+        abstract = True
+    
+    def get_document_date_field_name(self):
+        """
+        Override this method if document_date field has a different name.
+        Default: 'document_date', fallback to 'request_date'
+        """
+        if hasattr(self, 'document_date'):
+            return 'document_date'
+        elif hasattr(self, 'request_date'):
+            return 'request_date'
+        return 'document_date'
+    
+    def save(self, *args, **kwargs):
+        """Auto-populate fiscal_year_id from document_date/request_date."""
+        if not self.fiscal_year_id:
+            date_field_name = self.get_document_date_field_name()
+            document_date = getattr(self, date_field_name, None)
+            
+            if document_date and self.company_id:
+                fiscal_year = get_fiscal_year_from_date(
+                    company_id=self.company_id,
+                    document_date=document_date
+                )
+                if fiscal_year:
+                    self.fiscal_year = fiscal_year
+        
+        super().save(*args, **kwargs)
+    
+    def clean(self):
+        """Validate that document_date is within fiscal_year range."""
+        from django.core.exceptions import ValidationError
+        
+        date_field_name = self.get_document_date_field_name()
+        document_date = getattr(self, date_field_name, None)
+        
+        if document_date and self.fiscal_year:
+            if document_date < self.fiscal_year.start_date:
+                raise ValidationError(
+                    _("Document date (%(date)s) is before fiscal year start date (%(start)s).") % {
+                        'date': document_date,
+                        'start': self.fiscal_year.start_date,
+                    }
+                )
+            if document_date > self.fiscal_year.end_date:
+                raise ValidationError(
+                    _("Document date (%(date)s) is after fiscal year end date (%(end)s).") % {
+                        'date': document_date,
+                        'end': self.fiscal_year.end_date,
+                    }
+                )
+        
+        super().clean()
+
+
+class InventoryDocumentBase(InventoryBaseModel, LockableModel, FiscalYearMixin):
     public_code_validator = NUMERIC_CODE_VALIDATOR
 
     document_code = models.CharField(max_length=30, unique=True)
@@ -270,6 +342,31 @@ class Item(InventorySortableModel):
     is_sellable = models.PositiveSmallIntegerField(default=0)
     has_lot_tracking = models.PositiveSmallIntegerField(default=0)
     requires_temporary_receipt = models.PositiveSmallIntegerField(default=0)
+    serial_in_qc = models.PositiveSmallIntegerField(default=0, help_text=_("Serial tracking in QC"))
+    supply_type = models.CharField(
+        max_length=20,
+        choices=(
+            ('buy', _('Purchasable')),
+            ('make', _('Manufacturable')),
+        ),
+        default='buy',
+        help_text=_("Supply type: Purchasable or Manufacturable"),
+    )
+    planning_type = models.CharField(
+        max_length=20,
+        choices=(
+            ('none', _('No Planning')),
+            ('mrp', _('MRP-based')),
+            ('reorder_point', _('Reorder Point-based')),
+        ),
+        default='none',
+        help_text=_("Planning type: No Planning, MRP-based, or Reorder Point-based"),
+    )
+    lead_time = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text=_("Lead time in days"),
+    )
     tax_id = models.CharField(max_length=30, blank=True)
     tax_title = models.CharField(max_length=120, blank=True)
     min_stock = models.DecimalField(
@@ -685,7 +782,7 @@ class SupplierItem(InventoryBaseModel):
         return f"{self.item} by {self.supplier}"
 
 
-class PurchaseRequest(InventoryBaseModel, LockableModel):
+class PurchaseRequest(InventoryBaseModel, LockableModel, FiscalYearMixin):
     class Priority(models.TextChoices):
         LOW = "low", _("Low")
         NORMAL = "normal", _("Normal")
@@ -699,7 +796,7 @@ class PurchaseRequest(InventoryBaseModel, LockableModel):
         FULFILLED = "fulfilled", _("Fulfilled")
         CANCELLED = "cancelled", _("Cancelled")
 
-    request_code = models.CharField(max_length=20, unique=True)
+    request_code = models.CharField(max_length=20)
     request_date = models.DateField(default=timezone.now)
     requested_by = models.ForeignKey(
         User,
@@ -1568,6 +1665,14 @@ class ReceiptTemporaryLine(ReceiptLineBase):
         related_name="lines",
     )
     expected_receipt_date = models.DateField(null=True, blank=True)
+    supplier = models.ForeignKey(
+        Supplier,
+        on_delete=models.SET_NULL,
+        related_name="temporary_receipt_lines",
+        null=True,
+        blank=True,
+    )
+    supplier_code = models.CharField(max_length=6, validators=[NUMERIC_CODE_VALIDATOR], blank=True)
     # QC approval fields
     is_qc_approved = models.PositiveSmallIntegerField(default=0, help_text=_("Whether this line is approved by QC"))
     qc_approved_quantity = models.DecimalField(
@@ -1613,8 +1718,9 @@ class ReceiptTemporaryLine(ReceiptLineBase):
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        # ReceiptTemporaryLine doesn't have supplier field (supplier is on ReceiptTemporary header)
-        # So we don't need to set supplier_code here
+        if self.supplier and not self.supplier_code:
+            self.supplier_code = self.supplier.public_code
+            super().save(*args, **kwargs)
 
 
 class QCRejectionDetail(models.Model):
@@ -1778,6 +1884,102 @@ class IssueConsignment(InventoryDocumentBase):
     def save(self, *args, **kwargs):
         if self.department_unit and not self.department_unit_code:
             self.department_unit_code = self.department_unit.public_code
+        super().save(*args, **kwargs)
+
+
+class IssueWarehouseTransfer(InventoryDocumentBase):
+    """Header-only model for warehouse transfer issue documents with multi-line support."""
+    document_code = models.CharField(max_length=20, unique=True)
+    document_date = models.DateField(default=timezone.now)
+    # Header-level fields only - item/warehouse/quantity moved to IssueWarehouseTransferLine
+    issue_metadata = models.JSONField(default=dict, blank=True)
+    # Reference to TransferToLine if created from production transfer
+    production_transfer = models.ForeignKey(
+        'production.TransferToLine',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='warehouse_transfers',
+        verbose_name=_('Production Transfer'),
+        help_text=_('The production transfer request that created this warehouse transfer'),
+    )
+    production_transfer_code = models.CharField(max_length=30, blank=True)
+    
+    approver = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='warehouse_transfers_to_approve',
+        null=True,
+        blank=True,
+        verbose_name=_('Approver'),
+        help_text=_('User who can approve this warehouse transfer'),
+    )
+
+    class Meta:
+        verbose_name = _("Warehouse Transfer Issue")
+        verbose_name_plural = _("Warehouse Transfer Issues")
+        ordering = ("-document_date", "document_code")
+
+    def __str__(self) -> str:
+        return self.document_code
+    
+    def save(self, *args, **kwargs):
+        """Auto-set production_transfer_code from production_transfer."""
+        if self.production_transfer and not self.production_transfer_code:
+            self.production_transfer_code = self.production_transfer.transfer_code
+        super().save(*args, **kwargs)
+
+
+class IssueWarehouseTransferLine(IssueLineBase):
+    """Line item for warehouse transfer issue documents."""
+    
+    document = models.ForeignKey(
+        "IssueWarehouseTransfer",
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
+    source_warehouse = models.ForeignKey(
+        Warehouse,
+        on_delete=models.PROTECT,
+        related_name="warehouse_transfer_source_lines",
+    )
+    source_warehouse_code = models.CharField(max_length=5, validators=[NUMERIC_CODE_VALIDATOR])
+    destination_warehouse = models.ForeignKey(
+        Warehouse,
+        on_delete=models.PROTECT,
+        related_name="warehouse_transfer_destination_lines",
+    )
+    destination_warehouse_code = models.CharField(max_length=5, validators=[NUMERIC_CODE_VALIDATOR])
+    serials = models.ManyToManyField(
+        "inventory.ItemSerial",
+        related_name="issue_warehouse_transfer_lines",
+        blank=True,
+    )
+    
+    class Meta:
+        verbose_name = _("Warehouse Transfer Issue Line")
+        verbose_name_plural = _("Warehouse Transfer Issue Lines")
+        ordering = ("sort_order", "id")
+        indexes = [
+            models.Index(fields=("company", "document"), name="inv_issue_wht_line_doc_idx"),
+            models.Index(fields=("company", "item"), name="inv_issue_wht_line_item_idx"),
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.document.document_code} - {self.item.name}"
+    
+    def save(self, *args, **kwargs):
+        # Set warehouse to source_warehouse (for compatibility with IssueLineBase)
+        if self.source_warehouse_id and not self.warehouse_id:
+            self.warehouse = self.source_warehouse
+            self.warehouse_code = self.source_warehouse.public_code
+        
+        # Save codes
+        if self.source_warehouse and not self.source_warehouse_code:
+            self.source_warehouse_code = self.source_warehouse.public_code
+        if self.destination_warehouse and not self.destination_warehouse_code:
+            self.destination_warehouse_code = self.destination_warehouse.public_code
+        
         super().save(*args, **kwargs)
 
 
@@ -2031,12 +2233,12 @@ class StocktakingRecord(InventoryDocumentBase):
         super().save(*args, **kwargs)
 
 
-class WarehouseRequest(InventoryBaseModel, LockableModel):
+class WarehouseRequest(InventoryBaseModel, LockableModel, FiscalYearMixin):
     """
     Warehouse request for issuing materials to departments, production, or other internal use.
     Pattern: WRQ-YYYYMM-XXXXXX
     """
-    request_code = models.CharField(max_length=20, unique=True)
+    request_code = models.CharField(max_length=20)
     request_date = models.DateField(default=timezone.now)
     
     item = models.ForeignKey(
@@ -2137,6 +2339,49 @@ class WarehouseRequest(InventoryBaseModel, LockableModel):
     notes = models.TextField(blank=True)
     attachments = models.JSONField(default=list, blank=True)
     request_metadata = models.JSONField(default=dict, blank=True)
+
+    def _generate_request_code(self) -> str:
+        """
+        Generates a unique code following the pattern WRQ-YYYYMM-XXXXXX scoped per company.
+        """
+        now = timezone.now()
+        month_year = now.strftime("%Y%m")
+        prefix = f"WRQ-{month_year}"
+        last_request = (
+            WarehouseRequest.objects.filter(
+                company_id=self.company_id,
+                request_code__startswith=prefix,
+            )
+            .order_by("-request_code")
+            .first()
+        )
+        if last_request and last_request.request_code:
+            try:
+                sequence = int(last_request.request_code.split("-")[-1])
+            except (ValueError, IndexError):
+                sequence = 0
+        else:
+            sequence = 0
+        return f"{prefix}-{sequence + 1:06d}"
+
+    def save(self, *args, **kwargs):
+        """Auto-generate request_code if not provided."""
+        if not self.request_code or not self.request_code.strip():
+            self.request_code = self._generate_request_code()
+        
+        # Ensure item_code is set from item if not already set
+        if self.item and not self.item_code:
+            self.item_code = self.item.item_code or self.item.full_item_code or ''
+        
+        # Ensure warehouse_code is set from warehouse if not already set
+        if self.warehouse and not self.warehouse_code:
+            self.warehouse_code = self.warehouse.public_code or ''
+        
+        # Ensure department_unit_code is set from department_unit if not already set
+        if self.department_unit and not self.department_unit_code:
+            self.department_unit_code = self.department_unit.public_code or ''
+        
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = _("Warehouse Request")

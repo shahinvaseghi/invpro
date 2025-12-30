@@ -49,6 +49,8 @@ CSRF_USE_SESSIONS = False
 # Application definition
 
 INSTALLED_APPS = [
+    'unfold',  # Unfold admin theme (must be before django.contrib.admin)
+    'unfold.contrib.filters',  # Unfold filters
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -105,6 +107,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'ui.context_processors.active_module',
                 'shared.context_processors.active_company',
+                'accounting.context_processors.active_fiscal_year',
             ],
         },
     },
@@ -150,7 +153,6 @@ LANGUAGE_CODE = 'fa'
 
 LANGUAGES = [
     ("fa", "Persian"),
-    ("en", "English"),
 ]
 
 TIME_ZONE = env.str("DJANGO_TIME_ZONE")
@@ -226,6 +228,13 @@ SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 
+# ---------------------------------------------------------------------------
+# Data upload limits
+# ---------------------------------------------------------------------------
+
+# Increase max number of fields to handle large forms (e.g., Access Level permissions)
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
+
 
 # ---------------------------------------------------------------------------
 # CORS configuration
@@ -288,3 +297,29 @@ LOGGING = {
         },
     },
 }
+
+
+# ---------------------------------------------------------------------------
+# Unfold admin theme configuration
+# ---------------------------------------------------------------------------
+
+UNFOLD = {
+    "SITE_TITLE": "مدیریت وب گاه | UNFOLD",
+    "SITE_HEADER": "مدیریت وب گاه",
+    "SITE_URL": "/",
+    "SITE_SYMBOL": "inventory_2",
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": True,
+    "ENVIRONMENT": "config.settings.environment_callback",
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": True,
+    },
+    "STYLES": [],
+    "SCRIPTS": [],
+}
+
+
+def environment_callback(request):
+    """Environment callback for Unfold."""
+    return "Development" if DEBUG else "Production"

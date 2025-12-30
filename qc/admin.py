@@ -1,10 +1,11 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 
 from . import models
 
 
 @admin.register(models.ReceiptInspection)
-class ReceiptInspectionAdmin(admin.ModelAdmin):
+class ReceiptInspectionAdmin(ModelAdmin):
     list_display = (
         "company",
         "inspection_code",

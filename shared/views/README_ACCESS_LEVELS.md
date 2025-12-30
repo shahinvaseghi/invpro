@@ -29,12 +29,12 @@
 
 **Type**: `FeaturePermissionRequiredMixin, ListView`
 
-**Template**: `shared/access_levels_list.html`
+**Template**: `shared/access_levels_list.html` (extends `shared/generic/generic_list.html`)
 
 **Attributes**:
 - `model`: `AccessLevel`
 - `template_name`: `'shared/access_levels_list.html'`
-- `context_object_name`: `'access_levels'`
+- `context_object_name`: `'object_list'`
 - `paginate_by`: `20`
 - `feature_code`: `'shared.access_levels'`
 
@@ -65,10 +65,18 @@
 **توضیح**: اضافه کردن active module و filter values به context.
 
 **Context Variables**:
-- `access_levels`: queryset access levels (paginated)
+- `object_list`: queryset access levels (paginated، از `page_obj.object_list`)
 - `active_module`: `'shared'`
-- `search_term`: مقدار search از GET
-- `status_filter`: مقدار status از GET
+- `page_title`: `_('Access Levels')`
+- `breadcrumbs`: لیست breadcrumbs
+- `create_url`: URL برای ایجاد access level جدید
+- `show_filters`: `True`
+- `status_filter_value`: مقدار status از GET
+- `search_placeholder`: `_('Code or name')`
+- `show_actions`: `True`
+- `edit_url_name`: `'shared:access_level_edit'`
+- `delete_url_name`: `'shared:access_level_delete'`
+- `empty_state_title`, `empty_state_message`, `empty_state_icon`: برای empty state
 
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: context با filter values
@@ -81,7 +89,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, AccessLevelPermissionMixin, CreateView`
 
-**Template**: `shared/access_level_form.html`
+**Template**: `shared/access_level_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `AccessLevelForm`
 
@@ -100,9 +108,12 @@
 **Context Variables**:
 - `form`: `AccessLevelForm`
 - `active_module`: `'shared'`
+- `form_title`: `_('Create Access Level')`
 - `page_title`: `_('Create Access Level')`
 - `is_create`: `True`
 - `feature_permissions`: لیست feature permissions (از `_prepare_feature_context()`)
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `cancel_url`: URL برای cancel (back to access levels list)
 
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: context با feature_permissions
@@ -142,7 +153,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, AccessLevelPermissionMixin, UpdateView`
 
-**Template**: `shared/access_level_form.html`
+**Template**: `shared/access_level_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `AccessLevelForm`
 
@@ -160,11 +171,14 @@
 
 **Context Variables**:
 - `form`: `AccessLevelForm`
-- `access_level`: access level object (از `get_object()`)
+- `object`: access level object (از `get_object()`)
 - `active_module`: `'shared'`
+- `form_title`: `_('Edit Access Level')`
 - `page_title`: `_('Edit Access Level')`
 - `is_create`: `False`
 - `feature_permissions`: لیست feature permissions (از `_prepare_feature_context(self.object)`)
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `cancel_url`: URL برای cancel (back to access levels list)
 
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: context با feature_permissions
@@ -198,7 +212,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, DeleteView`
 
-**Template**: `shared/access_level_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `shared:access_levels`
 
@@ -230,8 +244,13 @@
 **توضیح**: اضافه کردن active module به context.
 
 **Context Variables**:
-- `access_level`: access level object (از `get_object()`)
+- `object`: access level object (از `get_object()`)
 - `active_module`: `'shared'`
+- `delete_title`: `_('Delete Access Level')`
+- `confirmation_message`: پیام تایید حذف با access level name
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `object_details`: لیست جزئیات access level برای نمایش (code, name, is_global)
+- `cancel_url`: URL برای cancel (back to access levels list)
 
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: context با active_module
@@ -392,4 +411,30 @@ path('access-levels/<int:pk>/delete/', AccessLevelDeleteView.as_view(), name='ac
 ### Shared Permissions
 - از `FEATURE_PERMISSION_MAP` برای feature definitions استفاده می‌کند
 - از `PermissionAction` برای action definitions استفاده می‌کند
+
+---
+
+## Migration to Generic Templates
+
+این views در migration به template های generic منتقل شده‌اند:
+
+### List Template
+- **Template**: `shared/access_levels_list.html` (extends `shared/generic/generic_list.html`)
+- **Changes**: 
+  - `context_object_name` از `'access_levels'` به `'object_list'` تغییر یافت
+  - Context variables برای generic template اضافه شد (breadcrumbs, page_title, create_url, etc.)
+
+### Form Template
+- **Template**: `shared/access_level_form.html` (extends `shared/generic/generic_form.html`)
+- **Changes**:
+  - Template از `base.html` به `generic_form.html` منتقل شد
+  - Blocks override شده: `form_sections`, `form_extra` (برای feature permissions), `form_scripts`
+  - JavaScript و CSS برای accordion permissions حفظ شد
+  - Context variables اضافه شد: `breadcrumbs`, `cancel_url`, `form_title`
+
+### Delete Template
+- **Template**: `shared/generic/generic_confirm_delete.html` (مستقیم استفاده می‌شود)
+- **Changes**:
+  - Template اختصاصی حذف شد
+  - `get_context_data` به‌روزرسانی شد تا context variables مناسب را ارسال کند
 

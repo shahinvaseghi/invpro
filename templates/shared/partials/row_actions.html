@@ -1,0 +1,111 @@
+{% load i18n %}
+{% load view_tags %}
+{% load access_tags %}
+{% load static %}
+
+{% with button_size=button_size|default:'sm' show_icons=show_icons|default:False %}
+<div class="row-actions">
+  
+  {# Prefer explicit URL names from view context over auto-detected actions #}
+  {% if detail_url_name or edit_url_name or delete_url_name %}
+    {# Use explicit URL names from view context #}
+    
+    {# View button #}
+    {% if detail_url_name %}
+      {% can_action object 'view' feature_code|default:"" as can_view %}
+      {% if can_view %}
+        <a href="{% url detail_url_name object.pk %}" 
+           class="btn btn-action btn-view">
+          {% if show_icons %}👁️ {% endif %}{% trans "View" %}
+        </a>
+      {% endif %}
+    {% elif view_url_name %}
+      {% can_action object 'view' feature_code|default:"" as can_view %}
+      {% if can_view %}
+        <a href="{% url view_url_name object.pk %}" 
+           class="btn btn-action btn-view">
+          {% if show_icons %}👁️ {% endif %}{% trans "View" %}
+        </a>
+      {% endif %}
+    {% endif %}
+    
+    {# Edit button #}
+    {% if edit_url_name %}
+      {% can_action object 'edit' feature_code|default:"" as can_edit %}
+      {% if can_edit %}
+        {# Check if object is locked (if EditLockProtectedMixin is used) #}
+        {% if object.is_locked %}
+          <span class="btn btn-action btn-edit btn-disabled"
+                title="{% trans 'This record is locked and cannot be edited' %}">
+            {% if show_icons %}🔒 {% endif %}{% trans "Locked" %}
+          </span>
+        {% else %}
+          <a href="{% url edit_url_name object.pk %}" 
+             class="btn btn-action btn-edit">
+            {% if show_icons %}✏️ {% endif %}{% trans "Edit" %}
+          </a>
+        {% endif %}
+      {% endif %}
+    {% endif %}
+    
+    {# Delete button #}
+    {% if delete_url_name %}
+      {% can_action object 'delete' feature_code|default:"" as can_delete %}
+      {% if can_delete %}
+        {# Check if object is locked #}
+        {% if object.is_locked %}
+          <span class="btn btn-action btn-delete btn-disabled"
+                title="{% trans 'This record is locked and cannot be deleted' %}">
+            {% if show_icons %}🔒 {% endif %}{% trans "Locked" %}
+          </span>
+        {% else %}
+          <a href="{% url delete_url_name object.pk %}" 
+             class="btn btn-action btn-delete"
+             data-confirm="{% trans 'Are you sure you want to delete this item?' %}">
+            {% if show_icons %}🗑️ {% endif %}{% trans "Delete" %}
+          </a>
+        {% endif %}
+      {% endif %}
+    {% endif %}
+    
+  {% else %}
+    {# Fallback to auto-detected actions if URL names not provided #}
+    {% get_object_actions object feature_code|default:"" as available_actions %}
+    
+    {% if available_actions %}
+      {# Use actions from get_object_actions template tag #}
+      {% for action in available_actions %}
+        {% if action.url %}
+          <a href="{{ action.url }}" 
+             class="btn btn-action {% if action.name == 'view' %}btn-view{% elif action.name == 'edit' %}btn-edit{% elif action.name == 'delete' %}btn-delete{% else %}btn-primary{% endif %} {{ action.class }}">
+            {% if show_icons %}
+              {% if action.name == 'view' %}👁️
+              {% elif action.name == 'edit' %}✏️
+              {% elif action.name == 'delete' %}🗑️
+              {% endif %}
+            {% endif %}
+            {{ action.label }}
+          </a>
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+  {% endif %}
+  
+  {# Custom actions #}
+  {% if custom_actions %}
+    {% for action in custom_actions %}
+      {% if action.url %}
+        <a href="{{ action.url }}" 
+           class="btn btn-action {{ action.class|default:'btn-primary' }}"{% if action.color %} style="background-color: {{ action.color }}; border-color: {{ action.color }};"{% endif %}>
+          {% if action.icon %}{{ action.icon|safe }} {% endif %}{{ action.label }}
+        </a>
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+  
+  {# Allow extending with additional actions #}
+  {% block row_actions_extra %}{% endblock %}
+  
+</div>
+{% endwith %}
+

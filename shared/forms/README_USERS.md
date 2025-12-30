@@ -22,7 +22,7 @@
 
 ## UserBaseForm
 
-**Type**: `forms.ModelForm`
+**Type**: `BaseModelForm` (از `shared.forms.base`)
 
 **Model**: `User` (از `get_user_model()`)
 
@@ -37,6 +37,7 @@
 - `is_active`, `is_staff`, `is_superuser`: boolean flags
 - `default_company`: شرکت پیش‌فرض
 - `groups`: گروه‌های کاربری (M2M field)
+- `primary_groups`: گروه‌های اصلی کاربری (M2M field) - برای same-group permissions
 
 **متدها**:
 
@@ -45,20 +46,26 @@
 **توضیح**: Initialize form با groups queryset و company filtering.
 
 **منطق**:
-1. تنظیم `_pending_groups = None`
-2. فیلتر `default_company` queryset: فقط enabled companies
-3. تنظیم `groups` queryset: تمام groups مرتب شده بر اساس name
-4. اگر instance موجود باشد: set initial groups
-5. Override `is_active`, `is_staff`, `is_superuser` به BooleanField با checkbox widget
+1. حذف `company_id` از kwargs (users company-scoped نیستند)
+2. فراخوانی `super().__init__()`
+3. تنظیم `_pending_groups = None` و `_pending_primary_groups = None`
+4. فیلتر `default_company` queryset: فقط enabled companies (`is_enabled=1`)
+5. تنظیم `groups` queryset: تمام groups مرتب شده بر اساس name
+6. تنظیم `primary_groups` queryset: تمام groups مرتب شده بر اساس name
+7. اگر instance موجود باشد:
+   - set initial `groups` از `instance.groups.all()`
+   - set initial `primary_groups` از `instance.primary_groups.all()`
+8. Override `is_active`, `is_staff`, `is_superuser` به BooleanField با checkbox widget (BaseModelForm به صورت خودکار 'form-check-input' class اضافه می‌کند)
 
 ---
 
 #### `_store_groups(self) -> None`
 
-**توضیح**: ذخیره groups به user instance.
+**توضیح**: ذخیره groups و primary_groups به user instance.
 
 **منطق**:
-- اگر `_pending_groups` موجود باشد: set groups به user instance
+- اگر `_pending_groups` موجود باشد: `self.instance.groups.set(self._pending_groups)`
+- اگر `_pending_primary_groups` موجود باشد: `self.instance.primary_groups.set(self._pending_primary_groups)`
 
 ---
 
@@ -74,23 +81,33 @@
 
 **منطق**:
 1. استخراج groups از cleaned_data و ذخیره در `_pending_groups`
-2. فراخوانی `super().save(commit=commit)`
-3. اگر commit=True: فراخوانی `_store_groups()`
+2. استخراج primary_groups از cleaned_data و ذخیره در `_pending_primary_groups`
+3. فراخوانی `super().save(commit=commit)`
+4. اگر commit=True: فراخوانی `_store_groups()`
 
 ---
 
 #### `save_m2m(self) -> None`
 
-**توضیح**: ذخیره many-to-many relationships (groups).
+**توضیح**: ذخیره many-to-many relationships (groups و primary_groups).
 
 **منطق**:
-1. استخراج groups از `_pending_groups` یا `cleaned_data`
-2. تبدیل QuerySet به list of IDs
-3. Set groups به user instance (بدون فراخوانی `super().save_m2m()`)
+1. **استخراج groups**:
+   - اگر `_pending_groups` موجود باشد: استفاده از آن
+   - در غیر این صورت: استفاده از `cleaned_data['groups']`
+   - تبدیل QuerySet به list of IDs (برای جلوگیری از stale queryset issues)
+2. **استخراج primary_groups**:
+   - اگر `_pending_primary_groups` موجود باشد: استفاده از آن
+   - در غیر این صورت: استفاده از `cleaned_data['primary_groups']`
+   - تبدیل QuerySet به list of IDs
+3. **Set groups و primary_groups**:
+   - اگر `groups_to_set` موجود باشد: `self.instance.groups.set(groups_to_set)`
+   - اگر `primary_groups_to_set` موجود باشد: `self.instance.primary_groups.set(primary_groups_to_set)`
 
 **نکات مهم**:
-- `super().save_m2m()` فراخوانی نمی‌شود چون `groups` در `Meta.fields` نیست
+- `super().save_m2m()` فراخوانی نمی‌شود چون `groups` و `primary_groups` در `Meta.fields` نیستند
 - از list of IDs برای جلوگیری از stale queryset issues استفاده می‌شود
+- Groups و primary_groups به صورت مستقیم set می‌شوند
 
 ---
 
@@ -173,33 +190,39 @@
 - `User`: user object
 
 **منطق**:
-1. Ensure `_pending_groups` is set:
+1. **Ensure `_pending_groups` و `_pending_primary_groups` are set**:
    - اگر `_pending_groups` موجود نباشد یا None باشد:
      - تنظیم `_pending_groups = self.cleaned_data.get('groups')`
+   - اگر `_pending_primary_groups` موجود نباشد یا None باشد:
+     - تنظیم `_pending_primary_groups = self.cleaned_data.get('primary_groups')`
 2. فراخوانی `super().save(commit=False)` (ذخیره user بدون commit)
-3. بررسی password:
+3. **بررسی password**:
    - اگر `new_password1` موجود باشد:
      - فراخوانی `user.set_password(new_password)`
 4. اگر `commit=True`:
    - ذخیره user با `user.save()`
-   - Set groups directly:
-     - تبدیل `_pending_groups` به list of IDs
-     - فراخوانی `user.groups.set(groups_to_set)`
+   - **Set groups و primary_groups directly**:
+     - اگر `_pending_groups` موجود باشد:
+       - تبدیل به list of IDs
+       - فراخوانی `user.groups.set(groups_to_set)`
+     - اگر `_pending_primary_groups` موجود باشد:
+       - تبدیل به list of IDs
+       - فراخوانی `user.primary_groups.set(primary_groups_to_set)`
    - فراخوانی `self.save_m2m()` برای سایر M2M fields
 5. اگر `commit=False`:
-   - Ensure `_pending_groups` is set برای استفاده بعدی در `save_m2m()`
+   - **Ensure `_pending_groups` و `_pending_primary_groups` are set** برای استفاده بعدی در `save_m2m()`
 6. بازگشت user
 
 **نکات مهم**:
-- Groups به صورت مستقیم set می‌شوند (نه از طریق `save_m2m()`)
+- Groups و primary_groups به صورت مستقیم set می‌شوند (نه از طریق `save_m2m()`)
 - Password فقط اگر `new_password1` موجود باشد تغییر می‌کند
-- `_pending_groups` باید قبل از `super().save()` تنظیم شود
+- `_pending_groups` و `_pending_primary_groups` باید قبل از `super().save()` تنظیم شوند
 
 ---
 
 ## UserCompanyAccessForm
 
-**Type**: `forms.ModelForm`
+**Type**: `forms.ModelForm` (BaseModelForm به صورت خودکار 'form-control' class اضافه می‌کند)
 
 **Model**: `UserCompanyAccess`
 
@@ -238,10 +261,15 @@
 
 **منطق**:
 1. فراخوانی `super().clean()` برای validation اولیه
-2. شمارش تعداد primary companies:
-   - برای هر form در formset:
-     - اگر form deleted باشد: skip
-     - اگر `company` موجود نباشد: skip
+2. **شمارش تعداد primary companies**:
+   - `primary_count = 0`
+   - برای هر form در `self.forms`:
+     - اگر `form.cleaned_data.get('DELETE')` باشد: continue (skip deleted forms)
+     - اگر `form.cleaned_data.get('company')` موجود نباشد: continue (skip empty forms)
+     - اگر `form.cleaned_data.get('is_primary') == 1` باشد: `primary_count += 1`
+3. **Validation**:
+   - اگر `primary_count > 1`:
+     - raise `forms.ValidationError(_('Only one primary company may be selected per user.'))`
      - اگر `is_primary == 1`: افزایش `primary_count`
 3. اگر `primary_count > 1`:
    - raise `ValidationError(_('Only one primary company may be selected per user.'))`

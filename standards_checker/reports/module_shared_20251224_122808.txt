@@ -1,0 +1,928 @@
+1================================================================================
+STANDARDS CHECKER REPORT
+================================================================================
+
+Check Type:     MODULE
+Target:         shared
+Date/Time:      2025-12-24 12:28:08
+Total Files:    65
+Files with Issues: 85
+Total Issues:   207
+
+================================================================================
+
+SUMMARY BY SEVERITY
+--------------------------------------------------------------------------------
+Critical: 3
+Warnings: 104
+
+================================================================================
+
+DETAILED ISSUES BY FILE
+================================================================================
+
+File: /home/shahin/invproj/shared/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/admin.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/apps.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/context_processors.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/filters.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/forms.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/forms/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/forms/access_levels.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/forms/base.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/forms/companies.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/forms/groups.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/forms/smtp_server.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/forms/users.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/management/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/management/commands/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/management/commands/clear_all_data.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/management/commands/clear_edit_locks.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/middleware.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/mixins.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/models.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/permissions.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/templatetags/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/templatetags/access_tags.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/templatetags/generic_tags.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/templatetags/json_filters.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/templatetags/persian_numbers.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/templatetags/view_tags.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/tests.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/urls.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/utils/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/utils/email.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/utils/modules.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/utils/notifications.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/utils/permissions.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/utils/view_helpers.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/views.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/views/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/views/access_levels.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/views/api.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/views/auth.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/views/base.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/views/base_additional.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/views/companies.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/views/company_units.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/views/groups.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/views/notifications.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/views/smtp_server.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: /home/shahin/invproj/shared/views/users.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: shared/admin.py
+Issues: 7
+--------------------------------------------------------------------------------
+
+[WARNING] (7 issues)
+  1. Line 10
+     Class 'CustomUserAdmin' missing docstring
+
+  2. Line 46
+     Class 'CompanyAdmin' missing docstring
+
+  3. Line 53
+     Class 'CompanyUnitAdmin' missing docstring
+
+  4. Line 60
+     Class 'AccessLevelAdmin' missing docstring
+
+  5. Line 67
+     Class 'AccessLevelPermissionAdmin' missing docstring
+
+  6. Line 74
+     Class 'UserCompanyAccessAdmin' missing docstring
+
+  7. Line 81
+     Class 'GroupProfileAdmin' missing docstring
+
+
+================================================================================
+
+File: shared/apps.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 4
+     Class 'SharedConfig' missing docstring
+
+
+================================================================================
+
+File: shared/context_processors.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 7
+     View function 'active_company' missing @login_required decorator
+
+  2. Line 7
+     View function 'active_company' missing permission decorators
+
+
+================================================================================
+
+File: shared/filters.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 139
+     View function 'apply_multi_field_filter' missing @login_required decorator
+
+  2. Line 139
+     View function 'apply_multi_field_filter' missing permission decorators
+
+
+================================================================================
+
+File: shared/forms/access_levels.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 14
+     Class 'Meta' missing docstring
+
+  2. Line 11
+     CharField in class 'AccessLevelForm' missing max_length
+
+
+================================================================================
+
+File: shared/forms/base.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+================================================================================
+
+File: shared/forms/companies.py
+Issues: 5
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 22
+     Class 'Meta' missing docstring
+
+  2. Line 74
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: shared/forms/groups.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 35
+     Class 'Meta' missing docstring
+
+  2. Line 14
+     CharField in class 'GroupForm' missing max_length
+
+
+================================================================================
+
+File: shared/forms/smtp_server.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 12
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: shared/forms/users.py
+Issues: 10
+--------------------------------------------------------------------------------
+
+[WARNING] (6 issues)
+  1. Line 36
+     Class 'Meta' missing docstring
+
+  2. Line 161
+     Class 'Meta' missing docstring
+
+  3. Line 199
+     Class 'Meta' missing docstring
+
+  4. Line 248
+     Class 'Meta' missing docstring
+
+  5. Line 146
+     CharField in class 'UserCreateForm' missing max_length
+
+  6. Line 183
+     CharField in class 'UserUpdateForm' missing max_length
+
+
+================================================================================
+
+File: shared/management/commands/clear_all_data.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (3 issues)
+  1. Line 16
+     Class 'Command' missing docstring
+
+  2. Line 19
+     Function 'add_arguments' missing docstring
+
+  3. Line 26
+     Function 'handle' missing docstring
+
+
+================================================================================
+
+File: shared/management/commands/clear_edit_locks.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (3 issues)
+  1. Line 10
+     Class 'Command' missing docstring
+
+  2. Line 13
+     Function 'add_arguments' missing docstring
+
+  3. Line 26
+     Function 'handle' missing docstring
+
+
+================================================================================
+
+File: shared/middleware.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 22
+     View function '__call__' missing @login_required decorator
+
+  2. Line 22
+     View function '__call__' missing permission decorators
+
+
+================================================================================
+
+File: shared/migrations/0001_initial.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 12
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0002_user_default_company.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0003_alter_company_public_code.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0004_alter_companyunit_public_code.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0005_remove_accesslevel_activated_at_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0006_person_company_units.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 4
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0007_groupprofile.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 4
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0008_5_migrate_person_data.py
+Issues: 4
+--------------------------------------------------------------------------------
+
+[CRITICAL] (3 issues)
+  1. Line 40
+     Potential SQL injection with format()
+
+  2. Line 75
+     Potential SQL injection with format()
+
+  3. Line 110
+     Potential SQL injection with format()
+
+
+[WARNING] (1 issues)
+  1. Line 128
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0008_remove_accesslevel_updated_at_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0009_remove_personassignment_company_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0010_smtpserver.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0011_add_section_and_action_registry.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 9
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0012_populate_section_and_action_registry.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 710
+     Class 'Migration' missing docstring
+
+  2. Line 603
+     Function 'get_section' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0013_add_notification_model.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0014_add_editable_model_fields.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/migrations/0015_add_primary_groups_to_user.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+
+
+================================================================================
+
+File: shared/mixins.py
+Issues: 6
+--------------------------------------------------------------------------------
+
+[WARNING] (6 issues)
+  1. Line 27
+     Function 'get_feature_code' missing docstring
+
+  2. Line 30
+     Function 'get_required_action' missing docstring
+
+  3. Line 53
+     Function 'has_feature_permission' missing docstring
+
+  4. Line 74
+     Function 'dispatch' missing docstring
+
+  5. Line 74
+     View function 'dispatch' missing permission decorators
+
+  6. Line 273
+     View function 'delete' missing permission decorators
+
+
+================================================================================
+
+File: shared/models.py
+Issues: 33
+--------------------------------------------------------------------------------
+
+[WARNING] (33 issues)
+  1. Line 45
+     Class 'TimeStampedModel' missing docstring
+
+  2. Line 67
+     Class 'ActivatableModel' missing docstring
+
+  3. Line 93
+     Class 'MetadataModel' missing docstring
+
+  4. Line 100
+     Class 'SortableModel' missing docstring
+
+  5. Line 169
+     Class 'LockableModel' missing docstring
+
+  6. Line 192
+     Class 'CompanyScopedModel' missing docstring
+
+  7. Line 214
+     Class 'User' missing docstring
+
+  8. Line 246
+     Class 'Company' missing docstring
+
+  9. Line 274
+     Class 'CompanyUnit' missing docstring
+
+  10. Line 310
+     Class 'AccessLevel' missing docstring
+
+  11. Line 360
+     Class 'AccessLevelPermission' missing docstring
+
+  12. Line 389
+     Class 'GroupProfile' missing docstring
+
+  13. Line 410
+     Class 'UserCompanyAccess' missing docstring
+
+  14. Line 63
+     Class 'Meta' missing docstring
+
+  15. Line 89
+     Class 'Meta' missing docstring
+
+  16. Line 96
+     Class 'Meta' missing docstring
+
+  17. Line 103
+     Class 'Meta' missing docstring
+
+  18. Line 131
+     Class 'Meta' missing docstring
+
+  19. Line 188
+     Class 'Meta' missing docstring
+
+  20. Line 205
+     Class 'Meta' missing docstring
+
+  21. Line 208
+     Function 'save' missing docstring
+
+  22. Line 238
+     Class 'Meta' missing docstring
+
+  23. Line 265
+     Class 'Meta' missing docstring
+
+  24. Line 292
+     Class 'Meta' missing docstring
+
+  25. Line 319
+     Class 'Meta' missing docstring
+
+  26. Line 327
+     Function 'save' missing docstring
+
+  27. Line 375
+     Class 'Meta' missing docstring
+
+  28. Line 402
+     Class 'Meta' missing docstring
+
+  29. Line 431
+     Class 'Meta' missing docstring
+
+  30. Line 510
+     Class 'Meta' missing docstring
+
+  31. Line 617
+     Class 'Meta' missing docstring
+
+  32. Line 703
+     Class 'Meta' missing docstring
+
+  33. Line 778
+     Class 'Meta' missing docstring
+
+
+================================================================================
+
+File: shared/tests.py
+Issues: 10
+--------------------------------------------------------------------------------
+
+[WARNING] (6 issues)
+  1. Line 7
+     Class 'SharedModelTests' missing docstring
+
+  2. Line 28
+     Function 'test_user_str_returns_full_name' missing docstring
+
+  3. Line 31
+     Function 'test_company_str_returns_display_name' missing docstring
+
+  4. Line 34
+     Function 'test_person_auto_populates_company_code' missing docstring
+
+  5. Line 46
+     Function 'test_user_company_access_str' missing docstring
+
+  6. Line 8
+     Function 'setUp' should use snake_case
+
+
+================================================================================
+
+File: shared/utils/view_helpers.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 64
+     View function 'validate_active_company' missing @login_required decorator
+
+  2. Line 64
+     View function 'validate_active_company' missing permission decorators
+
+
+================================================================================
+
+File: shared/views/api.py
+Issues: 39
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 122
+     View class 'BaseListAPIView' missing feature_code attribute
+
+  2. Line 226
+     View class 'BaseDetailAPIView' missing feature_code attribute
+
+
+================================================================================
+
+File: shared/views/auth.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 44
+     View function 'custom_login' missing @login_required decorator
+
+  2. Line 44
+     View function 'custom_login' missing permission decorators
+
+
+================================================================================
+
+File: shared/views/base.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 250
+     View function 'dispatch' missing permission decorators
+
+
+================================================================================
+
+File: shared/views/smtp_server.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 226
+     View function 'delete' missing @login_required decorator
+
+  2. Line 226
+     View function 'delete' missing permission decorators
+
+
+================================================================================
+

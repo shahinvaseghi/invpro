@@ -1,0 +1,56 @@
+{% load i18n %}
+{% load static %}
+
+<div class="filter-panel">
+  <h3>{% trans "Filter & Search" %}</h3>
+  <form method="get" action="" class="filter-form">
+    
+    {% block filter_fields %}
+    {# Default search field #}
+    <div class="form-group">
+      <label for="search">{% trans "Search" %}</label>
+      <input type="text" name="search" id="search" 
+             placeholder="{{ search_placeholder|default:'Search by code or name' }}" 
+             value="{{ request.GET.search }}"
+             class="form-control">
+    </div>
+    {% endblock %}
+
+    {% if status_filter %}
+    <div class="form-group">
+      <label for="status">{% trans "Status" %}</label>
+      <select name="status" id="status" class="form-control">
+        <option value="">-- {% trans "All" %} --</option>
+        <option value="1" {% if request.GET.status == '1' %}selected{% endif %}>{% trans "Active" %}</option>
+        <option value="0" {% if request.GET.status == '0' %}selected{% endif %}>{% trans "Inactive" %}</option>
+      </select>
+    </div>
+    {% endif %}
+
+    {% block extra_filters %}
+    {# Additional filters can be added here #}
+    {% endblock %}
+
+    {# Preserve other query parameters #}
+    {% for key, value in request.GET.items %}
+      {% if key != 'search' and key != 'status' and key != 'page' %}
+        <input type="hidden" name="{{ key }}" value="{{ value }}">
+      {% endif %}
+    {% endfor %}
+
+    <div class="form-group">
+      <button type="submit" class="btn btn-primary">
+        {% trans "Apply Filter" %}
+      </button>
+    </div>
+    
+    {% if request.GET.search or request.GET.status %}
+    <div class="form-group">
+      <a href="{{ request.path }}" class="btn btn-secondary">
+        {% trans "Clear Filter" %}
+      </a>
+    </div>
+    {% endif %}
+  </form>
+</div>
+

@@ -1,287 +1,305 @@
-{% extends "base.html" %}
+{% extends "shared/generic/generic_form.html" %}
 {% load i18n %}
 {% load static %}
 {% load access_tags %}
 
-{% block title %}{{ form_title }} - {{ block.super }}{% endblock %}
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Production" %}</span>
+<span class="separator">/</span>
+<a href="{% url 'production:product_orders' %}">{% trans "Product Orders" %}</a>
+<span class="separator">/</span>
+<span>{{ form_title }}</span>
+{% endblock %}
 
-{% block content %}
-<div class="inventory-module">
-  <div class="module-header">
-    <nav class="breadcrumb">
-      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
-      <span>/</span>
-      <a href="{% url 'production:product_orders' %}">{% trans "Product Orders" %}</a>
-      <span>/</span>
-      <span>{{ form_title }}</span>
-    </nav>
-    
-    <h1 class="page-title">{{ form_title }}</h1>
+{% block form_sections %}
+<div class="form-section">
+  <h2>{% trans "Order Information" %}</h2>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.process.id_for_label }}">{{ form.process.label }} *</label>
+      {{ form.process }}
+      {% if form.process.errors %}
+        <span class="error">{{ form.process.errors.0 }}</span>
+      {% endif %}
+      {% if form.process.help_text %}
+        <small class="form-text">{{ form.process.help_text }}</small>
+      {% endif %}
+    </div>
   </div>
-
-  <div class="form-container">
-    {% if messages %}
-      {% for message in messages %}
-      <div class="alert alert-{{ message.tags }}">
-        {{ message }}
-      </div>
-      {% endfor %}
-    {% endif %}
+  
+  <div class="form-row" id="process-info-row" style="display: none; margin-top: 0.5rem; padding: 0.75rem; background: #f3f4f6; border-radius: 4px;">
+    <div class="form-field full-width">
+      <small class="form-text">
+        <strong>{% trans "BOM" %}:</strong> <span id="process-bom-display">-</span>
+        <span style="margin: 0 1rem;">|</span>
+        <strong>{% trans "Finished Item" %}:</strong> <span id="process-finished-item-display">-</span>
+      </small>
+    </div>
+  </div>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.quantity_planned.id_for_label }}">{{ form.quantity_planned.label }} *</label>
+      {{ form.quantity_planned }}
+      {% if form.quantity_planned.errors %}
+        <span class="error">{{ form.quantity_planned.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.approved_by.id_for_label }}">{{ form.approved_by.label }}</label>
+      {{ form.approved_by }}
+      {% if form.approved_by.errors %}
+        <span class="error">{{ form.approved_by.errors.0 }}</span>
+      {% endif %}
+      {% if form.approved_by.help_text %}
+        <small class="form-text">{{ form.approved_by.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <label for="{{ form.due_date.id_for_label }}">{{ form.due_date.label }}</label>
+      {{ form.due_date }}
+      {% if form.due_date.errors %}
+        <span class="error">{{ form.due_date.errors.0 }}</span>
+      {% endif %}
+    </div>
     
-    <form method="post" class="product-order-form">
-      {% csrf_token %}
-
-      {% if form.non_field_errors %}
-        <div class="alert alert-error">
-          {{ form.non_field_errors }}
-        </div>
+    <div class="form-field">
+      <label for="{{ form.priority.id_for_label }}">{{ form.priority.label }}</label>
+      {{ form.priority }}
+      {% if form.priority.errors %}
+        <span class="error">{{ form.priority.errors.0 }}</span>
       {% endif %}
-
-      <div class="form-section">
-        <h3>{% trans "Order Information" %}</h3>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.bom.id_for_label }}">{{ form.bom.label }} *</label>
-            {{ form.bom }}
-            {% if form.bom.errors %}
-              <div class="field-errors">
-                {{ form.bom.errors }}
-              </div>
-            {% endif %}
-            {% if form.bom.help_text %}
-              <small class="help-text">{{ form.bom.help_text }}</small>
-            {% endif %}
-          </div>
-        </div>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.quantity_planned.id_for_label }}">{{ form.quantity_planned.label }} *</label>
-            {{ form.quantity_planned }}
-            {% if form.quantity_planned.errors %}
-              <div class="field-errors">
-                {{ form.quantity_planned.errors }}
-              </div>
-            {% endif %}
-          </div>
-        </div>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.approved_by.id_for_label }}">{{ form.approved_by.label }}</label>
-            {{ form.approved_by }}
-            {% if form.approved_by.errors %}
-              <div class="field-errors">
-                {{ form.approved_by.errors }}
-              </div>
-            {% endif %}
-            {% if form.approved_by.help_text %}
-              <small class="help-text">{{ form.approved_by.help_text }}</small>
-            {% endif %}
-          </div>
-        </div>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.due_date.id_for_label }}">{{ form.due_date.label }}</label>
-            {{ form.due_date }}
-            {% if form.due_date.errors %}
-              <div class="field-errors">
-                {{ form.due_date.errors }}
-              </div>
-            {% endif %}
-          </div>
-          
-          <div class="form-field">
-            <label for="{{ form.priority.id_for_label }}">{{ form.priority.label }}</label>
-            {{ form.priority }}
-            {% if form.priority.errors %}
-              <div class="field-errors">
-                {{ form.priority.errors }}
-              </div>
-            {% endif %}
-          </div>
-        </div>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.customer_reference.id_for_label }}">{{ form.customer_reference.label }}</label>
-            {{ form.customer_reference }}
-            {% if form.customer_reference.errors %}
-              <div class="field-errors">
-                {{ form.customer_reference.errors }}
-              </div>
-            {% endif %}
-          </div>
-        </div>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
-            {{ form.notes }}
-            {% if form.notes.errors %}
-              <div class="field-errors">
-                {{ form.notes.errors }}
-              </div>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-
-      {% if user_feature_permissions|feature_allowed:'production.product_orders:create_transfer_from_order' or request.user.is_superuser %}
-      <div class="form-section" id="transfer-request-section">
-        <h3>{% trans "Transfer Request (Optional)" %}</h3>
-        <p class="form-text">{% trans "Optionally create a transfer to line request from this order." %}</p>
-        
-        <div class="form-row">
-          <div class="form-field">
-            <div class="form-check">
-              {{ form.create_transfer_request }}
-              <label class="form-check-label" for="{{ form.create_transfer_request.id_for_label }}">
-                {{ form.create_transfer_request.label }}
-              </label>
-              {% if form.create_transfer_request.help_text %}
-                <small class="help-text">{{ form.create_transfer_request.help_text }}</small>
-              {% endif %}
-            </div>
-            {% if form.create_transfer_request.errors %}
-              <div class="field-errors">
-                {{ form.create_transfer_request.errors }}
-              </div>
-            {% endif %}
-          </div>
-        </div>
-        
-        <div class="form-row" id="transfer-approver-row" style="display: none;">
-          <div class="form-field">
-            <label for="{{ form.transfer_approved_by.id_for_label }}">{{ form.transfer_approved_by.label }} *</label>
-            {{ form.transfer_approved_by }}
-            {% if form.transfer_approved_by.errors %}
-              <div class="field-errors">
-                {{ form.transfer_approved_by.errors }}
-              </div>
-            {% endif %}
-            {% if form.transfer_approved_by.help_text %}
-              <small class="help-text">{{ form.transfer_approved_by.help_text }}</small>
-            {% endif %}
-          </div>
-        </div>
-        
-        <div id="extra-items-section" style="display: none;">
-          <h4>{% trans "Extra Request Items" %}</h4>
-          <p class="form-text">{% trans "Add additional items that are not in the BOM." %}</p>
-          
-          {% if extra_items_formset %}
-            {{ extra_items_formset.management_form }}
-            
-            {% if extra_items_formset.non_form_errors %}
-              <div class="alert alert-error">
-                {{ extra_items_formset.non_form_errors }}
-              </div>
-            {% endif %}
-            
-            <div class="table-responsive">
-            <table class="data-table" id="extra-items-table">
-              <thead>
-                <tr>
-                  <th>{% trans "Material Type" %}</th>
-                  <th>{% trans "Category" %}</th>
-                  <th>{% trans "Subcategory" %}</th>
-                  <th>{% trans "Material Item" %}</th>
-                  <th>{% trans "Quantity Required" %}</th>
-                  <th>{% trans "Unit" %}</th>
-                  <th>{% trans "Source Warehouse" %}</th>
-                  <th>{% trans "Destination Work Center" %}</th>
-                  <th>{% trans "Scrap Allowance (%)" %}</th>
-                  <th>{% trans "Actions" %}</th>
-                </tr>
-              </thead>
-              <tbody id="extra-items-formset-container">
-                {% for item_form in extra_items_formset %}
-                <tr class="formset-row" data-row-index="{{ forloop.counter0 }}">
-                  {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
-                  <td>
-                    {{ item_form.material_type }}
-                    {% if item_form.material_type.errors %}
-                      <div class="field-errors">{{ item_form.material_type.errors }}</div>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {{ item_form.material_category_filter }}
-                    {% if item_form.material_category_filter.errors %}
-                      <div class="field-errors">{{ item_form.material_category_filter.errors }}</div>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {{ item_form.material_subcategory_filter }}
-                    {% if item_form.material_subcategory_filter.errors %}
-                      <div class="field-errors">{{ item_form.material_subcategory_filter.errors }}</div>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {{ item_form.material_item }}
-                    {% if item_form.material_item.errors %}
-                      <div class="field-errors">{{ item_form.material_item.errors }}</div>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {{ item_form.quantity_required }}
-                    {% if item_form.quantity_required.errors %}
-                      <div class="field-errors">{{ item_form.quantity_required.errors }}</div>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {{ item_form.unit }}
-                    {% if item_form.unit.errors %}
-                      <div class="field-errors">{{ item_form.unit.errors }}</div>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {{ item_form.source_warehouse }}
-                    {% if item_form.source_warehouse.errors %}
-                      <div class="field-errors">{{ item_form.source_warehouse.errors }}</div>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {{ item_form.destination_work_center }}
-                    {% if item_form.destination_work_center.errors %}
-                      <div class="field-errors">{{ item_form.destination_work_center.errors }}</div>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {{ item_form.material_scrap_allowance }}
-                    {% if item_form.material_scrap_allowance.errors %}
-                      <div class="field-errors">{{ item_form.material_scrap_allowance.errors }}</div>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {% if extra_items_formset.can_delete %}
-                      {{ item_form.DELETE }}
-                    {% endif %}
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-            </div>
-            
-            <button type="button" id="add-extra-item-btn" class="btn btn-success">{% trans "Add Extra Item +" %}</button>
-          {% endif %}
-        </div>
-      </div>
+    </div>
+  </div>
+  
+  <div class="form-row">
+    <div class="form-field full-width">
+      <label for="{{ form.customer_reference.id_for_label }}">{{ form.customer_reference.label }}</label>
+      {{ form.customer_reference }}
+      {% if form.customer_reference.errors %}
+        <span class="error">{{ form.customer_reference.errors.0 }}</span>
       {% endif %}
-
-      <div class="form-actions">
-        <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
-        <a href="{% url 'production:product_orders' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
-      </div>
-    </form>
+    </div>
+  </div>
+  
+  <div class="form-row">
+    <div class="form-field full-width">
+      <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+      {{ form.notes }}
+      {% if form.notes.errors %}
+        <span class="error">{{ form.notes.errors.0 }}</span>
+      {% endif %}
+    </div>
   </div>
 </div>
 {% endblock %}
 
-{% block extra_css %}
+{% block form_extra %}
+{% if user_feature_permissions|feature_allowed:'production.product_orders:create_transfer_from_order' or request.user.is_superuser %}
+<div class="form-section" id="transfer-request-section">
+  <header class="section-header">
+    <h2>{% trans "Transfer Request (Optional)" %}</h2>
+    <p>{% trans "Optionally create a transfer to line request from this order." %}</p>
+  </header>
+  
+  <div class="form-row">
+    <div class="form-field">
+      <div class="form-check">
+        {{ form.create_transfer_request }}
+        <label class="form-check-label" for="{{ form.create_transfer_request.id_for_label }}">
+          {{ form.create_transfer_request.label }}
+        </label>
+        {% if form.create_transfer_request.help_text %}
+          <small class="form-text">{{ form.create_transfer_request.help_text }}</small>
+        {% endif %}
+      </div>
+      {% if form.create_transfer_request.errors %}
+        <span class="error">{{ form.create_transfer_request.errors.0 }}</span>
+      {% endif %}
+    </div>
+  </div>
+  
+  <div class="form-row" id="transfer-approver-row" style="display: none;">
+    <div class="form-field">
+      <label for="{{ form.transfer_approved_by.id_for_label }}">{{ form.transfer_approved_by.label }} *</label>
+      {{ form.transfer_approved_by }}
+      {% if form.transfer_approved_by.errors %}
+        <span class="error">{{ form.transfer_approved_by.errors.0 }}</span>
+      {% endif %}
+      {% if form.transfer_approved_by.help_text %}
+        <small class="form-text">{{ form.transfer_approved_by.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
+  
+  <div class="form-row" id="transfer-type-row" style="display: none;">
+    <div class="form-field full-width">
+      <label>{{ form.transfer_type.label }}</label>
+      <div class="radio-group">
+        {% for radio in form.transfer_type %}
+          <div class="radio-option">
+            {{ radio.tag }}
+            <label for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+          </div>
+        {% endfor %}
+      </div>
+      {% if form.transfer_type.errors %}
+        <span class="error">{{ form.transfer_type.errors.0 }}</span>
+      {% endif %}
+      {% if form.transfer_type.help_text %}
+        <small class="form-text">{{ form.transfer_type.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-row" id="operations-selection-row" style="display: none;">
+    <div class="form-field full-width">
+      <label>{{ form.selected_operations.label }}</label>
+      <div id="operations-container" class="operations-checkbox-container">
+        <div id="operations-loading" style="display: none; padding: 1rem; text-align: center; color: #6b7280;">
+          {% trans "Loading operations..." %}
+        </div>
+        <div id="operations-list" class="checkbox-group">
+          {% for checkbox in form.selected_operations %}
+            <div class="checkbox-option">
+              {{ checkbox.tag }}
+              <label for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
+            </div>
+          {% endfor %}
+        </div>
+        <div id="operations-error" style="display: none; padding: 1rem; color: #dc2626;">
+        </div>
+      </div>
+      {% if form.selected_operations.errors %}
+        <span class="error">{{ form.selected_operations.errors.0 }}</span>
+      {% endif %}
+      {% if form.selected_operations.help_text %}
+        <small class="form-text">{{ form.selected_operations.help_text }}</small>
+      {% endif %}
+    </div>
+  </div>
+  
+  <div id="extra-items-section" style="display: none;">
+    <h3>{% trans "Extra Request Items" %}</h3>
+    <p class="form-text">{% trans "Add additional items that are not in the BOM." %}</p>
+    
+    {% if extra_items_formset %}
+      {{ extra_items_formset.management_form }}
+      
+      {% if extra_items_formset.non_form_errors %}
+        <div class="alert alert-error">
+          {% for error in extra_items_formset.non_form_errors %}
+            <div>{{ error }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+      
+      <div class="table-responsive" style="overflow-x: auto; width: 100%; margin-bottom: 1rem;">
+      <table class="data-table formset-table" id="extra-items-table">
+        <thead>
+          <tr>
+            <th>{% trans "Material Type" %}</th>
+            <th>{% trans "Category" %}</th>
+            <th>{% trans "Subcategory" %}</th>
+            <th>{% trans "Material Item" %}</th>
+            <th>{% trans "Quantity Required" %}</th>
+            <th>{% trans "Unit" %}</th>
+            <th>{% trans "Source Warehouse" %}</th>
+            <th>{% trans "Destination Work Center" %}</th>
+            <th>{% trans "Scrap Allowance (%)" %}</th>
+            <th>{% trans "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody id="extra-items-formset-container">
+          {% for item_form in extra_items_formset %}
+          <tr class="formset-row" data-row-index="{{ forloop.counter0 }}">
+            {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
+            <td>
+              {{ item_form.material_type }}
+              {% if item_form.material_type.errors %}
+                <div class="field-error">{{ item_form.material_type.errors.0 }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {{ item_form.material_category_filter }}
+              {% if item_form.material_category_filter.errors %}
+                <div class="field-error">{{ item_form.material_category_filter.errors.0 }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {{ item_form.material_subcategory_filter }}
+              {% if item_form.material_subcategory_filter.errors %}
+                <div class="field-error">{{ item_form.material_subcategory_filter.errors.0 }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {{ item_form.material_item }}
+              {% if item_form.material_item.errors %}
+                <div class="field-error">{{ item_form.material_item.errors.0 }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {{ item_form.quantity_required }}
+              {% if item_form.quantity_required.errors %}
+                <div class="field-error">{{ item_form.quantity_required.errors.0 }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {{ item_form.unit }}
+              {% if item_form.unit.errors %}
+                <div class="field-error">{{ item_form.unit.errors.0 }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {{ item_form.source_warehouse }}
+              {% if item_form.source_warehouse.errors %}
+                <div class="field-error">{{ item_form.source_warehouse.errors.0 }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {{ item_form.destination_work_center }}
+              {% if item_form.destination_work_center.errors %}
+                <div class="field-error">{{ item_form.destination_work_center.errors.0 }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {{ item_form.material_scrap_allowance }}
+              {% if item_form.material_scrap_allowance.errors %}
+                <div class="field-error">{{ item_form.material_scrap_allowance.errors.0 }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {% if extra_items_formset.can_delete %}
+                {{ item_form.DELETE }}
+                {% if item_form.DELETE %}
+                  <label for="{{ item_form.DELETE.id_for_label }}" style="margin-left: 5px; cursor: pointer;">
+                    {% trans "Delete" %}
+                  </label>
+                {% endif %}
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      
+      <button type="button" id="add-extra-item-btn" class="btn btn-secondary">+ {% trans "Add Extra Item" %}</button>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_styles %}
 <style>
 .table-responsive {
   overflow-x: auto;
@@ -303,73 +321,189 @@
 
 #extra-items-table th:nth-child(1),
 #extra-items-table td:nth-child(1) {
-  min-width: 150px; /* Material Type */
+  min-width: 150px;
 }
 
 #extra-items-table th:nth-child(2),
 #extra-items-table td:nth-child(2) {
-  min-width: 150px; /* Category */
+  min-width: 150px;
 }
 
 #extra-items-table th:nth-child(3),
 #extra-items-table td:nth-child(3) {
-  min-width: 150px; /* Subcategory */
+  min-width: 150px;
 }
 
 #extra-items-table th:nth-child(4),
 #extra-items-table td:nth-child(4) {
-  min-width: 200px; /* Material Item */
+  min-width: 200px;
 }
 
 #extra-items-table th:nth-child(5),
 #extra-items-table td:nth-child(5) {
-  min-width: 120px; /* Quantity */
+  min-width: 120px;
 }
 
 #extra-items-table th:nth-child(6),
 #extra-items-table td:nth-child(6) {
-  min-width: 100px; /* Unit */
+  min-width: 100px;
 }
 
 #extra-items-table th:nth-child(7),
 #extra-items-table td:nth-child(7) {
-  min-width: 150px; /* Source Warehouse */
+  min-width: 150px;
 }
 
 #extra-items-table th:nth-child(8),
 #extra-items-table td:nth-child(8) {
-  min-width: 180px; /* Destination Work Center */
+  min-width: 180px;
 }
 
 #extra-items-table th:nth-child(9),
 #extra-items-table td:nth-child(9) {
-  min-width: 120px; /* Scrap Allowance */
+  min-width: 120px;
 }
 
 #extra-items-table th:nth-child(10),
 #extra-items-table td:nth-child(10) {
-  min-width: 80px; /* Actions */
+  min-width: 80px;
+}
+
+.formset-table {
+  border-collapse: collapse;
+}
+
+.formset-table thead {
+  background: #f3f4f6;
+}
+
+.formset-table th {
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.formset-table td {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.formset-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.field-error {
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.form-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.form-check-label {
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.form-check-input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.125rem;
+  cursor: pointer;
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.radio-option input[type="radio"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.radio-option label {
+  margin: 0;
+  cursor: pointer;
+  font-weight: normal;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  background: #f9fafb;
+}
+
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.checkbox-option:hover {
+  background-color: #f3f4f6;
+}
+
+.checkbox-option input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.checkbox-option label {
+  margin: 0;
+  cursor: pointer;
+  font-weight: normal;
+  flex: 1;
+}
+
+.operations-checkbox-container {
+  margin-top: 0.5rem;
+}
+
+#operations-selection-row {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
 }
 </style>
 {% endblock %}
 
-{% block extra_scripts %}
-<!-- Jalali DatePicker Library (Local) -->
+{% block form_scripts %}
 <link rel="stylesheet" href="{% static 'css/jalali-datepicker/jalali-datepicker.min.css' %}">
 <script src="{% static 'js/jalali-datepicker/jalali-datepicker.min.js' %}"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Initialize Jalali DatePicker for all inputs with jalali-date-input class or data-jalali attribute
+  // Initialize Jalali DatePicker
   var jalaliInputs = document.querySelectorAll('input.jalali-date-input, input[data-jalali="true"]');
   
   jalaliInputs.forEach(function(input) {
-    // Add data-jdp attribute for auto-initialization
     input.setAttribute('data-jdp', '');
-    input.setAttribute('data-jdp-only-date', ''); // Only date, no time
+    input.setAttribute('data-jdp-only-date', '');
   });
   
-  // Start watching for Jalali DatePicker initialization
   if (typeof jalaliDatepicker !== 'undefined') {
     jalaliDatepicker.startWatch({
       date: true,
@@ -397,28 +531,151 @@ document.addEventListener('DOMContentLoaded', function() {
   var createTransferCheckbox = document.getElementById('{{ form.create_transfer_request.id_for_label }}');
   var transferApproverRow = document.getElementById('transfer-approver-row');
   var transferApproverField = document.getElementById('{{ form.transfer_approved_by.id_for_label }}');
+  var transferTypeRow = document.getElementById('transfer-type-row');
   var extraItemsSection = document.getElementById('extra-items-section');
+  var processSelect = document.getElementById('id_process');
   
   if (createTransferCheckbox) {
     function toggleTransferSection() {
       if (createTransferCheckbox.checked) {
         if (transferApproverRow) transferApproverRow.style.display = '';
         if (transferApproverField) transferApproverField.required = true;
+        if (transferTypeRow) transferTypeRow.style.display = '';
         if (extraItemsSection) extraItemsSection.style.display = '';
+        // Update operations visibility based on transfer type
+        if (transferTypeRow) {
+          updateOperationsVisibility();
+        }
       } else {
         if (transferApproverRow) transferApproverRow.style.display = 'none';
         if (transferApproverField) {
           transferApproverField.required = false;
           transferApproverField.value = '';
         }
+        if (transferTypeRow) transferTypeRow.style.display = 'none';
         if (extraItemsSection) extraItemsSection.style.display = 'none';
+        // Hide operations selection when transfer is disabled
+        var operationsSelectionRow = document.getElementById('operations-selection-row');
+        if (operationsSelectionRow) operationsSelectionRow.style.display = 'none';
       }
     }
     
     createTransferCheckbox.addEventListener('change', toggleTransferSection);
-    
-    // Initialize on page load
     toggleTransferSection();
+  }
+  
+  // Transfer type and operations selection handling
+  var transferTypeRadios = document.querySelectorAll('input[name="transfer_type"]');
+  var operationsSelectionRow = document.getElementById('operations-selection-row');
+  var operationsContainer = document.getElementById('operations-container');
+  var operationsList = document.getElementById('operations-list');
+  var operationsLoading = document.getElementById('operations-loading');
+  var operationsError = document.getElementById('operations-error');
+  
+  function updateOperationsVisibility() {
+    var selectedTransferType = document.querySelector('input[name="transfer_type"]:checked');
+    if (selectedTransferType && selectedTransferType.value === 'operations') {
+      operationsSelectionRow.style.display = 'block';
+      if (processSelect && processSelect.value) {
+        loadOperations();
+      }
+    } else {
+      operationsSelectionRow.style.display = 'none';
+      // Clear selected operations when hidden
+      if (operationsList) {
+        operationsList.querySelectorAll('input[type="checkbox"]').forEach(function(checkbox) {
+          checkbox.checked = false;
+        });
+      }
+    }
+  }
+  
+  function loadOperations() {
+    var processId = processSelect.value;
+    if (!processId) {
+      if (operationsList) operationsList.innerHTML = '';
+      return;
+    }
+    
+    var url = '{% url "production:api_process_operations" 0 %}'.replace('0', processId);
+    
+    if (operationsLoading) operationsLoading.style.display = 'block';
+    if (operationsList) operationsList.innerHTML = '';
+    if (operationsError) {
+      operationsError.style.display = 'none';
+      operationsError.textContent = '';
+    }
+    
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        if (operationsLoading) operationsLoading.style.display = 'none';
+        
+        if (data.error) {
+          if (operationsError) {
+            operationsError.textContent = data.error;
+            operationsError.style.display = 'block';
+          }
+          return;
+        }
+        
+        if (data.operations && data.operations.length > 0) {
+          if (operationsList) {
+            operationsList.innerHTML = '';
+            data.operations.forEach(function(operation) {
+              var checkboxDiv = document.createElement('div');
+              checkboxDiv.className = 'checkbox-option';
+              
+              var checkbox = document.createElement('input');
+              checkbox.type = 'checkbox';
+              checkbox.name = 'selected_operations';
+              checkbox.value = operation.id;
+              checkbox.id = 'id_selected_operations_' + operation.id;
+              checkbox.className = 'form-check-input';
+              
+              var label = document.createElement('label');
+              label.setAttribute('for', checkbox.id);
+              label.textContent = operation.sequence_order + '. ' + operation.name + 
+                                 (operation.description ? ' - ' + operation.description : '');
+              
+              checkboxDiv.appendChild(checkbox);
+              checkboxDiv.appendChild(label);
+              operationsList.appendChild(checkboxDiv);
+            });
+          }
+        } else {
+          if (operationsList) {
+            operationsList.innerHTML = '<div style="padding: 1rem; color: #6b7280;">{% trans "No operations found." %}</div>';
+          }
+        }
+      })
+      .catch(error => {
+        if (operationsLoading) operationsLoading.style.display = 'none';
+        if (operationsError) {
+          operationsError.textContent = '{% trans "Error loading operations: " %}' + error.message;
+          operationsError.style.display = 'block';
+        }
+        console.error('Error loading operations:', error);
+      });
+  }
+  
+  // Handle transfer type change
+  if (transferTypeRadios && transferTypeRadios.length > 0) {
+    transferTypeRadios.forEach(function(radio) {
+      radio.addEventListener('change', updateOperationsVisibility);
+    });
+  }
+  
+  // Handle process change (to reload operations)
+  if (processSelect) {
+    processSelect.addEventListener('change', function() {
+      if (createTransferCheckbox && createTransferCheckbox.checked) {
+        var selectedTransferType = document.querySelector('input[name="transfer_type"]:checked');
+        if (selectedTransferType && selectedTransferType.value === 'operations') {
+          loadOperations();
+        }
+      }
+    });
   }
   
   // Formset management for extra items
@@ -433,10 +690,8 @@ document.addEventListener('DOMContentLoaded', function() {
       var formIndex = extraItemsFormCount;
       extraItemsFormCount++;
       
-      // Update data-row-index
       newForm.setAttribute('data-row-index', formIndex);
       
-      // Update field names and IDs
       newForm.querySelectorAll('input, select, textarea').forEach(function(field) {
         if (field.name) {
           field.name = field.name.replace(/extra_items-\d+-/, 'extra_items-' + formIndex + '-');
@@ -444,31 +699,32 @@ document.addEventListener('DOMContentLoaded', function() {
         if (field.id) {
           field.id = field.id.replace(/id_extra_items-\d+-/, 'id_extra_items-' + formIndex + '-');
         }
-        field.value = '';
+        if (field.type !== 'hidden' && field.type !== 'checkbox') {
+          field.value = '';
+        }
+        if (field.type === 'checkbox') {
+          field.checked = false;
+        }
       });
       
-      // Update labels
       newForm.querySelectorAll('label').forEach(function(label) {
         if (label.getAttribute('for')) {
           label.setAttribute('for', label.getAttribute('for').replace(/id_extra_items-\d+-/, 'id_extra_items-' + formIndex + '-'));
         }
       });
       
-      // Update DELETE checkbox
       var deleteCheckbox = newForm.querySelector('input[type="checkbox"][name$="-DELETE"]');
       if (deleteCheckbox) {
         deleteCheckbox.checked = false;
       }
       
-      // Clear errors
-      newForm.querySelectorAll('.field-errors').forEach(function(error) {
+      newForm.querySelectorAll('.field-error').forEach(function(error) {
         error.textContent = '';
       });
       
       extraItemsFormsetContainer.appendChild(newForm);
       extraItemsTotalFormsInput.value = extraItemsFormCount;
       
-      // Setup cascading filters for new row
       setTimeout(function() {
         setupRowCascading(newForm, 'extra_items');
       }, 100);
@@ -491,7 +747,6 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Cascading Filters for Extra Items (Type → Category → Subcategory → Item)
   function setupRowCascading(row, prefix) {
-    // Extract row index from data attribute or field name
     var rowIndex = row.dataset.rowIndex;
     if (!rowIndex) {
       var firstField = row.querySelector('[name]');
@@ -518,7 +773,6 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
     
-    // Filter categories based on type
     function filterCategories() {
       var selectedType = typeSelect.value;
       var currentCategory = categorySelect.value;
@@ -568,7 +822,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Filter subcategories based on type and category
     function filterSubcategories() {
       var selectedType = typeSelect.value;
       var selectedCategory = categorySelect.value;
@@ -617,7 +870,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Filter items based on type, category, and subcategory
     function filterItems() {
       var selectedType = typeSelect.value;
       var selectedCategory = categorySelect.value;
@@ -664,7 +916,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Load units when material item is selected
     function loadItemUnits(materialItemSelect, idx, pfx) {
       var itemId = materialItemSelect.value;
       var unitSel = document.querySelector('select[name="' + pfx + '-' + idx + '-unit"]');
@@ -704,7 +955,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Attach event listeners
     typeSelect.addEventListener('change', filterCategories);
     categorySelect.addEventListener('change', filterSubcategories);
     subcategorySelect.addEventListener('change', filterItems);
@@ -719,7 +969,64 @@ document.addEventListener('DOMContentLoaded', function() {
       setupRowCascading(row, 'extra_items');
     });
   }
+  
+  // Process selection handler - display BOM and finished item info
+  var processSelect = document.getElementById('id_process');
+  var processInfoRow = document.getElementById('process-info-row');
+  var processBomDisplay = document.getElementById('process-bom-display');
+  var processFinishedItemDisplay = document.getElementById('process-finished-item-display');
+  
+  function loadProcessDetails() {
+    var processId = processSelect ? processSelect.value : null;
+    
+    if (!processId) {
+      if (processInfoRow) processInfoRow.style.display = 'none';
+      return;
+    }
+    
+    var url = '{% url "production:api_process_details" 0 %}'.replace('0', processId);
+    
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        if (data.error) {
+          console.error('Error loading process details:', data.error);
+          if (processInfoRow) processInfoRow.style.display = 'none';
+          return;
+        }
+        
+        if (processInfoRow) processInfoRow.style.display = 'block';
+        
+        if (processBomDisplay) {
+          if (data.bom_code) {
+            processBomDisplay.textContent = data.bom_code;
+          } else {
+            processBomDisplay.textContent = '{% trans "No BOM" %}';
+          }
+        }
+        
+        if (processFinishedItemDisplay) {
+          if (data.finished_item_code && data.finished_item_name) {
+            processFinishedItemDisplay.textContent = data.finished_item_code + ' - ' + data.finished_item_name;
+          } else {
+            processFinishedItemDisplay.textContent = '-';
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Error loading process details:', error);
+        if (processInfoRow) processInfoRow.style.display = 'none';
+      });
+  }
+  
+  if (processSelect) {
+    processSelect.addEventListener('change', loadProcessDetails);
+    
+    // Load details on page load if process is already selected (edit mode)
+    if (processSelect.value) {
+      loadProcessDetails();
+    }
+  }
 });
 </script>
 {% endblock %}
-

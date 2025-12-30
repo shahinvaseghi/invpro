@@ -19,7 +19,7 @@
 
 ## CompanyForm
 
-**Type**: `forms.ModelForm`
+**Type**: `BaseModelForm` (از `shared.forms.base`)
 
 **Model**: `Company`
 
@@ -36,11 +36,9 @@
 - `is_enabled`: وضعیت
 
 **Widgets**:
-- Text inputs با `form-control` class
-- Email input برای email
-- URL input برای website
+- BaseModelForm به صورت خودکار `form-control` class اضافه می‌کند
+- Text inputs با maxlength برای `public_code` (3) و `country` (3)
 - Textarea برای address (3 rows)
-- Select برای is_enabled
 
 **Labels**:
 - تمام labels با `gettext_lazy` ترجمه شده‌اند
@@ -53,7 +51,7 @@
 
 ## CompanyUnitForm
 
-**Type**: `forms.ModelForm`
+**Type**: `BaseModelForm` (از `shared.forms.base`)
 
 **Model**: `CompanyUnit`
 
@@ -80,15 +78,17 @@
 - `company_id`: شناسه شرکت (optional)
 
 **منطق**:
-1. دریافت `company_id` از parameter یا `self.instance.company_id`
-2. فیلتر `parent_unit` queryset:
-   - اگر `company_id` موجود باشد: فقط units همان company
+1. فراخوانی `super().__init__()` (که `company_id` را از kwargs می‌گیرد)
+2. دریافت `company_id` از parameter یا `self.instance.company_id`
+3. فیلتر `parent_unit` queryset:
+   - اگر `company_id` موجود باشد: `CompanyUnit.objects.filter(company_id=company_id)`
    - اگر instance موجود باشد: exclude خود instance (برای جلوگیری از circular reference)
-3. تنظیم choices برای `is_enabled` (فارسی)
+   - مرتب‌سازی: `order_by('name')`
 
 **نکات مهم**:
 - `parent_unit` queryset بر اساس company فیلتر می‌شود
 - خود instance از queryset exclude می‌شود (برای جلوگیری از circular reference)
+- BaseModelForm به صورت خودکار `form-control` class اضافه می‌کند
 
 ---
 

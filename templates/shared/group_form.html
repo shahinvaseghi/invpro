@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "shared/generic/generic_form.html" %}
 {% load i18n %}
 
 {% block title %}{{ page_title }} - {{ block.super }}{% endblock %}
@@ -28,55 +28,41 @@
 </style>
 {% endblock %}
 
-{% block content %}
-<div class="inventory-module">
-  <div class="module-header">
-    <nav class="breadcrumb">
-      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
-      <span>/</span>
-      <a href="{% url 'shared:groups' %}">{% trans "Groups" %}</a>
-      <span>/</span>
-      <span>{{ page_title }}</span>
-    </nav>
-    <h1 class="page-title">{{ page_title }}</h1>
-  </div>
+{% block breadcrumb_extra %}
+<span>/</span>
+<a href="{% url 'shared:groups' %}">{% trans "Groups" %}</a>
+<span>/</span>
+<span>{{ page_title }}</span>
+{% endblock %}
 
-  <form method="post" class="entity-form">
-    {% csrf_token %}
-    {% if form.non_field_errors %}
-      <div class="form-errors">
-        {{ form.non_field_errors }}
-      </div>
-    {% endif %}
-
-    <div class="form-grid">
-      {% for field in form %}
-        {% if field.name != 'members' %}
-        <div class="form-field {% if field.name == 'access_levels' %}form-field-checkboxes{% endif %}">
-          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-          {% if field.name == 'access_levels' %}
-            <div class="checkbox-list" style="margin-top: 8px;">
-              {{ field }}
-            </div>
-          {% else %}
-            {{ field }}
-          {% endif %}
-          {% if field.help_text %}
-            <small class="form-text text-muted">{{ field.help_text }}</small>
-          {% endif %}
-          {% for error in field.errors %}
-            <div class="field-error">{{ error }}</div>
-          {% endfor %}
+{% block form_sections %}
+<div class="form-section">
+  {% for field in form %}
+    {% if field.name != 'members' %}
+    <div class="form-field {% if field.name == 'access_levels' %}form-field-checkboxes{% endif %}">
+      <label for="{{ field.id_for_label }}">
+        {{ field.label }}
+        {% if field.field.required %}*{% endif %}
+      </label>
+      {% if field.name == 'access_levels' %}
+        <div class="checkbox-list" style="margin-top: 8px;">
+          {{ field }}
         </div>
-        {% endif %}
-      {% endfor %}
+      {% else %}
+        {{ field }}
+      {% endif %}
+      {% if field.errors %}
+        <span class="error">{{ field.errors.0 }}</span>
+      {% endif %}
+      {% if field.help_text %}
+        <small class="form-text">{{ field.help_text }}</small>
+      {% endif %}
     </div>
-
-    <div class="form-actions">
-      <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
-      <a href="{% url 'shared:groups' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
-    </div>
-  </form>
+    {% endif %}
+  {% endfor %}
 </div>
 {% endblock %}
 
+{% block form_actions_extra %}
+<a href="{% url 'shared:groups' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+{% endblock %}

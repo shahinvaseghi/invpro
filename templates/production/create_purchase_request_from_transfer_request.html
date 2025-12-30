@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+{% load i18n jalali_tags %}
+
+{% block title %}{% trans "Create Purchase Request from Transfer Request" %}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span class="separator">/</span>
+      <span>{% trans "Production" %}</span>
+      <span class="separator">/</span>
+      <a href="{% url 'production:transfer_requests' %}">{% trans "Transfer to Line Requests" %}</a>
+      <span class="separator">/</span>
+      <span>{% trans "Create Purchase Request" %}</span>
+    </nav>
+    <h1 class="page-title">{% trans "Create Purchase Request from Transfer Request" %}</h1>
+  </div>
+
+  <div class="module-content">
+    <div class="form-container">
+      <div class="request-info" style="margin-bottom: 2rem; padding: 1.5rem; background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;">
+        <h3 style="margin-top: 0;">{% trans "Transfer Request Information" %}</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+          <div>
+            <strong>{% trans "Transfer Code" %}:</strong><br>
+            <code>{{ transfer.transfer_code }}</code>
+          </div>
+          <div>
+            <strong>{% trans "Transfer Date" %}:</strong><br>
+            {{ transfer.transfer_date|jalali_date }}
+          </div>
+          <div>
+            <strong>{% trans "Product Order" %}:</strong><br>
+            {{ transfer.order_code }}
+          </div>
+          {% if transfer.order.finished_item %}
+          <div>
+            <strong>{% trans "Finished Item" %}:</strong><br>
+            {{ transfer.order.finished_item.item_code }} - {{ transfer.order.finished_item.name }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <form method="post" class="entity-form">
+        {% csrf_token %}
+        
+        <div class="form-section">
+          <h3>{% trans "Select Items" %}</h3>
+          <p class="form-text">{% trans "Select the items you want to include in the purchase request. You can edit quantities or remove items." %}</p>
+          
+          <table class="data-table" style="margin-top: 1rem;">
+            <thead>
+              <tr>
+                <th style="width: 50px;">
+                  <input type="checkbox" id="select-all" style="cursor: pointer;">
+                </th>
+                <th>{% trans "Item" %}</th>
+                <th>{% trans "Unit" %}</th>
+                <th>{% trans "Required Quantity" %}</th>
+                <th>{% trans "Quantity" %} *</th>
+                <th>{% trans "Notes" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in items %}
+              <tr>
+                <td style="text-align: center;">
+                  <input type="checkbox" 
+                         name="selected_{{ item.pk }}" 
+                         id="selected_{{ item.pk }}"
+                         class="line-checkbox"
+                         data-line-id="{{ item.pk }}"
+                         checked>
+                </td>
+                <td>
+                  <strong>{{ item.material_item.name }}</strong><br>
+                  <small style="color: #6b7280;"><code>{{ item.material_item_code }}</code></small>
+                </td>
+                <td>{{ item.unit }}</td>
+                <td style="text-align: right;">{{ item.quantity_required|floatformat:2 }}</td>
+                <td>
+                  <input type="number" 
+                         name="quantity_{{ item.pk }}" 
+                         id="quantity_{{ item.pk }}"
+                         class="form-control quantity-input"
+                         data-line-id="{{ item.pk }}"
+                         data-max="{{ item.quantity_required }}"
+                         value="{{ item.quantity_required|floatformat:2 }}"
+                         min="0"
+                         max="{{ item.quantity_required }}"
+                         step="0.001"
+                         style="width: 120px; text-align: right;">
+                </td>
+                <td>
+                  <input type="text" 
+                         name="notes_{{ item.pk }}" 
+                         class="form-control"
+                         style="width: 200px;"
+                         placeholder="{% trans 'Optional notes' %}">
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="6" style="text-align: center; padding: 2rem; color: #6b7280;">
+                  {% trans "No items found in this transfer request." %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
+          <a href="{% url 'production:transfer_requests' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+.form-container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
+}
+
+.request-info h3 {
+  margin-top: 0;
+  color: #111827;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.data-table th {
+  background-color: #f3f4f6;
+  padding: 0.75rem;
+  text-align: right;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.data-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.data-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.quantity-input:disabled {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  padding-top: 1.5rem;
+  margin-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const selectAllCheckbox = document.getElementById('select-all');
+  const lineCheckboxes = document.querySelectorAll('.line-checkbox');
+  const quantityInputs = document.querySelectorAll('.quantity-input');
+  
+  // Select all functionality
+  if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener('change', function() {
+      lineCheckboxes.forEach(function(checkbox) {
+        if (!checkbox.disabled) {
+          checkbox.checked = this.checked;
+          const lineId = checkbox.getAttribute('data-line-id');
+          const quantityInput = document.getElementById('quantity_' + lineId);
+          if (quantityInput) {
+            quantityInput.disabled = !this.checked;
+          }
+        }
+      }, this);
+    });
+  }
+  
+  // Individual checkbox functionality
+  lineCheckboxes.forEach(function(checkbox) {
+    checkbox.addEventListener('change', function() {
+      const lineId = this.getAttribute('data-line-id');
+      const quantityInput = document.getElementById('quantity_' + lineId);
+      if (quantityInput) {
+        quantityInput.disabled = !this.checked;
+        if (!this.checked) {
+          quantityInput.value = '0';
+        } else {
+          const max = quantityInput.getAttribute('data-max');
+          quantityInput.value = max || '0';
+        }
+      }
+    });
+  });
+  
+  // Quantity validation
+  quantityInputs.forEach(function(input) {
+    input.addEventListener('change', function() {
+      const max = parseFloat(this.getAttribute('data-max')) || 0;
+      const value = parseFloat(this.value) || 0;
+      if (value > max) {
+        this.value = max;
+        alert('{% trans "Quantity cannot exceed required quantity" %}: ' + max);
+      }
+      if (value < 0) {
+        this.value = '0';
+      }
+    });
+  });
+  
+  // Update select all checkbox state
+  function updateSelectAll() {
+    if (selectAllCheckbox && lineCheckboxes.length > 0) {
+      const checkedCount = Array.from(lineCheckboxes).filter(cb => cb.checked && !cb.disabled).length;
+      const enabledCount = Array.from(lineCheckboxes).filter(cb => !cb.disabled).length;
+      selectAllCheckbox.checked = checkedCount === enabledCount && enabledCount > 0;
+      selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < enabledCount;
+    }
+  }
+  
+  lineCheckboxes.forEach(function(checkbox) {
+    checkbox.addEventListener('change', updateSelectAll);
+  });
+  
+  updateSelectAll();
+});
+</script>
+{% endblock %}
+

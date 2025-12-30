@@ -1,121 +1,232 @@
-{% extends "base.html" %}
+{% extends "shared/generic/generic_list.html" %}
 {% load i18n %}
 
-{% block title %}{% trans "Machines" %} - {{ block.super }}{% endblock %}
-
-{% block content %}
-<div class="inventory-module">
-  <div class="module-header">
-    <nav class="breadcrumb">
-      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
-      <span>/</span>
-      <span>{% trans "Machines" %}</span>
-    </nav>
-    
-    <h1 class="page-title">{% trans "Machines" %}</h1>
-    
-    <div class="page-actions">
-      <button class="btn btn-secondary" onclick="window.print()">{% trans "Print" %}</button>
-      <a href="{% url 'production:machine_create' %}" class="btn btn-primary">{% trans "Create Machine +" %}</a>
+{% block extra_content_before_table %}
+<div class="filter-tabs-container" style="margin-bottom: 1.5rem;">
+  <div class="filter-section">
+    <h4 style="font-size: 0.9rem; color: #6b7280; margin-bottom: 0.75rem;">{% trans "Active Status" %}</h4>
+    <div class="filter-tabs">
+      <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.work_center %}work_center={{ request.GET.work_center }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}" 
+         class="filter-tab {% if not request.GET.is_enabled %}active{% endif %}">
+        {% trans "All" %}
+      </a>
+      <a href="?is_enabled=1{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.work_center %}&work_center={{ request.GET.work_center }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" 
+         class="filter-tab {% if request.GET.is_enabled == '1' %}active{% endif %}">
+        <span class="badge-dot" style="background-color: #10b981;"></span>
+        {% trans "Active" %}
+      </a>
+      <a href="?is_enabled=0{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.work_center %}&work_center={{ request.GET.work_center }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" 
+         class="filter-tab {% if request.GET.is_enabled == '0' %}active{% endif %}">
+        <span class="badge-dot" style="background-color: #6b7280;"></span>
+        {% trans "Inactive" %}
+      </a>
     </div>
   </div>
   
-  <div class="filter-panel">
-    <h3>{% trans "Filter & Search" %}</h3>
-    <form method="get" class="filter-form">
-      <div class="filter-row">
-        <div class="filter-field">
-          <label for="search">{% trans "Search" %}</label>
-          <input type="text" id="search" name="search" placeholder="{% trans 'Search by code or name' %}" value="{{ request.GET.search }}">
-        </div>
-        <div class="filter-field">
-          <label for="work_center">{% trans "Work Center" %}</label>
-          <select id="work_center" name="work_center">
-            <option value="">-- {% trans "All" %} --</option>
-            {% for wc in work_centers %}
-              <option value="{{ wc.id }}" {% if request.GET.work_center == wc.id|stringformat:"s" %}selected{% endif %}>{{ wc.name }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="filter-field">
-          <label for="status">{% trans "Status" %}</label>
-          <select id="status" name="status">
-            <option value="">-- {% trans "All" %} --</option>
-            <option value="operational" {% if request.GET.status == "operational" %}selected{% endif %}>{% trans "Operational" %}</option>
-            <option value="maintenance" {% if request.GET.status == "maintenance" %}selected{% endif %}>{% trans "Maintenance" %}</option>
-            <option value="idle" {% if request.GET.status == "idle" %}selected{% endif %}>{% trans "Idle" %}</option>
-            <option value="broken" {% if request.GET.status == "broken" %}selected{% endif %}>{% trans "Broken" %}</option>
-            <option value="retired" {% if request.GET.status == "retired" %}selected{% endif %}>{% trans "Retired" %}</option>
-          </select>
-        </div>
-        <div class="filter-actions">
-          <button type="submit" class="btn btn-primary">{% trans "Filter" %}</button>
-          <a href="{% url 'production:machines' %}" class="btn btn-secondary">{% trans "Clear" %}</a>
-        </div>
-      </div>
-    </form>
+  <div class="filter-section" style="margin-top: 1rem;">
+    <h4 style="font-size: 0.9rem; color: #6b7280; margin-bottom: 0.75rem;">{% trans "Machine Status" %}</h4>
+    <div class="filter-tabs">
+      <a href="?{% if request.GET.is_enabled %}is_enabled={{ request.GET.is_enabled }}&{% endif %}{% if request.GET.work_center %}work_center={{ request.GET.work_center }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}" 
+         class="filter-tab {% if not request.GET.status %}active{% endif %}">
+        {% trans "All" %}
+      </a>
+      <a href="?status=operational{% if request.GET.is_enabled %}&is_enabled={{ request.GET.is_enabled }}{% endif %}{% if request.GET.work_center %}&work_center={{ request.GET.work_center }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" 
+         class="filter-tab {% if request.GET.status == 'operational' %}active{% endif %}">
+        <span class="badge-dot" style="background-color: #10b981;"></span>
+        {% trans "Operational" %}
+      </a>
+      <a href="?status=maintenance{% if request.GET.is_enabled %}&is_enabled={{ request.GET.is_enabled }}{% endif %}{% if request.GET.work_center %}&work_center={{ request.GET.work_center }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" 
+         class="filter-tab {% if request.GET.status == 'maintenance' %}active{% endif %}">
+        <span class="badge-dot" style="background-color: #f59e0b;"></span>
+        {% trans "Maintenance" %}
+      </a>
+      <a href="?status=idle{% if request.GET.is_enabled %}&is_enabled={{ request.GET.is_enabled }}{% endif %}{% if request.GET.work_center %}&work_center={{ request.GET.work_center }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" 
+         class="filter-tab {% if request.GET.status == 'idle' %}active{% endif %}">
+        <span class="badge-dot" style="background-color: #3b82f6;"></span>
+        {% trans "Idle" %}
+      </a>
+      <a href="?status=broken{% if request.GET.is_enabled %}&is_enabled={{ request.GET.is_enabled }}{% endif %}{% if request.GET.work_center %}&work_center={{ request.GET.work_center }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" 
+         class="filter-tab {% if request.GET.status == 'broken' %}active{% endif %}">
+        <span class="badge-dot" style="background-color: #ef4444;"></span>
+        {% trans "Broken" %}
+      </a>
+      <a href="?status=retired{% if request.GET.is_enabled %}&is_enabled={{ request.GET.is_enabled }}{% endif %}{% if request.GET.work_center %}&work_center={{ request.GET.work_center }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" 
+         class="filter-tab {% if request.GET.status == 'retired' %}active{% endif %}">
+        <span class="badge-dot" style="background-color: #6b7280;"></span>
+        {% trans "Retired" %}
+      </a>
+    </div>
   </div>
-  
-  {% if machines %}
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>{% trans "CODE" %}</th>
-        <th>{% trans "Name" %}</th>
-        <th>{% trans "Type" %}</th>
-        <th>{% trans "Work Center" %}</th>
-        <th>{% trans "Manufacturer" %}</th>
-        <th>{% trans "Model" %}</th>
-        <th>{% trans "Status" %}</th>
-        <th>{% trans "Actions" %}</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for machine in machines %}
-      <tr>
-        <td>{{ machine.public_code }}</td>
-        <td>{{ machine.name }}</td>
-        <td>{{ machine.machine_type }}</td>
-        <td>{{ machine.work_center.name|default:"-" }}</td>
-        <td>{{ machine.manufacturer|default:"-" }}</td>
-        <td>{{ machine.model_number|default:"-" }}</td>
-        <td>
-          <span class="badge badge-{{ machine.status }}">{{ machine.get_status_display }}</span>
-        </td>
-        <td>
-          <a href="{% url 'production:machine_edit' machine.id %}" class="btn btn-sm">{% trans "Edit" %}</a>
-          <a href="{% url 'production:machine_delete' machine.id %}" class="btn btn-sm btn-danger">{% trans "Delete" %}</a>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  
-  {% if is_paginated %}
-  <div class="pagination">
-    {% if page_obj.has_previous %}
-      <a href="?page=1" class="page-link">{% trans "First" %}</a>
-      <a href="?page={{ page_obj.previous_page_number }}" class="page-link">{% trans "Previous" %}</a>
-    {% endif %}
-    
-    <span class="page-info">
-      {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
-    </span>
-    
-    {% if page_obj.has_next %}
-      <a href="?page={{ page_obj.next_page_number }}" class="page-link">{% trans "Next" %}</a>
-      <a href="?page={{ page_obj.paginator.num_pages }}" class="page-link">{% trans "Last" %}</a>
-    {% endif %}
-  </div>
-  {% endif %}
-  
-  {% else %}
-  <div class="empty-state">
-    <h3>{% trans "No Machines Found" %}</h3>
-    <p>{% trans "Start by adding your first machine to the system." %}</p>
-    <a href="{% url 'production:machine_create' %}" class="btn btn-primary">{% trans "Create Machine +" %}</a>
-  </div>
-  {% endif %}
 </div>
 {% endblock %}
 
+{% block filter_fields %}
+<div class="form-group">
+  <label for="search">{% trans "Search" %}</label>
+  <input type="text" id="search" name="search" 
+         placeholder="{{ search_placeholder|default:'Search by code or name' }}" 
+         value="{{ request.GET.search }}"
+         class="form-control">
+</div>
+<div class="form-group">
+  <label for="work_center">{% trans "Work Center" %}</label>
+  <select id="work_center" name="work_center" class="form-control">
+    <option value="">-- {% trans "All" %} --</option>
+    {% for wc in work_centers %}
+      <option value="{{ wc.id }}" {% if request.GET.work_center == wc.id|stringformat:"s" %}selected{% endif %}>{{ wc.name }}</option>
+    {% endfor %}
+  </select>
+</div>
+<div class="form-group">
+  <label for="status">{% trans "Status" %}</label>
+  <select id="status" name="status" class="form-control">
+    <option value="">-- {% trans "All" %} --</option>
+    <option value="operational" {% if request.GET.status == "operational" %}selected{% endif %}>{% trans "Operational" %}</option>
+    <option value="maintenance" {% if request.GET.status == "maintenance" %}selected{% endif %}>{% trans "Maintenance" %}</option>
+    <option value="idle" {% if request.GET.status == "idle" %}selected{% endif %}>{% trans "Idle" %}</option>
+    <option value="broken" {% if request.GET.status == "broken" %}selected{% endif %}>{% trans "Broken" %}</option>
+    <option value="retired" {% if request.GET.status == "retired" %}selected{% endif %}>{% trans "Retired" %}</option>
+  </select>
+</div>
+<div class="form-group">
+  <label for="is_enabled">{% trans "Active Status" %}</label>
+  <select id="is_enabled" name="is_enabled" class="form-control">
+    <option value="">-- {% trans "All" %} --</option>
+    <option value="1" {% if request.GET.is_enabled == "1" %}selected{% endif %}>{% trans "Active" %}</option>
+    <option value="0" {% if request.GET.is_enabled == "0" %}selected{% endif %}>{% trans "Inactive" %}</option>
+  </select>
+</div>
+{% endblock %}
+
+{% block table_headers %}
+<th>{% trans "Code" %}</th>
+<th>{% trans "Name" %}</th>
+<th>{% trans "Name (English)" %}</th>
+<th>{% trans "Type" %}</th>
+<th>{% trans "Work Center" %}</th>
+<th>{% trans "Status" %}</th>
+<th>{% trans "Active" %}</th>
+{% if show_actions %}
+  <th>{% trans "Actions" %}</th>
+{% endif %}
+{% endblock %}
+
+{% block table_rows %}
+{% for machine in object_list %}
+<tr>
+  <td><code>{{ machine.public_code }}</code></td>
+  <td><strong>{{ machine.name }}</strong></td>
+  <td>{{ machine.name_en|default:"–" }}</td>
+  <td>{{ machine.machine_type }}</td>
+  <td>
+    {% if machine.work_center %}
+      {{ machine.work_center.name }}
+    {% else %}
+      <span class="muted-text">–</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if machine.status == "operational" %}
+      <span class="badge badge-active">{% trans "Operational" %}</span>
+    {% elif machine.status == "maintenance" %}
+      <span class="badge badge-warning">{% trans "Maintenance" %}</span>
+    {% elif machine.status == "idle" %}
+      <span class="badge badge-info">{% trans "Idle" %}</span>
+    {% elif machine.status == "broken" %}
+      <span class="badge badge-danger">{% trans "Broken" %}</span>
+    {% elif machine.status == "retired" %}
+      <span class="badge badge-inactive">{% trans "Retired" %}</span>
+    {% else %}
+      <span class="badge badge-inactive">{{ machine.status }}</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if machine.is_enabled == 1 %}
+      <span class="badge badge-active">{% trans "Active" %}</span>
+    {% else %}
+      <span class="badge badge-inactive">{% trans "Inactive" %}</span>
+    {% endif %}
+  </td>
+  {% if show_actions %}
+  <td>
+    {% include 'shared/partials/row_actions.html' with object=machine feature_code=feature_code detail_url_name=detail_url_name edit_url_name=edit_url_name delete_url_name=delete_url_name %}
+  </td>
+  {% endif %}
+</tr>
+{% endfor %}
+{% endblock %}
+
+{% block pagination %}
+{% include 'shared/partials/pagination.html' %}
+{% endblock %}
+
+{% block extra_styles %}
+<style>
+.filter-tabs-container {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.filter-section {
+  margin-bottom: 0;
+}
+
+.filter-section h4 {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+.filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  color: #374151;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.filter-tab:hover {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.filter-tab.active {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: white;
+}
+
+.filter-tab.active:hover {
+  background: #1d4ed8;
+}
+
+.badge-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.filter-tab.active .badge-dot {
+  background-color: white !important;
+}
+</style>
+{% endblock %}

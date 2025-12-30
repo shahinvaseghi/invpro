@@ -1,0 +1,88 @@
+/* RTL Support for Django Unfold Admin */
+html[lang="fa"],
+html[dir="rtl"],
+body[lang="fa"] {
+    direction: rtl !important;
+    text-align: right !important;
+}
+
+html[lang="fa"] body,
+html[dir="rtl"] body,
+body[lang="fa"] {
+    direction: rtl !important;
+    text-align: right !important;
+}
+
+/* Unfold sidebar */
+html[lang="fa"] .unfold-sidebar,
+html[dir="rtl"] .unfold-sidebar,
+body[lang="fa"] .unfold-sidebar {
+    right: 0 !important;
+    left: auto !important;
+}
+
+html[lang="fa"] .unfold-content,
+html[dir="rtl"] .unfold-content,
+body[lang="fa"] .unfold-content {
+    margin-right: 280px !important;
+    margin-left: 0 !important;
+}
+
+/* Form elements */
+html[lang="fa"] .form-row,
+html[dir="rtl"] .form-row,
+body[lang="fa"] .form-row {
+    direction: rtl !important;
+}
+
+html[lang="fa"] .field-box,
+html[dir="rtl"] .field-box,
+body[lang="fa"] .field-box {
+    direction: rtl !important;
+    text-align: right !important;
+}
+
+html[lang="fa"] input,
+html[lang="fa"] select,
+html[lang="fa"] textarea,
+html[dir="rtl"] input,
+html[dir="rtl"] select,
+html[dir="rtl"] textarea,
+body[lang="fa"] input,
+body[lang="fa"] select,
+body[lang="fa"] textarea {
+    direction: rtl !important;
+    text-align: right !important;
+}
+
+/* Tables */
+html[lang="fa"] table,
+html[dir="rtl"] table,
+body[lang="fa"] table {
+    direction: rtl !important;
+}
+
+html[lang="fa"] th,
+html[lang="fa"] td,
+html[dir="rtl"] th,
+html[dir="rtl"] td,
+body[lang="fa"] th,
+body[lang="fa"] td {
+    text-align: right !important;
+}
+
+/* Inline forms */
+html[lang="fa"] .inline-group,
+html[dir="rtl"] .inline-group,
+body[lang="fa"] .inline-group {
+    direction: rtl !important;
+}
+
+/* Buttons alignment */
+html[lang="fa"] .submit-row,
+html[dir="rtl"] .submit-row,
+body[lang="fa"] .submit-row {
+    text-align: right !important;
+    direction: rtl !important;
+}
+

@@ -59,17 +59,23 @@ invproj/
 │   │   ├── 📄 README_TRANSFER_TO_LINE.md
 │   │   ├── 📄 README_PERFORMANCE_RECORD.md
 │   │   ├── 📄 README_PLACEHOLDERS.md
-│   │   └── 📄 README_API.md
+│   │   ├── 📄 README_API.md
+│   │   ├── 📄 README_REWORK.md
+│   │   └── 📄 README_QCOPERATIONS.md
 │   │
-│   └── 📁 forms/
-│       ├── 📄 README_BOM.md
-│       ├── 📄 README_PROCESS.md
-│       ├── 📄 README_PRODUCT_ORDER.md
-│       ├── 📄 README_WORK_LINE.md
-│       ├── 📄 README_MACHINE.md
-│       ├── 📄 README_PERSON.md
-│       ├── 📄 README_TRANSFER_TO_LINE.md
-│       └── 📄 README_PERFORMANCE_RECORD.md
+│   ├── 📁 forms/
+│   │   ├── 📄 README_BOM.md
+│   │   ├── 📄 README_PROCESS.md
+│   │   ├── 📄 README_PRODUCT_ORDER.md
+│   │   ├── 📄 README_WORK_LINE.md
+│   │   ├── 📄 README_MACHINE.md
+│   │   ├── 📄 README_PERSON.md
+│   │   ├── 📄 README_TRANSFER_TO_LINE.md
+│   │   ├── 📄 README_PERFORMANCE_RECORD.md
+│   │   └── 📄 README_PROCESS_OPERATIONS.md
+│   │
+│   └── 📁 utils/
+│       └── 📄 README_TRANSFER.md
 │
 ├── 📁 qc/
 │   └── 📁 views/
@@ -105,24 +111,30 @@ invproj/
 │   │   ├── 📄 README_AUTH.md
 │   │   ├── 📄 README_SMTP_SERVER.md
 │   │   ├── 📄 README_BASE.md
-│   │   └── 📄 README_NOTIFICATIONS.md
+│   │   ├── 📄 README_NOTIFICATIONS.md
+│   │   ├── 📄 README_API.md
+│   │   └── 📄 README_BASE_ADDITIONAL.md
 │   │
 │   ├── 📁 forms/
 │   │   ├── 📄 README_USERS.md
 │   │   ├── 📄 README_COMPANIES.md
 │   │   ├── 📄 README_ACCESS_LEVELS.md
 │   │   ├── 📄 README_GROUPS.md
-│   │   └── 📄 README_SMTP_SERVER.md
+│   │   ├── 📄 README_SMTP_SERVER.md
+│   │   └── 📄 README_BASE.md
 │   │
 │   ├── 📁 utils/
 │   │   ├── 📄 README_PERMISSIONS.md
 │   │   ├── 📄 README_MODULES.md
 │   │   ├── 📄 README_EMAIL.md
-│   │   └── 📄 README_NOTIFICATIONS.md
+│   │   ├── 📄 README_NOTIFICATIONS.md
+│   │   └── 📄 README_VIEW_HELPERS.md
 │   │
 │   ├── 📁 templatetags/
 │   │   ├── 📄 README_ACCESS_TAGS.md
-│   │   └── 📄 README_JSON_FILTERS.md
+│   │   ├── 📄 README_JSON_FILTERS.md
+│   │   ├── 📄 README_GENERIC_TAGS.md
+│   │   └── 📄 README_VIEW_TAGS.md
 │   │
 │   ├── 📁 management/
 │   │   └── 📁 commands/
@@ -133,7 +145,26 @@ invproj/
 │
 ├── 📁 accounting/
 │   ├── 📄 README_MODELS.md
-│   └── 📄 README_VIEWS.md
+│   ├── 📄 README_VIEWS.md
+│   ├── 📄 README_FORMS.md
+│   ├── 📄 README_UTILS.md
+│   ├── 📄 README_CONTEXT_PROCESSORS.md
+│   ├── 📄 DOCUMENTATION_STATUS.md
+│   │
+│   ├── 📁 forms/
+│   │   ├── 📄 README.md
+│   │   ├── 📄 README_PARTIES.md
+│   │   ├── 📄 README_COST_CENTERS.md
+│   │   ├── 📄 README_INCOME_EXPENSE_CATEGORIES.md
+│   │   └── 📄 README_OTHER_FORMS.md
+│   │
+│   └── 📁 views/
+│       ├── 📄 README.md
+│       ├── 📄 README_BASE.md
+│       ├── 📄 README_FISCAL_YEARS.md
+│       ├── 📄 README_ACCOUNTS.md
+│       ├── 📄 README_GL_ACCOUNTS.md
+│       └── 📄 README_OTHER_VIEWS.md
 │
 ├── 📁 sales/
 │   ├── 📄 README_MODELS.md
@@ -300,6 +331,12 @@ invproj/
 **`production/views/README_API.md`**
 مستندسازی API endpoints برای production module. شامل function-based views برای دریافت داده‌های BOM materials.
 
+**`production/views/README_REWORK.md`**
+مستندسازی viewهای سند بازکاری: ReworkDocumentListView, ReworkDocumentCreateView, ReworkDocumentUpdateView, ReworkDocumentDetailView, ReworkDocumentDeleteView, ReworkDocumentApproveView, ReworkDocumentRejectView. شامل مدیریت اسناد بازکاری برای عملیات بدون performance document یا عملیات با performance document رد شده توسط QC.
+
+**`production/views/README_QCOPERATIONS.md`**
+مستندسازی viewهای عملیات کنترل کیفیت: QCOperationsListView, QCOperationApproveView, QCOperationRejectView. شامل مدیریت تأیید/رد عملیات‌هایی که نیاز به QC دارند.
+
 #### Forms
 
 **`production/forms/README_BOM.md`**
@@ -325,6 +362,14 @@ invproj/
 
 **`production/forms/README_PERFORMANCE_RECORD.md`**
 مستندسازی PerformanceRecordForm و 3 form class دیگر برای materials, persons, machines. شامل formsets و process-specific work line filtering.
+
+**`production/forms/README_PROCESS_OPERATIONS.md`**
+مستندسازی فرم‌های عملیات فرایند: ProcessOperationMaterialForm, ProcessOperationMaterialFormSetBase, ProcessOperationForm, ProcessOperationFormSetBase. شامل مدیریت مواد استفاده شده در عملیات و عملیات فرایند.
+
+#### Utils
+
+**`production/utils/README_TRANSFER.md`**
+مستندسازی توابع کمکی برای درخواست‌های Transfer to Line: generate_transfer_code, get_transferred_materials_for_order, get_transferred_operations_for_order, is_full_order_transferred, get_available_operations_for_order, select_source_warehouse_by_priority, create_warehouse_transfer_for_transfer_to_line. شامل ردیابی مواد و عملیات منتقل شده و انتخاب انبار منبع.
 
 ---
 
@@ -417,6 +462,12 @@ invproj/
 **`shared/views/README_NOTIFICATIONS.md`**
 مستندسازی views برای مدیریت notifications. شامل NotificationListView با read/unread filtering.
 
+**`shared/views/README_API.md`**
+مستندسازی کلاس‌های پایه برای API endpoints: BaseAPIView. شامل کلاس‌های پایه برای API endpoints با JSON responses.
+
+**`shared/views/README_BASE_ADDITIONAL.md`**
+مستندسازی کلاس‌های پایه اضافی برای الگوهای پیچیده view: TransferRequestCreationMixin. شامل mixin برای ایجاد transfer requests از orders.
+
 #### Forms
 
 **`shared/forms/README_USERS.md`**
@@ -434,6 +485,9 @@ invproj/
 **`shared/forms/README_SMTP_SERVER.md`**
 مستندسازی SMTPServerForm. شامل SMTP configuration fields، password handling (optional on update)، و TLS/SSL validation.
 
+**`shared/forms/README_BASE.md`**
+مستندسازی کلاس‌های پایه فرم برای تمام ماژول‌ها: BaseModelForm, BaseFormset. شامل استایل خودکار widgetها و قابلیت‌های مشترک formset.
+
 #### Utils
 
 **`shared/utils/README_PERMISSIONS.md`**
@@ -448,6 +502,9 @@ invproj/
 **`shared/utils/README_NOTIFICATIONS.md`**
 مستندسازی helper functions برای مدیریت notifications. شامل get_or_create_notification و سایر توابع utility.
 
+**`shared/utils/README_VIEW_HELPERS.md`**
+مستندسازی توابع کمکی برای عملیات مشترک viewها: get_breadcrumbs. شامل توابع کمکی برای تولید breadcrumbs و سایر عملیات مشترک.
+
 #### Template Tags
 
 **`shared/templatetags/README_ACCESS_TAGS.md`**
@@ -455,6 +512,12 @@ invproj/
 
 **`shared/templatetags/README_JSON_FILTERS.md`**
 مستندسازی to_json filter برای تبدیل Python objects به JSON string. شامل UTF-8 support و error handling.
+
+**`shared/templatetags/README_GENERIC_TAGS.md`**
+مستندسازی template tags عمومی برای templateهای قابل استفاده مجدد: getattr filter. شامل دریافت attribute از object با پشتیبانی از nested attributes.
+
+**`shared/templatetags/README_VIEW_TAGS.md`**
+مستندسازی template tags برای عملیات مربوط به view: get_breadcrumbs tag. شامل تولید لیست breadcrumbs و سایر tags مربوط به table headers، permissions، و actions.
 
 #### Context Processors
 
@@ -499,7 +562,55 @@ invproj/
 مستندسازی تمام models در ماژول QC. شامل QCBaseModel و ReceiptInspection.
 
 **`accounting/README_MODELS.md`**
-مستندسازی تمام models در ماژول accounting.
+مستندسازی کامل تمام 20 model class در ماژول accounting: Base Models (3 abstract), Fiscal Year Management (2), Chart of Accounts (2), Accounting Document Models (2), Party Management (2), Cost Center Models (1), Income/Expense Category Models (1), Hierarchy Models (1), Attachment Models (1), Account Relation Models (2). شامل تمام fields، constraints، methods، و نکات مهم.
+
+**`accounting/README_VIEWS.md`**
+مستندسازی 12 کلاس view برای ماژول حسابداری: Dashboard, General Ledger, Subsidiary Ledger, Detail Ledger, Accounting Documents (Entry/Exit), Treasury (Expense/Income), Payroll (Document, Decrees, Decree Groups, Decree Subgroups), Party Management, Cost Centers, Income/Expense Categories. شامل FeaturePermissionRequiredMixin و placeholder views.
+
+**`accounting/README_FORMS.md`**
+مستندسازی کامل forms پایه: FiscalYearForm, PeriodForm, AccountForm. شامل تمام fields، methods، و validation logic.
+
+**`accounting/README_UTILS.md`**
+مستندسازی کامل utility functions: `get_available_fiscal_years()` برای دریافت لیست سال‌های مالی که اسناد دارند.
+
+**`accounting/README_CONTEXT_PROCESSORS.md`**
+مستندسازی کامل context processor: `active_fiscal_year()` برای اضافه کردن اطلاعات سال مالی فعال به template context.
+
+**`accounting/DOCUMENTATION_STATUS.md`**
+وضعیت مستندات ماژول حسابداری با آمار کامل و اولویت‌بندی.
+
+**`accounting/forms/README.md`**
+Overview کلی forms package در ماژول accounting با لینک به فایل‌های README جزئی‌تر.
+
+**`accounting/forms/README_PARTIES.md`**
+مستندسازی کامل PartyForm و PartyAccountForm: تمام fields، methods (__init__, clean)، و validation logic.
+
+**`accounting/forms/README_COST_CENTERS.md`**
+مستندسازی کامل CostCenterForm: تمام fields، methods (__init__, clean)، company unit و work line filtering.
+
+**`accounting/forms/README_INCOME_EXPENSE_CATEGORIES.md`**
+مستندسازی کامل IncomeExpenseCategoryForm: تمام fields، methods (__init__)، و category type handling.
+
+**`accounting/forms/README_OTHER_FORMS.md`**
+مستندسازی کامل سایر فرم‌ها: DocumentAttachmentUploadForm, DocumentAttachmentFilterForm, GLAccountForm, SubAccountForm, TafsiliAccountForm, TafsiliHierarchyForm. شامل تمام fields، methods، و validation logic.
+
+**`accounting/views/README.md`**
+Overview کلی views package در ماژول accounting با لینک به فایل‌های README جزئی‌تر.
+
+**`accounting/views/README_BASE.md`**
+مستندسازی AccountingBaseView: base view با context مشترک و permission helpers.
+
+**`accounting/views/README_FISCAL_YEARS.md`**
+مستندسازی کامل Fiscal Year views: ListView, CreateView, UpdateView با تمام methods و context variables.
+
+**`accounting/views/README_ACCOUNTS.md`**
+مستندسازی کامل Account views: ListView, CreateView, UpdateView, DeleteView برای Chart of Accounts.
+
+**`accounting/views/README_GL_ACCOUNTS.md`**
+مستندسازی کامل GL Account views: ListView, CreateView, UpdateView, DeleteView برای حساب‌های کل (level 1).
+
+**`accounting/views/README_OTHER_VIEWS.md`**
+مستندسازی سایر view ها: SubAccount views, TafsiliAccount views, TafsiliHierarchy views, DocumentAttachment views, Auth views.
 
 **`sales/README_MODELS.md`**
 مستندسازی تمام models در ماژول sales.
@@ -526,7 +637,53 @@ invproj/
 #### Views
 
 **`accounting/README_VIEWS.md`**
-مستندسازی 12 کلاس view برای ماژول حسابداری: Dashboard, General Ledger, Subsidiary Ledger, Detail Ledger, Accounting Documents (Entry/Exit), Treasury (Expense/Income), Payroll (Document, Decrees, Decree Groups, Decree Subgroups). شامل FeaturePermissionRequiredMixin و placeholder views.
+مستندسازی 12 کلاس view برای ماژول حسابداری: Dashboard, General Ledger, Subsidiary Ledger, Detail Ledger, Accounting Documents (Entry/Exit), Treasury (Expense/Income), Payroll (Document, Decrees, Decree Groups, Decree Subgroups), Party Management, Cost Centers, Income/Expense Categories. شامل FeaturePermissionRequiredMixin و placeholder views.
+
+**`accounting/views/README_BASE.md`**
+مستندسازی AccountingBaseView: base view با context مشترک، permission helpers، و queryset filtering.
+
+**`accounting/views/README_FISCAL_YEARS.md`**
+مستندسازی کامل Fiscal Year views: ListView, CreateView, UpdateView با تمام methods، context variables، و validation logic.
+
+**`accounting/views/README_ACCOUNTS.md`**
+مستندسازی کامل Account views: ListView, CreateView, UpdateView, DeleteView برای Chart of Accounts با تمام methods و context variables.
+
+**`accounting/views/README_GL_ACCOUNTS.md`**
+مستندسازی کامل GL Account views: ListView, CreateView, UpdateView, DeleteView برای حساب‌های کل (level 1) با تمام methods، context variables، و delete protection.
+
+**`accounting/views/README_OTHER_VIEWS.md`**
+مستندسازی سایر view ها: SubAccount views (4), TafsiliAccount views (4), TafsiliHierarchy views (4), DocumentAttachment views (4), Auth views (1). شامل خلاصه و لینک به README های جداگانه.
+
+#### Forms
+
+**`accounting/README_FORMS.md`**
+مستندسازی کامل forms پایه: FiscalYearForm, PeriodForm, AccountForm. شامل تمام fields، methods، و validation logic.
+
+**`accounting/forms/README.md`**
+Overview کلی forms package در ماژول accounting با ساختار و لینک به فایل‌های README جزئی‌تر.
+
+**`accounting/forms/README_PARTIES.md`**
+مستندسازی کامل PartyForm و PartyAccountForm: تمام fields، methods (__init__, clean)، company filtering، و validation logic.
+
+**`accounting/forms/README_COST_CENTERS.md`**
+مستندسازی کامل CostCenterForm: تمام fields، methods (__init__, clean)، company unit و work line filtering، و production module dependency.
+
+**`accounting/forms/README_INCOME_EXPENSE_CATEGORIES.md`**
+مستندسازی کامل IncomeExpenseCategoryForm: تمام fields، methods (__init__)، category type handling، و auto code generation.
+
+**`accounting/forms/README_OTHER_FORMS.md`**
+مستندسازی کامل سایر فرم‌ها: DocumentAttachmentUploadForm, DocumentAttachmentFilterForm, GLAccountForm, SubAccountForm, TafsiliAccountForm, TafsiliHierarchyForm. شامل تمام fields، methods، validation logic، و M2M relation management.
+
+#### Other Files
+
+**`accounting/README_UTILS.md`**
+مستندسازی کامل utility functions: `get_available_fiscal_years()` برای دریافت لیست سال‌های مالی که اسناد دارند (حسابداری، انبار، یا فروش).
+
+**`accounting/README_CONTEXT_PROCESSORS.md`**
+مستندسازی کامل context processor: `active_fiscal_year()` برای اضافه کردن اطلاعات سال مالی فعال به template context با fallback logic و auto-creation.
+
+**`accounting/DOCUMENTATION_STATUS.md`**
+وضعیت مستندات ماژول حسابداری با آمار کامل (Models: 100%, Forms: 100%, Views: 100%, Utils: 100%, Context Processors: 100%) و اولویت‌بندی برای باقی‌مانده.
 
 ---
 
@@ -577,20 +734,20 @@ invproj/
 
 ## 📊 آمار کلی
 
-- **جمع کل فایل‌های README**: 138 فایل
+- **جمع کل فایل‌های README**: 165+ فایل
 - **Root/Docs**: 3 فایل (README.md, DOCUMENTATION_STRUCTURE.md, DOCUMENTATION_STATUS.md, docs/README.md, docs/ENTITY_REFERENCE_SYSTEM.md, docs/MIGRATIONS_README.md)
-- **Module Main**: 13 فایل (README.md برای هر ماژول + README_FORMS.md, README_BALANCE.md, README_BOM.md)
-- **Views**: 45 فایل
-- **Forms**: 24 فایل
-- **Utils**: 7 فایل
+- **Module Main**: 13+ فایل (README.md برای هر ماژول + README_FORMS.md, README_BALANCE.md, README_BOM.md, DOCUMENTATION_STATUS.md)
+- **Views**: 54+ فایل (45 فایل موجود + 5 فایل جدید برای accounting + 4 فایل جدید: production/views/README_REWORK.md, production/views/README_QCOPERATIONS.md, shared/views/README_API.md, shared/views/README_BASE_ADDITIONAL.md)
+- **Forms**: 32+ فایل (24 فایل موجود + 6 فایل جدید برای accounting + 2 فایل جدید: production/forms/README_PROCESS_OPERATIONS.md, shared/forms/README_BASE.md)
+- **Utils**: 10 فایل (7 فایل موجود + 2 فایل جدید برای accounting + 1 فایل جدید: production/utils/README_TRANSFER.md, shared/utils/README_VIEW_HELPERS.md)
 - **Services**: 1 فایل
-- **Template Tags**: 3 فایل
-- **Context Processors**: 2 فایل
+- **Template Tags**: 5 فایل (3 فایل موجود + 2 فایل جدید: shared/templatetags/README_GENERIC_TAGS.md, shared/templatetags/README_VIEW_TAGS.md)
+- **Context Processors**: 3 فایل (2 فایل موجود + 1 فایل جدید برای accounting)
 - **Management Commands**: 3 فایل
 - **Models**: 12 فایل
 - **Migrations**: 5 فایل README (هر ماژول)
 - **Templates**: 1 فایل (templates/inventory/README.md)
-- **Other**: 19 فایل (README.md در پوشه‌های مختلف)
+- **Other**: 19+ فایل (README.md در پوشه‌های مختلف)
 
 **ماژول‌های جدید:**
 - Accounting: 1 فایل README (README_VIEWS.md)

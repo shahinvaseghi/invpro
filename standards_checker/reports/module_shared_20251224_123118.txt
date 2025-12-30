@@ -1,0 +1,1405 @@
+================================================================================
+STANDARDS CHECKER REPORT
+================================================================================
+
+Check Type:     MODULE
+Target:         shared
+Date/Time:      2025-12-24 12:31:18
+Total Files:    65
+Files with Issues: 64
+Total Issues:   207
+
+================================================================================
+
+SUMMARY BY SEVERITY
+--------------------------------------------------------------------------------
+Critical: 3
+Warnings: 104
+
+================================================================================
+
+DETAILED ISSUES BY FILE
+================================================================================
+
+File: shared/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for __init__.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/admin.py
+Issues: 8
+--------------------------------------------------------------------------------
+
+[WARNING] (7 issues)
+  1. Line 10
+     Class 'CustomUserAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 46
+     Class 'CompanyAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  3. Line 53
+     Class 'CompanyUnitAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  4. Line 60
+     Class 'AccessLevelAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  5. Line 67
+     Class 'AccessLevelPermissionAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  6. Line 74
+     Class 'UserCompanyAccessAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  7. Line 81
+     Class 'GroupProfileAdmin' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for admin.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/apps.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 4
+     Class 'SharedConfig' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for apps.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/context_processors.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 7
+     View function 'active_company' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  2. Line 7
+     View function 'active_company' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for context_processors.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/filters.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 139
+     View function 'apply_multi_field_filter' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  2. Line 139
+     View function 'apply_multi_field_filter' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for filters.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/forms.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for forms.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/forms/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for __init__.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/forms/access_levels.py
+Issues: 4
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 14
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 11
+     CharField in class 'AccessLevelForm' missing max_length
+     Suggestion: Add max_length parameter to prevent buffer overflow attacks
+
+
+[INFO] (2 issues)
+  1. Line 1
+     No test file found for access_levels.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 11
+     Form class 'AccessLevelForm' missing input validation
+     Suggestion: Add clean_<field>() methods or field validators for input sanitization
+
+
+================================================================================
+
+File: shared/forms/base.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[INFO] (2 issues)
+  1. Line 1
+     No test file found for base.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 12
+     Form class 'BaseModelForm' missing input validation
+     Suggestion: Add clean_<field>() methods or field validators for input sanitization
+
+
+================================================================================
+
+File: shared/forms/companies.py
+Issues: 6
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 22
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 74
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+[INFO] (4 issues)
+  1. Line 1
+     No test file found for companies.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 13
+     Form class 'CompanyForm' missing input validation
+     Suggestion: Add clean_<field>() methods or field validators for input sanitization
+
+  3. Line 22
+     Form class 'Meta' missing input validation
+     Suggestion: Add clean_<field>() methods or field validators for input sanitization
+
+  4. Line 74
+     Form class 'Meta' missing input validation
+     Suggestion: Add clean_<field>() methods or field validators for input sanitization
+
+
+================================================================================
+
+File: shared/forms/groups.py
+Issues: 4
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 35
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 14
+     CharField in class 'GroupForm' missing max_length
+     Suggestion: Add max_length parameter to prevent buffer overflow attacks
+
+
+[INFO] (2 issues)
+  1. Line 1
+     No test file found for groups.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 14
+     Form class 'GroupForm' missing input validation
+     Suggestion: Add clean_<field>() methods or field validators for input sanitization
+
+
+================================================================================
+
+File: shared/forms/smtp_server.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 12
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for smtp_server.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/forms/users.py
+Issues: 11
+--------------------------------------------------------------------------------
+
+[WARNING] (6 issues)
+  1. Line 36
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 161
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  3. Line 199
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  4. Line 248
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  5. Line 146
+     CharField in class 'UserCreateForm' missing max_length
+     Suggestion: Add max_length parameter to prevent buffer overflow attacks
+
+  6. Line 183
+     CharField in class 'UserUpdateForm' missing max_length
+     Suggestion: Add max_length parameter to prevent buffer overflow attacks
+
+
+[INFO] (5 issues)
+  1. Line 1
+     No test file found for users.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 18
+     Form class 'UserBaseForm' missing input validation
+     Suggestion: Add clean_<field>() methods or field validators for input sanitization
+
+  3. Line 245
+     Form class 'UserCompanyAccessForm' missing input validation
+     Suggestion: Add clean_<field>() methods or field validators for input sanitization
+
+  4. Line 36
+     Form class 'Meta' missing input validation
+     Suggestion: Add clean_<field>() methods or field validators for input sanitization
+
+  5. Line 248
+     Form class 'Meta' missing input validation
+     Suggestion: Add clean_<field>() methods or field validators for input sanitization
+
+
+================================================================================
+
+File: shared/management/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for __init__.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/management/commands/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for __init__.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/management/commands/clear_all_data.py
+Issues: 4
+--------------------------------------------------------------------------------
+
+[WARNING] (3 issues)
+  1. Line 16
+     Class 'Command' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 19
+     Function 'add_arguments' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  3. Line 26
+     Function 'handle' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for clear_all_data.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/management/commands/clear_edit_locks.py
+Issues: 4
+--------------------------------------------------------------------------------
+
+[WARNING] (3 issues)
+  1. Line 10
+     Class 'Command' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 13
+     Function 'add_arguments' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  3. Line 26
+     Function 'handle' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for clear_edit_locks.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/middleware.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 22
+     View function '__call__' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  2. Line 22
+     View function '__call__' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for middleware.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/migrations/0001_initial.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 12
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: shared/migrations/0002_user_default_company.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: shared/migrations/0003_alter_company_public_code.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: shared/migrations/0004_alter_companyunit_public_code.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: shared/migrations/0005_remove_accesslevel_activated_at_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: shared/migrations/0006_person_company_units.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 4
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: shared/migrations/0007_groupprofile.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 4
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: shared/migrations/0008_5_migrate_person_data.py
+Issues: 4
+--------------------------------------------------------------------------------
+
+[CRITICAL] (3 issues)
+  1. Line 40
+     Potential SQL injection with format()
+     Suggestion: Use parameterized queries or ORM methods instead
+
+  2. Line 75
+     Potential SQL injection with format()
+     Suggestion: Use parameterized queries or ORM methods instead
+
+  3. Line 110
+     Potential SQL injection with format()
+     Suggestion: Use parameterized queries or ORM methods instead
+
+
+[WARNING] (1 issues)
+  1. Line 128
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: shared/migrations/0008_remove_accesslevel_updated_at_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: shared/migrations/0009_remove_personassignment_company_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: shared/migrations/0010_smtpserver.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: shared/migrations/0011_add_section_and_action_registry.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 9
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: shared/migrations/0012_populate_section_and_action_registry.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 710
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 603
+     Function 'get_section' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+
+================================================================================
+
+File: shared/migrations/0013_add_notification_model.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: shared/migrations/0014_add_editable_model_fields.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: shared/migrations/0015_add_primary_groups_to_user.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: shared/mixins.py
+Issues: 7
+--------------------------------------------------------------------------------
+
+[WARNING] (6 issues)
+  1. Line 27
+     Function 'get_feature_code' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  2. Line 30
+     Function 'get_required_action' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  3. Line 53
+     Function 'has_feature_permission' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  4. Line 74
+     Function 'dispatch' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  5. Line 74
+     View function 'dispatch' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  6. Line 273
+     View function 'delete' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for mixins.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/models.py
+Issues: 34
+--------------------------------------------------------------------------------
+
+[WARNING] (33 issues)
+  1. Line 45
+     Class 'TimeStampedModel' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 67
+     Class 'ActivatableModel' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  3. Line 93
+     Class 'MetadataModel' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  4. Line 100
+     Class 'SortableModel' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  5. Line 169
+     Class 'LockableModel' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  6. Line 192
+     Class 'CompanyScopedModel' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  7. Line 214
+     Class 'User' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  8. Line 246
+     Class 'Company' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  9. Line 274
+     Class 'CompanyUnit' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  10. Line 310
+     Class 'AccessLevel' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  11. Line 360
+     Class 'AccessLevelPermission' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  12. Line 389
+     Class 'GroupProfile' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  13. Line 410
+     Class 'UserCompanyAccess' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  14. Line 63
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  15. Line 89
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  16. Line 96
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  17. Line 103
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  18. Line 131
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  19. Line 188
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  20. Line 205
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  21. Line 208
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  22. Line 238
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  23. Line 265
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  24. Line 292
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  25. Line 319
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  26. Line 327
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  27. Line 375
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  28. Line 402
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  29. Line 431
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  30. Line 510
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  31. Line 617
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  32. Line 703
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  33. Line 778
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for models.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/permissions.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for permissions.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/templatetags/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for __init__.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/templatetags/access_tags.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for access_tags.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/templatetags/generic_tags.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for generic_tags.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/templatetags/json_filters.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for json_filters.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/templatetags/persian_numbers.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for persian_numbers.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/templatetags/view_tags.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for view_tags.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/tests.py
+Issues: 11
+--------------------------------------------------------------------------------
+
+[WARNING] (6 issues)
+  1. Line 7
+     Class 'SharedModelTests' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 28
+     Function 'test_user_str_returns_full_name' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  3. Line 31
+     Function 'test_company_str_returns_display_name' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  4. Line 34
+     Function 'test_person_auto_populates_company_code' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  5. Line 46
+     Function 'test_user_company_access_str' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  6. Line 8
+     Function 'setUp' should use snake_case
+     Suggestion: Rename to set_up
+
+
+[INFO] (5 issues)
+  1. Line 1
+     Test file could benefit from factory pattern
+     Suggestion: Consider using factory classes for test data creation
+
+  2. Line 28
+     Test method 'test_user_str_returns_full_name' missing docstring
+     Suggestion: Add docstring explaining what the test verifies
+
+  3. Line 31
+     Test method 'test_company_str_returns_display_name' missing docstring
+     Suggestion: Add docstring explaining what the test verifies
+
+  4. Line 34
+     Test method 'test_person_auto_populates_company_code' missing docstring
+     Suggestion: Add docstring explaining what the test verifies
+
+  5. Line 46
+     Test method 'test_user_company_access_str' missing docstring
+     Suggestion: Add docstring explaining what the test verifies
+
+
+================================================================================
+
+File: shared/urls.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for urls.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/utils/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for __init__.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/utils/email.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for email.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/utils/modules.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for modules.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/utils/notifications.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for notifications.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/utils/permissions.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for permissions.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/utils/view_helpers.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 64
+     View function 'validate_active_company' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  2. Line 64
+     View function 'validate_active_company' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for view_helpers.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/views.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for views.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/views/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for __init__.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/views/access_levels.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for access_levels.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/views/api.py
+Issues: 40
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 122
+     View class 'BaseListAPIView' missing feature_code attribute
+     Suggestion: Add feature_code = 'module.feature.name' to enable permission checking
+
+  2. Line 226
+     View class 'BaseDetailAPIView' missing feature_code attribute
+     Suggestion: Add feature_code = 'module.feature.name' to enable permission checking
+
+
+[INFO] (38 issues)
+  1. Line 1
+     No test file found for api.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 1
+     API views missing rate limiting configuration
+     Suggestion: Configure throttling classes in settings or view-level throttling
+
+  3. Line 37
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  4. Line 119
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  5. Line 155
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  6. Line 256
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  7. Line 262
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  8. Line 265
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  9. Line 37
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  10. Line 119
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  11. Line 155
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  12. Line 256
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  13. Line 262
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  14. Line 265
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  15. Line 37
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  16. Line 119
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  17. Line 155
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  18. Line 256
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  19. Line 262
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  20. Line 265
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  21. Line 37
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  22. Line 119
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  23. Line 155
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  24. Line 256
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  25. Line 262
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  26. Line 265
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  27. Line 37
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  28. Line 119
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  29. Line 155
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  30. Line 256
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  31. Line 262
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  32. Line 265
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  33. Line 37
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  34. Line 119
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  35. Line 155
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  36. Line 256
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  37. Line 262
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  38. Line 265
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+
+================================================================================
+
+File: shared/views/auth.py
+Issues: 4
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 44
+     View function 'custom_login' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  2. Line 44
+     View function 'custom_login' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+
+[INFO] (2 issues)
+  1. Line 1
+     No test file found for auth.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 44
+     Sensitive function 'custom_login' missing rate limiting
+     Suggestion: Add @ratelimit decorator or implement rate limiting middleware
+
+
+================================================================================
+
+File: shared/views/base.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 250
+     View function 'dispatch' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for base.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/views/base_additional.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for base_additional.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/views/companies.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for companies.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/views/company_units.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for company_units.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/views/groups.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for groups.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/views/notifications.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for notifications.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/views/smtp_server.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 226
+     View function 'delete' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  2. Line 226
+     View function 'delete' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for smtp_server.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: shared/views/users.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for users.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+

@@ -38,34 +38,40 @@ class AccessLevelPermissionMixin:
     """Mixin to handle access level permissions management."""
     template_name = 'shared/access_level_form.html'
 
-    action_labels: Dict[str, str] = {}
+    _action_labels_cache: Optional[Dict[str, str]] = None
 
-    def __init__(self, *args: Any, **kwargs: Any):
-        """Initialize action labels."""
-        super().__init__(*args, **kwargs)
-        from django.utils.translation import gettext_lazy as _
-        from shared.permissions import PermissionAction
-        
-        self.action_labels = {
-            PermissionAction.VIEW_OWN.value: _('View own records'),
-            PermissionAction.VIEW_ALL.value: _('View all records'),
-            PermissionAction.CREATE.value: _('Create'),
-            PermissionAction.EDIT_OWN.value: _('Edit own records'),
-            PermissionAction.EDIT_OTHER.value: _('Edit others records'),
-            PermissionAction.DELETE_OWN.value: _('Delete own records'),
-            PermissionAction.DELETE_OTHER.value: _('Delete others records'),
-            PermissionAction.LOCK_OWN.value: _('Lock own documents'),
-            PermissionAction.LOCK_OTHER.value: _('Lock others documents'),
-            PermissionAction.UNLOCK_OWN.value: _('Unlock own documents'),
-            PermissionAction.UNLOCK_OTHER.value: _('Unlock others documents'),
-            PermissionAction.APPROVE.value: _('Approve'),
-            PermissionAction.REJECT.value: _('Reject'),
-            PermissionAction.CANCEL.value: _('Cancel'),
-            PermissionAction.CREATE_TRANSFER_FROM_ORDER.value: _('Create Transfer from Order'),
-            PermissionAction.CREATE_RECEIPT.value: _('Create Receipt'),
-            PermissionAction.CREATE_RECEIPT_FROM_PURCHASE_REQUEST.value: _('Create Receipt from Purchase Request'),
-            PermissionAction.CREATE_ISSUE_FROM_WAREHOUSE_REQUEST.value: _('Create Issue from Warehouse Request'),
-        }
+    def get_action_labels(self) -> Dict[str, str]:
+        """Get action labels dictionary (cached)."""
+        if self._action_labels_cache is None:
+            from django.utils.translation import gettext_lazy as _
+            from shared.permissions import PermissionAction
+            
+            self._action_labels_cache = {
+                PermissionAction.VIEW_OWN.value: _('View own records'),
+                PermissionAction.VIEW_ALL.value: _('View all records'),
+                PermissionAction.VIEW_SAME_GROUP.value: _('View same group records'),
+                PermissionAction.CREATE.value: _('Create'),
+                PermissionAction.EDIT_OWN.value: _('Edit own records'),
+                PermissionAction.EDIT_OTHER.value: _('Edit others records'),
+                PermissionAction.EDIT_SAME_GROUP.value: _('Edit same group records'),
+                PermissionAction.DELETE_OWN.value: _('Delete own records'),
+                PermissionAction.DELETE_OTHER.value: _('Delete others records'),
+                PermissionAction.DELETE_SAME_GROUP.value: _('Delete same group records'),
+                PermissionAction.LOCK_OWN.value: _('Lock own documents'),
+                PermissionAction.LOCK_OTHER.value: _('Lock others documents'),
+                PermissionAction.LOCK_SAME_GROUP.value: _('Lock same group documents'),
+                PermissionAction.UNLOCK_OWN.value: _('Unlock own documents'),
+                PermissionAction.UNLOCK_OTHER.value: _('Unlock others documents'),
+                PermissionAction.UNLOCK_SAME_GROUP.value: _('Unlock same group documents'),
+                PermissionAction.APPROVE.value: _('Approve'),
+                PermissionAction.REJECT.value: _('Reject'),
+                PermissionAction.CANCEL.value: _('Cancel'),
+                PermissionAction.CREATE_TRANSFER_FROM_ORDER.value: _('Create Transfer from Order'),
+                PermissionAction.CREATE_RECEIPT.value: _('Create Receipt'),
+                PermissionAction.CREATE_RECEIPT_FROM_PURCHASE_REQUEST.value: _('Create Receipt from Purchase Request'),
+                PermissionAction.CREATE_ISSUE_FROM_WAREHOUSE_REQUEST.value: _('Create Issue from Warehouse Request'),
+            }
+        return self._action_labels_cache
 
     def _feature_key(self, code: str) -> str:
         """Convert feature code to HTML-safe key."""
@@ -117,10 +123,12 @@ class AccessLevelPermissionMixin:
                     checked = feature_state.get('fallback_can_delete', False)
                 if not feature_state and action == PermissionAction.APPROVE:
                     checked = feature_state.get('fallback_can_approve', False)
+                action_labels = self.get_action_labels()
+                label = action_labels.get(action.value, action.value.replace('_', ' ').title())
                 data_actions.append(
                     {
                         'code': action.value,
-                        'label': self.action_labels[action.value],
+                        'label': label,
                         'checked': checked,
                     }
                 )
@@ -346,4 +354,1236 @@ class EditLockProtectedMixin:
         
         # Last resort: redirect to home
         return '/'
+
+
+# ============================================================================
+# Base View Classes
+# ============================================================================
+
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
+from django.db.models import QuerySet, Prefetch
+from django.urls import reverse_lazy, reverse
+from typing import List, Optional, Dict, Any
+from shared.mixins import (
+    FeaturePermissionRequiredMixin,
+    PermissionFilterMixin,
+    CompanyScopedViewMixin,
+    AutoSetFieldsMixin,
+    SuccessMessageMixin,
+)
+from shared.filters import (
+    apply_search,
+    apply_status_filter,
+    apply_company_filter,
+    apply_multi_field_filter,
+)
+
+
+class BaseListView(
+    FeaturePermissionRequiredMixin,
+    PermissionFilterMixin,
+    CompanyScopedViewMixin,
+    ListView
+):
+    """
+    Base ListView with common functionality for all modules.
+    
+    This class provides:
+    - Automatic search filtering
+    - Status filtering
+    - Company filtering
+    - Permission filtering
+    - Standard context setup
+    - Pagination
+    
+    Usage:
+        class ItemTypeListView(BaseListView):
+            model = ItemType
+            search_fields = ['name', 'public_code', 'name_en']
+            filter_fields = ['is_enabled']
+            feature_code = 'inventory.master.item_types'
+            permission_field = 'created_by'
+            default_order_by = ['public_code']
+            
+            def get_breadcrumbs(self):
+                return [
+                    {'label': _('Inventory'), 'url': None},
+                    {'label': _('Item Types'), 'url': None},
+                ]
+    """
+    
+    # Required attributes
+    model = None
+    feature_code: Optional[str] = None
+    
+    # Search and filter configuration
+    search_fields: List[str] = []
+    filter_fields: List[str] = []
+    permission_field: str = 'created_by'
+    default_status_filter: bool = True
+    default_order_by: List[str] = []
+    paginate_by: int = 50
+    
+    # Template configuration
+    template_name: str = 'shared/generic/generic_list.html'
+    context_object_name: str = 'object_list'
+    
+    def get_queryset(self) -> QuerySet:
+        """Build queryset with filters, search, and permissions."""
+        # Get base queryset
+        queryset = self.get_base_queryset()
+        
+        # Apply company filter
+        company_id = self.request.session.get('active_company_id')
+        queryset = apply_company_filter(queryset, company_id)
+        
+        # Apply permission filtering
+        if self.feature_code and self.permission_field:
+            queryset = self.filter_queryset_by_permissions(
+                queryset,
+                self.feature_code,
+                self.permission_field
+            )
+        
+        # Apply prefetch/select related
+        prefetch_related = self.get_prefetch_related()
+        if prefetch_related:
+            queryset = queryset.prefetch_related(*prefetch_related)
+        
+        select_related = self.get_select_related()
+        if select_related:
+            queryset = queryset.select_related(*select_related)
+        
+        # Apply search
+        search_query = self.request.GET.get('search', '').strip()
+        if search_query and self.search_fields:
+            queryset = apply_search(queryset, search_query, self.search_fields)
+        
+        # Apply status filter
+        if self.default_status_filter:
+            status_value = self.request.GET.get('status', '')
+            queryset = apply_status_filter(queryset, status_value)
+        
+        # Apply custom filters
+        queryset = self.apply_custom_filters(queryset)
+        
+        # Apply ordering
+        if self.default_order_by:
+            queryset = queryset.order_by(*self.default_order_by)
+        
+        return queryset
+    
+    def get_base_queryset(self) -> QuerySet:
+        """Get base queryset. Override for custom base filtering."""
+        return self.model.objects.all()
+    
+    def get_prefetch_related(self) -> List[str]:
+        """Return list of fields to prefetch. Override for custom prefetch."""
+        return []
+    
+    def get_select_related(self) -> List[str]:
+        """Return list of fields to select_related. Override for custom select."""
+        return []
+    
+    def apply_custom_filters(self, queryset: QuerySet) -> QuerySet:
+        """Apply custom filters. Override for additional filtering."""
+        if self.filter_fields:
+            filter_map = {field: field for field in self.filter_fields}
+            queryset = apply_multi_field_filter(queryset, self.request, filter_map)
+        return queryset
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Setup standard context for list view."""
+        context = super().get_context_data(**kwargs)
+        
+        # Page title
+        context['page_title'] = self.get_page_title()
+        
+        # Breadcrumbs
+        context['breadcrumbs'] = self.get_breadcrumbs()
+        
+        # Create URL
+        context['create_url'] = self.get_create_url()
+        context['create_button_text'] = self.get_create_button_text()
+        
+        # Filter configuration
+        context['show_filters'] = True
+        context['status_filter'] = self.default_status_filter
+        context['search_placeholder'] = self.get_search_placeholder()
+        context['clear_filter_url'] = self.get_clear_filter_url()
+        
+        # Actions configuration
+        context['show_actions'] = True
+        context['feature_code'] = self.feature_code
+        context['detail_url_name'] = self.get_detail_url_name()
+        context['edit_url_name'] = self.get_edit_url_name()
+        context['delete_url_name'] = self.get_delete_url_name()
+        
+        # Empty state
+        context['empty_state_title'] = self.get_empty_state_title()
+        context['empty_state_message'] = self.get_empty_state_message()
+        context['empty_state_icon'] = self.get_empty_state_icon()
+        
+        # Stats (if enabled)
+        stats = self.get_stats()
+        if stats:
+            context['stats'] = stats
+            context['stats_labels'] = self.get_stats_labels()
+        
+        return context
+    
+    # Hook methods for customization
+    def get_page_title(self) -> str:
+        """Return page title. Override for custom title."""
+        return str(self.model._meta.verbose_name_plural)
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list. Override for custom breadcrumbs."""
+        return [
+            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
+            {'label': self.get_page_title(), 'url': None},
+        ]
+    
+    def get_create_url(self):
+        """Return create URL. Override for custom URL."""
+        return None
+    
+    def get_create_button_text(self) -> str:
+        """Return create button text. Override for custom text."""
+        return _('Create')
+    
+    def get_search_placeholder(self) -> str:
+        """Return search placeholder. Override for custom placeholder."""
+        return _('Search...')
+    
+    def get_clear_filter_url(self):
+        """Return clear filter URL. Override for custom URL."""
+        return reverse_lazy(self.request.resolver_match.url_name)
+    
+    def get_detail_url_name(self) -> Optional[str]:
+        """Return detail URL name. Override for custom URL name."""
+        return None
+    
+    def get_edit_url_name(self) -> Optional[str]:
+        """Return edit URL name. Override for custom URL name."""
+        return None
+    
+    def get_delete_url_name(self) -> Optional[str]:
+        """Return delete URL name. Override for custom URL name."""
+        return None
+    
+    def get_empty_state_title(self) -> str:
+        """Return empty state title. Override for custom title."""
+        return _('No items found')
+    
+    def get_empty_state_message(self) -> str:
+        """Return empty state message. Override for custom message."""
+        return _('Start by creating your first item.')
+    
+    def get_empty_state_icon(self) -> str:
+        """Return empty state icon. Override for custom icon."""
+        return '📋'
+    
+    def get_stats(self) -> Optional[Dict[str, int]]:
+        """Return stats dictionary. Override for custom stats."""
+        return None
+    
+    def get_stats_labels(self) -> Dict[str, str]:
+        """Return stats labels dictionary. Override for custom labels."""
+        return {}
+
+
+class BaseCreateView(
+    FeaturePermissionRequiredMixin,
+    AutoSetFieldsMixin,
+    SuccessMessageMixin,
+    CompanyScopedViewMixin,
+    CreateView
+):
+    """
+    Base CreateView with common functionality for all modules.
+    
+    This class provides:
+    - Automatic company_id and created_by setting
+    - Success message display
+    - Standard context setup
+    - Form kwargs with company_id
+    
+    Usage:
+        class ItemTypeCreateView(BaseCreateView):
+            model = ItemType
+            form_class = ItemTypeForm
+            success_url = reverse_lazy('inventory:item_types')
+            feature_code = 'inventory.master.item_types'
+            success_message = _('Item type created successfully.')
+            
+            def get_breadcrumbs(self):
+                return [
+                    {'label': _('Inventory'), 'url': None},
+                    {'label': _('Item Types'), 'url': reverse_lazy('inventory:item_types')},
+                    {'label': _('Create'), 'url': None},
+                ]
+    """
+    
+    # Required attributes
+    model = None
+    form_class = None
+    success_url = None
+    feature_code: Optional[str] = None
+    
+    # Template configuration
+    template_name: str = 'shared/generic/generic_form.html'
+    
+    def get_form_kwargs(self):
+        """Add company_id to form kwargs."""
+        kwargs = super().get_form_kwargs()
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            kwargs['company_id'] = company_id
+        return kwargs
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Setup standard context for create view."""
+        context = super().get_context_data(**kwargs)
+        
+        # Form title
+        context['form_title'] = self.get_form_title()
+        
+        # Breadcrumbs
+        context['breadcrumbs'] = self.get_breadcrumbs()
+        
+        # Cancel URL
+        context['cancel_url'] = self.get_cancel_url()
+        
+        return context
+    
+    # Hook methods for customization
+    def get_form_title(self) -> str:
+        """Return form title. Override for custom title."""
+        return _('Create {model}').format(model=self.model._meta.verbose_name)
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list. Override for custom breadcrumbs."""
+        return [
+            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
+            {'label': self.model._meta.verbose_name_plural, 'url': None},
+            {'label': _('Create'), 'url': None},
+        ]
+    
+    def get_cancel_url(self):
+        """Return cancel URL. Override for custom URL."""
+        return self.success_url
+
+
+class BaseUpdateView(
+    EditLockProtectedMixin,
+    FeaturePermissionRequiredMixin,
+    AutoSetFieldsMixin,
+    SuccessMessageMixin,
+    CompanyScopedViewMixin,
+    UpdateView
+):
+    """
+    Base UpdateView with common functionality for all modules.
+    
+    This class provides:
+    - Edit lock protection
+    - Automatic edited_by setting
+    - Success message display
+    - Standard context setup
+    - Form kwargs with company_id
+    
+    Usage:
+        class ItemTypeUpdateView(BaseUpdateView):
+            model = ItemType
+            form_class = ItemTypeForm
+            success_url = reverse_lazy('inventory:item_types')
+            feature_code = 'inventory.master.item_types'
+            success_message = _('Item type updated successfully.')
+            
+            def get_breadcrumbs(self):
+                return [
+                    {'label': _('Inventory'), 'url': None},
+                    {'label': _('Item Types'), 'url': reverse_lazy('inventory:item_types')},
+                    {'label': _('Edit'), 'url': None},
+                ]
+    """
+    
+    # Required attributes
+    model = None
+    form_class = None
+    success_url = None
+    feature_code: Optional[str] = None
+    
+    # Template configuration
+    template_name: str = 'shared/generic/generic_form.html'
+    
+    def get_form_kwargs(self):
+        """Add company_id to form kwargs."""
+        kwargs = super().get_form_kwargs()
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            kwargs['company_id'] = company_id
+        return kwargs
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Setup standard context for update view."""
+        context = super().get_context_data(**kwargs)
+        
+        # Form title
+        context['form_title'] = self.get_form_title()
+        
+        # Breadcrumbs
+        context['breadcrumbs'] = self.get_breadcrumbs()
+        
+        # Cancel URL
+        context['cancel_url'] = self.get_cancel_url()
+        
+        return context
+    
+    # Hook methods for customization
+    def get_form_title(self) -> str:
+        """Return form title. Override for custom title."""
+        return _('Edit {model}').format(model=self.model._meta.verbose_name)
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list. Override for custom breadcrumbs."""
+        return [
+            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
+            {'label': self.model._meta.verbose_name_plural, 'url': None},
+            {'label': _('Edit'), 'url': None},
+        ]
+    
+    def get_cancel_url(self):
+        """Return cancel URL. Override for custom URL."""
+        return self.success_url
+
+
+class BaseDeleteView(
+    FeaturePermissionRequiredMixin,
+    SuccessMessageMixin,
+    CompanyScopedViewMixin,
+    DeleteView
+):
+    """
+    Base DeleteView with common functionality for all modules.
+    
+    This class provides:
+    - Success message display
+    - Standard context setup
+    - Object details display
+    
+    Usage:
+        class ItemTypeDeleteView(BaseDeleteView):
+            model = ItemType
+            success_url = reverse_lazy('inventory:item_types')
+            feature_code = 'inventory.master.item_types'
+            success_message = _('Item type deleted successfully.')
+            
+            def get_breadcrumbs(self):
+                return [
+                    {'label': _('Inventory'), 'url': None},
+                    {'label': _('Item Types'), 'url': reverse_lazy('inventory:item_types')},
+                    {'label': _('Delete'), 'url': None},
+                ]
+            
+            def get_object_details(self):
+                return [
+                    {'label': _('Name'), 'value': self.object.name},
+                    {'label': _('Code'), 'value': self.object.public_code, 'type': 'code'},
+                ]
+    """
+    
+    # Required attributes
+    model = None
+    success_url = None
+    feature_code: Optional[str] = None
+    
+    # Template configuration
+    template_name: str = 'shared/generic/generic_confirm_delete.html'
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Setup standard context for delete view."""
+        context = super().get_context_data(**kwargs)
+        
+        # Delete title
+        context['delete_title'] = self.get_delete_title()
+        
+        # Confirmation message
+        context['confirmation_message'] = self.get_confirmation_message()
+        
+        # Breadcrumbs
+        context['breadcrumbs'] = self.get_breadcrumbs()
+        
+        # Object details
+        context['object_details'] = self.get_object_details()
+        
+        # Cancel URL
+        context['cancel_url'] = self.get_cancel_url()
+        
+        return context
+    
+    # Hook methods for customization
+    def get_delete_title(self) -> str:
+        """Return delete title. Override for custom title."""
+        return _('Delete {model}').format(model=self.model._meta.verbose_name)
+    
+    def get_confirmation_message(self) -> str:
+        """Return confirmation message. Override for custom message."""
+        return _('Are you sure you want to delete this {model}? This action cannot be undone.').format(
+            model=self.model._meta.verbose_name
+        )
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list. Override for custom breadcrumbs."""
+        return [
+            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
+            {'label': self.model._meta.verbose_name_plural, 'url': None},
+            {'label': _('Delete'), 'url': None},
+        ]
+    
+    def get_object_details(self) -> List[Dict[str, Any]]:
+        """Return object details for display. Override for custom details."""
+        details = []
+        if hasattr(self.object, 'public_code'):
+            details.append({
+                'label': _('Code'),
+                'value': self.object.public_code,
+                'type': 'code'
+            })
+        if hasattr(self.object, 'name'):
+            details.append({
+                'label': _('Name'),
+                'value': self.object.name
+            })
+        return details
+    
+    def get_cancel_url(self):
+        """Return cancel URL. Override for custom URL."""
+        return self.success_url
+    
+    def validate_deletion(self) -> tuple[bool, Optional[str]]:
+        """
+        Validate if object can be deleted. Override for custom validation.
+        
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        return True, None
+
+
+class BaseDetailView(
+    FeaturePermissionRequiredMixin,
+    PermissionFilterMixin,
+    CompanyScopedViewMixin,
+    DetailView
+):
+    """
+    Base DetailView with common functionality for all modules.
+    
+    This class provides:
+    - Permission filtering
+    - Standard context setup
+    - Edit permission check
+    
+    Usage:
+        class ItemTypeDetailView(BaseDetailView):
+            model = ItemType
+            feature_code = 'inventory.master.item_types'
+            
+            def get_breadcrumbs(self):
+                return [
+                    {'label': _('Inventory'), 'url': None},
+                    {'label': _('Item Types'), 'url': reverse_lazy('inventory:item_types')},
+                    {'label': _('View'), 'url': None},
+                ]
+    """
+    
+    # Required attributes
+    model = None
+    feature_code: Optional[str] = None
+    
+    # Template configuration
+    template_name: str = 'shared/generic/generic_detail.html'
+    context_object_name: str = 'object'
+    
+    def get_queryset(self) -> QuerySet:
+        """Filter queryset by permissions."""
+        queryset = super().get_queryset()
+        
+        # Apply permission filtering
+        if self.feature_code and self.permission_field:
+            queryset = self.filter_queryset_by_permissions(
+                queryset,
+                self.feature_code,
+                self.permission_field
+            )
+        
+        return queryset
+    
+    @property
+    def permission_field(self) -> str:
+        """Return permission field name. Override for custom field."""
+        return 'created_by'
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Setup standard context for detail view."""
+        context = super().get_context_data(**kwargs)
+        
+        # Page title
+        context['page_title'] = self.get_page_title()
+        
+        # Breadcrumbs
+        context['breadcrumbs'] = self.get_breadcrumbs()
+        
+        # URLs
+        context['list_url'] = self.get_list_url()
+        context['edit_url'] = self.get_edit_url()
+        
+        # Permissions
+        context['can_edit'] = self.can_edit_object(self.object, self.feature_code)
+        context['feature_code'] = self.feature_code
+        
+        return context
+    
+    # Hook methods for customization
+    def get_page_title(self) -> str:
+        """Return page title. Override for custom title."""
+        return str(self.object)
+    
+    def get_breadcrumbs(self) -> List[Dict[str, Optional[str]]]:
+        """Return breadcrumbs list. Override for custom breadcrumbs."""
+        return [
+            {'label': _('Dashboard'), 'url': reverse('ui:dashboard')},
+            {'label': self.model._meta.verbose_name_plural, 'url': None},
+            {'label': _('View'), 'url': None},
+        ]
+    
+    def get_list_url(self):
+        """Return list URL. Override for custom URL."""
+        return None
+    
+    def get_edit_url(self):
+        """Return edit URL. Override for custom URL."""
+        return None
+    
+    def can_edit_object(self, obj=None, feature_code=None) -> bool:
+        """
+        Check if object can be edited. Override for custom logic.
+        
+        Args:
+            obj: Optional object to check (defaults to self.object)
+            feature_code: Optional feature code (defaults to self.feature_code)
+        
+        Returns:
+            True if object can be edited, False otherwise
+        """
+        # Use provided object or self.object
+        check_obj = obj if obj is not None else self.object
+        
+        # Check if object is locked
+        if hasattr(check_obj, 'is_locked'):
+            return not bool(check_obj.is_locked)
+        return True
+
+
+class BaseFormsetCreateView(BaseCreateView):
+    """
+    Base CreateView with formset support.
+    
+    This class extends BaseCreateView to handle formsets for related objects.
+    
+    Usage:
+        class BOMCreateView(BaseFormsetCreateView):
+            model = BOM
+            form_class = BOMForm
+            formset_class = BOMMaterialLineFormSet
+            success_url = reverse_lazy('production:bom_list')
+            feature_code = 'production.bom'
+    """
+    
+    formset_class = None
+    formset_prefix: str = 'formset'
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add formset to context."""
+        # #region agent log
+        import json, time
+        try:
+            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "B",
+                    "location": "base.py:1008",
+                    "message": "BaseFormsetCreateView.get_context_data entry",
+                    "data": {
+                        "kwargs_keys": list(kwargs.keys()),
+                        "kwargs_has_form": 'form' in kwargs,
+                        "kwargs_has_formset": 'formset' in kwargs,
+                        "kwargs_has_lines_formset": 'lines_formset' in kwargs,
+                        "form_is_bound": kwargs.get('form').is_bound if kwargs.get('form') else None,
+                        "form_data_keys": list(kwargs.get('form').data.keys())[:5] if kwargs.get('form') and hasattr(kwargs.get('form'), 'data') and kwargs.get('form').data else None
+                    },
+                    "timestamp": int(time.time() * 1000)
+                }) + '\n')
+        except: pass
+        # #endregion
+        context = super().get_context_data(**kwargs)
+        # #region agent log
+        try:
+            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "A,B",
+                    "location": "base.py:1010",
+                    "message": "BaseFormsetCreateView.get_context_data after super()",
+                    "data": {
+                        "context_keys": list(context.keys()),
+                        "context_has_form": 'form' in context,
+                        "context_has_formset": 'formset' in context,
+                        "context_has_lines_formset": 'lines_formset' in context,
+                        "form_is_bound": context.get('form').is_bound if context.get('form') else None,
+                        "form_data_keys": list(context.get('form').data.keys())[:5] if context.get('form') and hasattr(context.get('form'), 'data') and context.get('form').data else None,
+                        "form_from_kwargs_is_same": context.get('form') is kwargs.get('form') if 'form' in kwargs else None
+                    },
+                    "timestamp": int(time.time() * 1000)
+                }) + '\n')
+        except: pass
+        # #endregion
+        
+        # Only add formset if not already provided in kwargs or context
+        # This allows subclasses to pass pre-built formsets (e.g., when validation fails)
+        if 'formset' not in context and 'formset' not in kwargs:
+            # Add formset
+            if self.request.method == 'POST':
+                formset = self.formset_class(
+                    self.request.POST,
+                    prefix=self.formset_prefix,
+                    **self.get_formset_kwargs()
+                )
+            else:
+                formset = self.formset_class(
+                    prefix=self.formset_prefix,
+                    **self.get_formset_kwargs()
+                )
+            
+            context['formset'] = formset
+        elif 'formset' in kwargs:
+            # Preserve formset from kwargs
+            context['formset'] = kwargs['formset']
+        # #region agent log
+        try:
+            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "B",
+                    "location": "base.py:1033",
+                    "message": "BaseFormsetCreateView.get_context_data exit",
+                    "data": {
+                        "context_has_form": 'form' in context,
+                        "context_has_formset": 'formset' in context,
+                        "form_is_bound": context.get('form').is_bound if context.get('form') else None,
+                        "form_data_keys": list(context.get('form').data.keys())[:5] if context.get('form') and hasattr(context.get('form'), 'data') and context.get('form').data else None
+                    },
+                    "timestamp": int(time.time() * 1000)
+                }) + '\n')
+        except: pass
+        # #endregion
+        
+        return context
+    
+    def get_formset_kwargs(self) -> Dict[str, Any]:
+        """Return kwargs for formset. Override for custom kwargs."""
+        kwargs = {}
+        if hasattr(self, 'object') and self.object:
+            kwargs['instance'] = self.object
+        return kwargs
+    
+    def form_valid(self, form):
+        """Save form and formset."""
+        from django.db import transaction
+        
+        with transaction.atomic():
+            # Save main object first
+            response = super().form_valid(form)
+            
+            # Save formset
+            formset = self.formset_class(
+                self.request.POST,
+                prefix=self.formset_prefix,
+                **self.get_formset_kwargs()
+            )
+            
+            if formset.is_valid():
+                formset.save()
+            else:
+                # Formset validation failed
+                return self.form_invalid(form)
+        
+        return response
+
+
+class BaseFormsetUpdateView(BaseUpdateView):
+    """
+    Base UpdateView with formset support.
+    
+    This class extends BaseUpdateView to handle formsets for related objects.
+    
+    Usage:
+        class BOMUpdateView(BaseFormsetUpdateView):
+            model = BOM
+            form_class = BOMForm
+            formset_class = BOMMaterialLineFormSet
+            success_url = reverse_lazy('production:bom_list')
+            feature_code = 'production.bom'
+    """
+    
+    formset_class = None
+    formset_prefix: str = 'formset'
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add formset to context."""
+        context = super().get_context_data(**kwargs)
+        
+        # Add formset
+        if self.request.method == 'POST':
+            formset = self.formset_class(
+                self.request.POST,
+                prefix=self.formset_prefix,
+                **self.get_formset_kwargs()
+            )
+        else:
+            formset = self.formset_class(
+                prefix=self.formset_prefix,
+                **self.get_formset_kwargs()
+            )
+        
+        context['formset'] = formset
+        
+        return context
+    
+    def get_formset_kwargs(self) -> Dict[str, Any]:
+        """Return kwargs for formset. Override for custom kwargs."""
+        return {}
+    
+    def form_valid(self, form):
+        """Save form and formset."""
+        from django.db import transaction
+        
+        with transaction.atomic():
+            # Save main object first
+            response = super().form_valid(form)
+            
+            # Save formset
+            formset = self.formset_class(
+                self.request.POST,
+                prefix=self.formset_prefix,
+                **self.get_formset_kwargs()
+            )
+            
+            if formset.is_valid():
+                formset.save()
+            else:
+                # Formset validation failed
+                return self.form_invalid(form)
+        
+        return response
+
+
+class BaseDocumentListView(BaseListView):
+    """
+    Base ListView for documents with lines (Receipts, Issues, etc.).
+    
+    This class extends BaseListView to provide:
+    - Prefetch lines and related objects
+    - Stats calculation
+    
+    Usage:
+        class ReceiptPermanentListView(BaseDocumentListView):
+            model = ReceiptPermanent
+            feature_code = 'inventory.receipts.permanent'
+            prefetch_lines = True
+            stats_enabled = True
+    """
+    
+    prefetch_lines: bool = True
+    stats_enabled: bool = True
+    
+    def get_prefetch_related(self) -> List[str]:
+        """Prefetch lines and related objects."""
+        prefetch = super().get_prefetch_related()
+        
+        if self.prefetch_lines:
+            # Try to find lines relationship
+            # Common patterns: 'lines', 'line_set', model_name.lower() + '_line_set'
+            model_name = self.model.__name__.lower()
+            possible_line_names = [
+                'lines',
+                'line_set',
+                f'{model_name}_line_set',
+                f'{model_name}line_set',
+            ]
+            
+            for line_name in possible_line_names:
+                if hasattr(self.model, line_name):
+                    prefetch.append(line_name)
+                    break
+        
+        return prefetch
+    
+    def get_stats(self) -> Optional[Dict[str, int]]:
+        """Calculate stats for documents. Override for custom stats."""
+        if not self.stats_enabled:
+            return None
+        
+        company_id = self.request.session.get('active_company_id')
+        if not company_id:
+            return None
+        
+        base_qs = self.model.objects.filter(company_id=company_id)
+        
+        stats = {
+            'total': base_qs.count(),
+        }
+        
+        # Try to add status-based stats if model has status field
+        if hasattr(self.model, 'status'):
+            from django.db.models import Count
+            status_stats = base_qs.values('status').annotate(count=Count('id'))
+            for stat in status_stats:
+                stats[stat['status']] = stat['count']
+        
+        return stats
+
+
+class BaseDocumentCreateView(BaseFormsetCreateView):
+    """
+    Base CreateView for documents with lines.
+    
+    This class extends BaseFormsetCreateView to handle document headers and lines.
+    
+    Usage:
+        class ReceiptPermanentCreateView(BaseDocumentCreateView):
+            model = ReceiptPermanent
+            form_class = ReceiptPermanentForm
+            formset_class = ReceiptPermanentLineFormSet
+            success_url = reverse_lazy('inventory:receipt_permanent')
+            feature_code = 'inventory.receipts.permanent'
+    """
+    
+    def save_lines_formset(self, formset):
+        """Save lines formset. Override for custom line saving logic."""
+        if formset.is_valid():
+            formset.save()
+        else:
+            raise ValueError("Formset is not valid")
+
+
+class BaseDocumentUpdateView(BaseFormsetUpdateView):
+    """
+    Base UpdateView for documents with lines.
+    
+    This class extends BaseFormsetUpdateView to handle document headers and lines.
+    
+    Usage:
+        class ReceiptPermanentUpdateView(BaseDocumentUpdateView):
+            model = ReceiptPermanent
+            form_class = ReceiptPermanentForm
+            formset_class = ReceiptPermanentLineFormSet
+            success_url = reverse_lazy('inventory:receipt_permanent')
+            feature_code = 'inventory.receipts.permanent'
+    """
+    
+    def save_lines_formset(self, formset):
+        """Save lines formset. Override for custom line saving logic."""
+        if formset.is_valid():
+            formset.save()
+        else:
+            raise ValueError("Formset is not valid")
+
+
+class BaseNestedFormsetCreateView(BaseFormsetCreateView):
+    """
+    Base CreateView with nested formset support.
+    
+    This class extends BaseFormsetCreateView to handle nested formsets
+    (e.g., BOM materials with alternative materials).
+    
+    Usage:
+        class BOMCreateView(BaseNestedFormsetCreateView):
+            model = BOM
+            form_class = BOMForm
+            formset_class = BOMMaterialLineFormSet
+            nested_formset_class = BOMMaterialAlternativeFormSet
+            nested_formset_prefix_template = 'alternatives_{parent_pk}'
+            success_url = reverse_lazy('production:bom_list')
+            feature_code = 'production.bom'
+            
+            def get_nested_formset_kwargs(self, parent_instance):
+                return {
+                    'company_id': self.request.session.get('active_company_id'),
+                    'bom_material_id': parent_instance.pk
+                }
+    """
+    
+    nested_formset_class = None
+    nested_formset_prefix_template: str = 'nested_{parent_pk}'
+    
+    def get_nested_formset_kwargs(self, parent_instance) -> Dict[str, Any]:
+        """Return kwargs for nested formset. Override for custom kwargs."""
+        return {}
+    
+    def get_nested_formset_prefix(self, parent_instance) -> str:
+        """Return prefix for nested formset."""
+        if hasattr(parent_instance, 'pk') and parent_instance.pk:
+            return self.nested_formset_prefix_template.format(parent_pk=parent_instance.pk)
+        return 'nested'
+    
+    def save_nested_formsets(self, parent_instances: List[Any]) -> None:
+        """
+        Save nested formsets for each parent instance.
+        
+        Args:
+            parent_instances: List of parent instances that need nested formsets
+        """
+        if not self.nested_formset_class:
+            return
+        
+        for parent_instance in parent_instances:
+            if not hasattr(parent_instance, 'pk') or not parent_instance.pk:
+                continue
+            
+            prefix = self.get_nested_formset_prefix(parent_instance)
+            nested_formset = self.nested_formset_class(
+                self.request.POST,
+                instance=parent_instance,
+                prefix=prefix,
+                **self.get_nested_formset_kwargs(parent_instance)
+            )
+            
+            if nested_formset.is_valid():
+                try:
+                    nested_formset.save()
+                except Exception as e:
+                    from django.contrib import messages
+                    messages.warning(
+                        self.request,
+                        _('Error saving nested formset for {parent}: {error}').format(
+                            parent=str(parent_instance),
+                            error=str(e)
+                        )
+                    )
+            else:
+                # Show errors for nested formset
+                for error in nested_formset.non_form_errors():
+                    from django.contrib import messages
+                    messages.warning(self.request, f"⚠️ {error}")
+    
+    def form_valid(self, form):
+        """Save form, formset, and nested formsets."""
+        from django.db import transaction
+        from django.http import HttpResponseRedirect
+        
+        with transaction.atomic():
+            # Save main object first (from BaseCreateView)
+            self.object = form.save()
+            
+            # Get formset
+            formset = self.formset_class(
+                self.request.POST,
+                prefix=self.formset_prefix,
+                **self.get_formset_kwargs()
+            )
+            
+            if formset.is_valid():
+                # Save formset and get instances
+                instances = formset.save(commit=False)
+                saved_instances = []
+                
+                # Save each instance with custom logic
+                for instance in instances:
+                    # Hook for custom instance processing
+                    instance = self.process_formset_instance(instance)
+                    if instance:
+                        instance.save()
+                        saved_instances.append(instance)
+                
+                # Delete marked instances
+                for obj in formset.deleted_objects:
+                    obj.delete()
+                
+                # Save nested formsets
+                if saved_instances:
+                    self.save_nested_formsets(saved_instances)
+            else:
+                # Formset validation failed
+                return self.form_invalid(form)
+        
+        # Return redirect response
+        return HttpResponseRedirect(self.get_success_url())
+    
+    def process_formset_instance(self, instance):
+        """
+        Process formset instance before saving. Override for custom logic.
+        
+        Returns:
+            Instance to save, or None to skip
+        """
+        return instance
+
+
+class BaseNestedFormsetUpdateView(BaseFormsetUpdateView):
+    """
+    Base UpdateView with nested formset support.
+    
+    This class extends BaseFormsetUpdateView to handle nested formsets.
+    
+    Usage:
+        class BOMUpdateView(BaseNestedFormsetUpdateView):
+            model = BOM
+            form_class = BOMForm
+            formset_class = BOMMaterialLineFormSet
+            nested_formset_class = BOMMaterialAlternativeFormSet
+            nested_formset_prefix_template = 'alternatives_{parent_pk}'
+            success_url = reverse_lazy('production:bom_list')
+            feature_code = 'production.bom'
+            
+            def get_nested_formset_kwargs(self, parent_instance):
+                return {
+                    'company_id': self.object.company_id,
+                    'bom_material_id': parent_instance.pk
+                }
+    """
+    
+    nested_formset_class = None
+    nested_formset_prefix_template: str = 'nested_{parent_pk}'
+    
+    def get_nested_formset_kwargs(self, parent_instance) -> Dict[str, Any]:
+        """Return kwargs for nested formset. Override for custom kwargs."""
+        return {}
+    
+    def get_nested_formset_prefix(self, parent_instance) -> str:
+        """Return prefix for nested formset."""
+        if hasattr(parent_instance, 'pk') and parent_instance.pk:
+            return self.nested_formset_prefix_template.format(parent_pk=parent_instance.pk)
+        return 'nested'
+    
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """Add nested formsets to context."""
+        context = super().get_context_data(**kwargs)
+        
+        if self.nested_formset_class and hasattr(self, 'object') and self.object:
+            # Get existing parent instances
+            nested_formsets = {}
+            
+            # Try to find parent relationship (e.g., bom.materials.all())
+            parent_relation = None
+            if hasattr(self.object, 'materials'):
+                parent_relation = self.object.materials.all()
+            elif hasattr(self.object, 'lines'):
+                parent_relation = self.object.lines.all()
+            elif hasattr(self.object, 'items'):
+                parent_relation = self.object.items.all()
+            
+            if parent_relation:
+                for parent_instance in parent_relation:
+                    prefix = self.get_nested_formset_prefix(parent_instance)
+                    if self.request.method == 'POST':
+                        nested_formset = self.nested_formset_class(
+                            self.request.POST,
+                            instance=parent_instance,
+                            prefix=prefix,
+                            **self.get_nested_formset_kwargs(parent_instance)
+                        )
+                    else:
+                        nested_formset = self.nested_formset_class(
+                            instance=parent_instance,
+                            prefix=prefix,
+                            **self.get_nested_formset_kwargs(parent_instance)
+                        )
+                    nested_formsets[parent_instance.pk] = nested_formset
+            
+            context['nested_formsets'] = nested_formsets
+        
+        return context
+    
+    def save_nested_formsets(self, nested_formsets: Dict[int, Any]) -> None:
+        """
+        Save nested formsets.
+        
+        Args:
+            nested_formsets: Dictionary of nested formsets keyed by parent instance pk
+        """
+        for parent_pk, nested_formset in nested_formsets.items():
+            if nested_formset.is_valid():
+                try:
+                    nested_formset.save()
+                except Exception as e:
+                    from django.contrib import messages
+                    messages.warning(
+                        self.request,
+                        _('Error saving nested formset: {error}').format(error=str(e))
+                    )
+            else:
+                # Show errors for nested formset
+                for error in nested_formset.non_form_errors():
+                    from django.contrib import messages
+                    messages.warning(self.request, f"⚠️ {error}")
+    
+    def form_valid(self, form):
+        """Save form, formset, and nested formsets."""
+        from django.db import transaction
+        
+        with transaction.atomic():
+            # Save main object first
+            self.object = form.save()
+            
+            # Save formset
+            formset = self.formset_class(
+                self.request.POST,
+                prefix=self.formset_prefix,
+                **self.get_formset_kwargs()
+            )
+            
+            if formset.is_valid():
+                # Save formset and get instances
+                instances = formset.save(commit=False)
+                saved_instances = []
+                
+                # Save each instance with custom logic
+                for instance in instances:
+                    # Hook for custom instance processing
+                    instance = self.process_formset_instance(instance)
+                    if instance:
+                        instance.save()
+                        saved_instances.append(instance)
+                
+                # Delete marked instances
+                for obj in formset.deleted_objects:
+                    obj.delete()
+                
+                # Get nested formsets from context
+                context = self.get_context_data()
+                nested_formsets = context.get('nested_formsets', {})
+                
+                # Save nested formsets
+                if nested_formsets:
+                    self.save_nested_formsets(nested_formsets)
+            else:
+                # Formset validation failed
+                return self.form_invalid(form)
+        
+        return super().form_valid(form)
+    
+    def process_formset_instance(self, instance):
+        """
+        Process formset instance before saving. Override for custom logic.
+        
+        Returns:
+            Instance to save, or None to skip
+        """
+        return instance
 

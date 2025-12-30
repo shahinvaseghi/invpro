@@ -1,0 +1,474 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{{ page_title }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="inventory-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      {% for crumb in breadcrumbs %}
+        <span class="separator">/</span>
+        {% if crumb.url %}
+          <a href="{{ crumb.url }}">{{ crumb.label }}</a>
+        {% else %}
+          <span>{{ crumb.label }}</span>
+        {% endif %}
+      {% endfor %}
+    </nav>
+    
+    <h1 class="page-title">{{ page_title }}</h1>
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="form-container">
+    <form method="post" class="entity-form" id="price-card-form">
+      {% csrf_token %}
+      
+      {% if formset.non_form_errors %}
+        <div class="alert alert-danger" role="alert">
+          {% for error in formset.non_form_errors %}
+            <div>{{ error }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+      
+      {{ formset.management_form }}
+      <!-- Debug: Management form fields -->
+      {% for field in formset.management_form %}
+        <!-- {{ field.name }}: {{ field }} -->
+      {% endfor %}
+      
+      <div class="form-section">
+        <div>
+          <h3>{% trans "Item Price Cards" %}</h3>
+          <p class="form-text">
+            {% trans "Select items and set their prices. Only sellable items are shown. Each item can only have one price card." %}
+          </p>
+        </div>
+        
+        <div class="formset-container" id="price-cards-formset-container">
+          <div class="formset-table" id="price-cards-formset" data-formset-prefix="price_cards" data-can-delete="{% if formset.can_delete %}true{% else %}false{% endif %}">
+            <div class="formset-table-header">
+              <div class="formset-cell formset-number">#</div>
+              <div class="formset-cell formset-item">{% trans "Item" %} *</div>
+              <div class="formset-cell formset-price">{% trans "Price" %} *</div>
+              <div class="formset-cell formset-currency">{% trans "Currency" %}</div>
+              <div class="formset-cell formset-effective-date">{% trans "Effective Date" %}</div>
+              <div class="formset-cell formset-expiry-date">{% trans "Expiry Date" %}</div>
+              <div class="formset-cell formset-notes">{% trans "Notes" %}</div>
+              {% if formset.can_delete %}
+              <div class="formset-cell formset-delete-header">{% trans "Delete" %}</div>
+              {% endif %}
+            </div>
+            
+            <div class="formset-rows-container">
+            {% for form in formset %}
+              <div class="formset-row line-row" data-form-index="{{ forloop.counter0 }}">
+                {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+                
+                <div class="formset-cell formset-number">{{ forloop.counter }}</div>
+                
+                <div class="formset-cell formset-item">
+                  <div class="item-select-wrapper">
+                    <div class="item-filters">
+                      {{ form.item_type_filter }}
+                      {{ form.item_category_filter }}
+                      {{ form.item_subcategory_filter }}
+                      <input type="text" class="form-control filter-search-input" data-form-index="{{ forloop.counter0 }}" 
+                             placeholder="{% trans 'Search by name or code...' %}">
+                    </div>
+                    {{ form.item }}
+                    {% if form.item.errors %}
+                      <div class="error-message" role="alert">
+                        {% for error in form.item.errors %}
+                          <span class="error">{{ error }}</span>
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+                
+                <div class="formset-cell formset-price">
+                  {{ form.price }}
+                  {% if form.price.errors %}
+                    <div class="error-message" role="alert">
+                      {% for error in form.price.errors %}
+                        <span class="error">{{ error }}</span>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+                
+                <div class="formset-cell formset-currency">
+                  {{ form.currency }}
+                  {% if form.currency.errors %}
+                    <div class="error-message" role="alert">
+                      {% for error in form.currency.errors %}
+                        <span class="error">{{ error }}</span>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+                
+                <div class="formset-cell formset-effective-date">
+                  {{ form.effective_date }}
+                  {% if form.effective_date.errors %}
+                    <div class="error-message" role="alert">
+                      {% for error in form.effective_date.errors %}
+                        <span class="error">{{ error }}</span>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+                
+                <div class="formset-cell formset-expiry-date">
+                  {{ form.expiry_date }}
+                  {% if form.expiry_date.errors %}
+                    <div class="error-message" role="alert">
+                      {% for error in form.expiry_date.errors %}
+                        <span class="error">{{ error }}</span>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+                
+                <div class="formset-cell formset-notes">
+                  {{ form.notes }}
+                  {% if form.notes.errors %}
+                    <div class="error-message" role="alert">
+                      {% for error in form.notes.errors %}
+                        <span class="error">{{ error }}</span>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+                
+                {% if formset.can_delete %}
+                <div class="formset-cell formset-delete">
+                  {{ form.DELETE }}
+                </div>
+                {% endif %}
+                
+                {% if form.non_field_errors %}
+                  <div class="error full-width">{{ form.non_field_errors|join:", " }}</div>
+                {% endif %}
+              </div>
+            {% endfor %}
+            </div>
+          </div>
+        </div>
+        
+        <button type="button" id="add-price-card-btn" class="btn btn-success btn-add-formset-row" data-prefix="price_cards">
+          <span class="btn-add-icon">+</span> {% trans "Add Price Card" %}
+        </button>
+      </div>
+      
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+        <a href="{% url 'sales:price_card_list' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_styles %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/formset-table.css' %}">
+<style>
+  /* Hide the initial Django form select dropdown - JavaScript will populate it via API */
+  /* The dropdown will be shown when JavaScript populates it */
+  .item-select-wrapper select[name*="-item"]:not([data-populated]) {
+    display: none !important;
+  }
+</style>
+{% endblock %}
+
+{% block extra_scripts %}
+{{ block.super }}
+<script src="{% static 'js/formset.js' %}?v=20250220"></script>
+<script src="{% static 'js/item-filters.js' %}?v=20250220"></script>
+
+<script>
+// Configuration for item filters
+const filterOptions = {
+  placeholder: "--- انتخاب کنید ---",
+  allCategoriesText: "{% trans 'All Categories' %}",
+  allSubcategoriesText: "{% trans 'All Subcategories' %}",
+  apiUrl: "/inventory/api/filtered-items/?sellable_only=true",
+};
+
+// Initialize line forms - update row numbers and setup filters
+function initializeLineForms() {
+  const formsetTable = document.getElementById('price-cards-formset');
+  if (!formsetTable) return;
+  
+  // Find rows container
+  const rowsContainer = formsetTable.querySelector('.formset-rows-container') || formsetTable;
+  
+  // Get all non-deleted rows (exclude deleted and template rows)
+  const allRows = Array.from(rowsContainer.querySelectorAll('.formset-row:not(.formset-template), .line-row:not(.formset-template)'));
+  const visibleRows = allRows.filter(row => !row.classList.contains('deleted'));
+  
+  visibleRows.forEach(function(lineRow, index) {
+    // Update row number
+    const lineNumber = lineRow.querySelector('.formset-number');
+    if (lineNumber) {
+      lineNumber.textContent = index + 1;
+    }
+    
+    // Use shared item-filters.js function
+    if (typeof initializeItemFiltersForRow === 'function') {
+      initializeItemFiltersForRow(lineRow, filterOptions);
+    }
+  });
+}
+
+// Main initialization
+document.addEventListener('DOMContentLoaded', function() {
+  const formsetContainer = document.getElementById('price-cards-formset-container');
+  const formsetTable = document.getElementById('price-cards-formset');
+  if (!formsetContainer || !formsetTable) return;
+  
+  // Initialize line forms
+  initializeLineForms();
+  
+  // Setup formset management using formset.js
+  const addLineBtn = document.getElementById('add-price-card-btn');
+  const totalFormsInput = document.querySelector('input[name="price_cards-TOTAL_FORMS"]');
+  
+  if (addLineBtn && formsetTable && totalFormsInput) {
+    // Find rows container - this is where rows will be added
+    const rowsContainer = formsetTable.querySelector('.formset-rows-container');
+    if (!rowsContainer) {
+      console.error('formset-rows-container not found');
+      return;
+    }
+    
+    // Clone first row as template
+    const firstRow = rowsContainer.querySelector('.formset-row:not(.formset-template):not(.deleted)') ||
+                     rowsContainer.querySelector('.line-row:not(.formset-template):not(.deleted)');
+    if (firstRow) {
+      const templateRow = firstRow.cloneNode(true);
+      templateRow.id = 'price-cards-formset-template';
+      templateRow.style.display = 'none';
+      templateRow.classList.add('formset-template');
+      
+      // CRITICAL: Disable all inputs in template to prevent them from being submitted
+      const templateInputs = templateRow.querySelectorAll('input, select, textarea');
+      templateInputs.forEach(function(input) {
+        input.disabled = true;
+      });
+      
+      // Append template to rows container - this is the parent for all rows
+      rowsContainer.appendChild(templateRow);
+      
+      // Set data attribute on rowsContainer so formset.js can find it
+      rowsContainer.setAttribute('data-formset-prefix', 'price_cards');
+      rowsContainer.classList.add('formset-rows-container');
+      
+      // Store rowsContainer ID so formset.js can find it
+      rowsContainer.id = 'price-cards-rows-container';
+      
+      // Patch formset.js to use rowsContainer instead of formset-container
+      // The issue is that formset.js uses closest('.formset-container') which finds the wrong parent
+      const originalInsertBefore = Element.prototype.insertBefore;
+      let patchedInsertBefore = false;
+      
+      // Override addFormsetRow for this specific formset
+      if (typeof window.addFormsetRow === 'function') {
+        const originalAddFormsetRow = window.addFormsetRow;
+        window.addFormsetRow = function(prefix, templateSelector, options) {
+          if (prefix === 'price_cards') {
+            const templateRow = document.querySelector(templateSelector);
+            if (!templateRow) {
+              console.error('Template row not found');
+              return false;
+            }
+            
+            // Use the patched version that uses rowsContainer
+            const newRow = templateRow.cloneNode(true);
+            newRow.style.display = '';
+            newRow.classList.remove('formset-template');
+            newRow.classList.remove('deleted');
+            
+            // Disable all inputs in cloned row first
+            const clonedInputs = newRow.querySelectorAll('input, select, textarea');
+            clonedInputs.forEach(function(input) {
+              input.disabled = true;
+            });
+            
+            // Get current form count
+            const totalFormsInput = document.getElementById('id_price_cards-TOTAL_FORMS') || 
+                                   document.querySelector('input[name="price_cards-TOTAL_FORMS"]');
+            if (!totalFormsInput) {
+              console.error('TOTAL_FORMS input not found');
+              return false;
+            }
+            
+            const currentFormCount = parseInt(totalFormsInput.value) || 0;
+            const newFormIndex = currentFormCount;
+            
+            // Update field names from __prefix__ to newFormIndex
+            // This must be done before inserting into DOM
+            const allFields = newRow.querySelectorAll('input, select, textarea, label');
+            allFields.forEach(field => {
+              if (field.name && field.name.includes('__prefix__')) {
+                field.name = field.name.replace(/__prefix__/g, newFormIndex);
+              }
+              if (field.id && field.id.includes('__prefix__')) {
+                field.id = field.id.replace(/__prefix__/g, newFormIndex);
+              }
+              if (field.tagName === 'LABEL' && field.getAttribute('for')) {
+                const forAttr = field.getAttribute('for');
+                if (forAttr && forAttr.includes('__prefix__')) {
+                  field.setAttribute('for', forAttr.replace(/__prefix__/g, newFormIndex));
+                }
+              }
+              // Update data attributes
+              if (field.hasAttribute('data-form-index')) {
+                field.setAttribute('data-form-index', newFormIndex);
+              }
+            });
+            
+            // Re-enable all inputs
+            const newRowInputs = newRow.querySelectorAll('input, select, textarea');
+            newRowInputs.forEach(function(input) {
+              input.disabled = false;
+            });
+            
+            // Uncheck DELETE checkbox
+            const deleteCheckbox = newRow.querySelector('input[type="checkbox"][name*="-DELETE"]');
+            if (deleteCheckbox) {
+              deleteCheckbox.checked = false;
+            }
+            
+            // Insert before template in rowsContainer
+            rowsContainer.insertBefore(newRow, templateRow);
+            
+            // Reindex all rows first (this will update TOTAL_FORMS)
+            if (typeof reindexFormset === 'function') {
+              reindexFormset(prefix, '.formset-row:not(.formset-template):not(.deleted), .line-row:not(.formset-template):not(.deleted)', true);
+            } else {
+              // Fallback: manually update TOTAL_FORMS
+              totalFormsInput.value = currentFormCount + 1;
+            }
+            
+            // Trigger event
+            const event = new CustomEvent('formset:row-added', {
+              detail: { prefix, index: newFormIndex, row: newRow }
+            });
+            document.dispatchEvent(event);
+            
+            return true;
+          }
+          // Fallback to original function for other formsets
+          return originalAddFormsetRow(prefix, templateSelector, options);
+        };
+      }
+      
+      // Initialize formset with minRows=0 to prevent adding extra rows
+      if (typeof initFormset === 'function') {
+        console.log('Initializing formset with rowsContainer:', rowsContainer);
+        initFormset('price_cards', '#price-cards-formset-template', {
+          minRows: 0,  // Don't add rows automatically - we already have 1 from Django
+          maxRows: null,
+          addButtonSelector: '#add-price-card-btn',
+          removeButtonSelector: 'input[name*="-DELETE"]',
+          rowSelector: '.formset-row:not(.formset-template):not(.deleted), .line-row:not(.formset-template):not(.deleted)'
+        });
+      } else {
+        console.error('initFormset function not found');
+      }
+      
+      // After adding row, initialize filters and update layout
+      document.addEventListener('formset:row-added', function(e) {
+        if (e.detail && e.detail.prefix === 'price_cards') {
+          setTimeout(function() {
+            // Use the row from event detail if available, otherwise find the last row
+            let newRow = null;
+            if (e.detail && e.detail.row) {
+              newRow = e.detail.row;
+              console.log('Using row from event detail');
+            } else {
+              // Get ALL rows (not just the first one)
+              const rowsContainer = formsetTable.querySelector('.formset-rows-container');
+              if (rowsContainer) {
+                const allRows = Array.from(rowsContainer.querySelectorAll('.formset-row:not(.formset-template), .line-row:not(.formset-template)'));
+                // The new row is the last one (most recently added)
+                newRow = allRows[allRows.length - 1];
+                console.log('Found new row by finding last row in container');
+              }
+            }
+            
+            if (newRow) {
+              // CRITICAL: Re-enable all inputs that were disabled in template
+              const newRowInputs = newRow.querySelectorAll('input, select, textarea');
+              newRowInputs.forEach(function(input) {
+                input.disabled = false;
+              });
+              
+              // Uncheck DELETE checkbox for new rows
+              const deleteCheckbox = newRow.querySelector('input[type="checkbox"][name*="-DELETE"]');
+              if (deleteCheckbox) {
+                deleteCheckbox.checked = false;
+                newRow.classList.remove('deleted');
+              }
+              
+              // Initialize item filters for the new row
+              if (typeof initializeItemFiltersForRow === 'function') {
+                initializeItemFiltersForRow(newRow, filterOptions);
+              }
+              
+              // Update row numbers
+              initializeLineForms();
+            }
+          }, 100);
+        }
+      });
+    }
+  }
+  
+  // Handle DELETE checkbox changes
+  if (formsetTable) {
+    formsetTable.addEventListener('change', function(e) {
+      if (e.target && e.target.type === 'checkbox' && e.target.name && e.target.name.includes('-DELETE')) {
+        const row = e.target.closest('.formset-row') || e.target.closest('.line-row');
+        if (row) {
+          if (e.target.checked) {
+            row.classList.add('deleted');
+            row.style.opacity = '0.5';
+            // Disable all inputs except DELETE checkbox
+            const rowInputs = row.querySelectorAll('input:not([type="checkbox"][name*="-DELETE"]), select, textarea');
+            rowInputs.forEach(function(input) {
+              input.disabled = true;
+            });
+          } else {
+            row.classList.remove('deleted');
+            row.style.opacity = '1';
+            // Re-enable inputs
+            const rowInputs = row.querySelectorAll('input:not([type="checkbox"][name*="-DELETE"]), select, textarea');
+            rowInputs.forEach(function(input) {
+              input.disabled = false;
+            });
+          }
+          // Update row numbers
+          initializeLineForms();
+        }
+      }
+    });
+  }
+});
+</script>
+{% endblock %}
+

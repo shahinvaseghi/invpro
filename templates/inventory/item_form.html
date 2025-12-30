@@ -1,334 +1,466 @@
-{% extends "inventory/base.html" %}
+{% extends "shared/generic/generic_form.html" %}
 {% load i18n %}
 
-{% block page_title %}{{ form_title }}{% endblock %}
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Items" %}</span>
+<span class="separator">/</span>
+<span>{{ form_title }}</span>
+{% endblock %}
 
-{% block inventory_content %}
-<div class="form-container">
-  <form method="post" class="entity-form" id="item-form" onsubmit="return handleFormSubmit(event)">
-    {% csrf_token %}
-    {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+{% block form_sections %}
+<div class="form-section">
+  {% if form.allowed_warehouses %}
+  <div class="form-field full-width">
+    <label>{{ form.allowed_warehouses.label }}{% if form.allowed_warehouses.field.required %}*{% endif %}</label>
+    <div class="checkbox-grid">
+      {% for checkbox in form.allowed_warehouses %}
+        <label class="checkbox-item">
+          {{ checkbox.tag }}
+          <span>{{ checkbox.choice_label }}</span>
+        </label>
+      {% endfor %}
+    </div>
+    {% if form.allowed_warehouses.errors %}
+      <span class="error">{{ form.allowed_warehouses.errors.0 }}</span>
+    {% endif %}
+    {% if form.allowed_warehouses.help_text %}
+      <small class="form-text">{{ form.allowed_warehouses.help_text }}</small>
+    {% endif %}
+  </div>
+  {% endif %}
 
-    <div class="form-section">
-      {% if form.allowed_warehouses %}
-      <div class="form-field full-width">
-        <label>{{ form.allowed_warehouses.label }}{% if form.allowed_warehouses.field.required %}*{% endif %}</label>
-        <div class="checkbox-grid">
-          {% for checkbox in form.allowed_warehouses %}
-            <label class="checkbox-item">
-              {{ checkbox.tag }}
-              <span>{{ checkbox.choice_label }}</span>
-            </label>
-          {% endfor %}
-        </div>
-        {% if form.allowed_warehouses.errors %}
-          <span class="error">{{ form.allowed_warehouses.errors.0 }}</span>
-        {% endif %}
-        {% if form.allowed_warehouses.help_text %}
-          <small class="form-text">{{ form.allowed_warehouses.help_text }}</small>
+  {% for field in form.visible_fields %}
+    {% if field.name != 'allowed_warehouses' and field.name != 'is_sellable' and field.name != 'has_lot_tracking' and field.name != 'requires_temporary_receipt' and field.name != 'serial_in_qc' %}
+    <div class="form-field">
+      <label for="{{ field.id_for_label }}">
+        {{ field.label }}
+        {% if field.field.required %}*{% endif %}
+      </label>
+      {{ field }}
+      {% if field.errors %}
+        <span class="error">{{ field.errors.0 }}</span>
+      {% endif %}
+      {% if field.help_text %}
+        <small class="form-text">{{ field.help_text }}</small>
+      {% endif %}
+    </div>
+    {% endif %}
+  {% endfor %}
+  
+  <!-- Checkbox fields section -->
+  <div class="form-field full-width checkbox-section">
+    <label>{% trans "Options" %}</label>
+    <div class="checkbox-group">
+      {% if form.is_sellable %}
+      <div class="checkbox-item">
+        <label for="{{ form.is_sellable.id_for_label }}">
+          {{ form.is_sellable }}
+          <span>{{ form.is_sellable.label }}</span>
+        </label>
+        {% if form.is_sellable.errors %}
+          <span class="error">{{ form.is_sellable.errors.0 }}</span>
         {% endif %}
       </div>
       {% endif %}
-
-      {% for field in form.visible_fields %}
-        {% if field.name != 'allowed_warehouses' %}
-        <div class="form-field">
-          <label for="{{ field.id_for_label }}">
-            {{ field.label }}
-            {% if field.field.required %}*{% endif %}
-          </label>
-          {{ field }}
-          {% if field.errors %}
-            <span class="error">{{ field.errors.0 }}</span>
-          {% endif %}
-          {% if field.help_text %}
-            <small class="form-text">{{ field.help_text }}</small>
-          {% endif %}
-        </div>
+      
+      {% if form.has_lot_tracking %}
+      <div class="checkbox-item">
+        <label for="{{ form.has_lot_tracking.id_for_label }}">
+          {{ form.has_lot_tracking }}
+          <span>{{ form.has_lot_tracking.label }}</span>
+        </label>
+        {% if form.has_lot_tracking.errors %}
+          <span class="error">{{ form.has_lot_tracking.errors.0 }}</span>
         {% endif %}
-      {% endfor %}
+      </div>
+      {% endif %}
+      
+      {% if form.requires_temporary_receipt %}
+      <div class="checkbox-item">
+        <label for="{{ form.requires_temporary_receipt.id_for_label }}">
+          {{ form.requires_temporary_receipt }}
+          <span>{{ form.requires_temporary_receipt.label }}</span>
+        </label>
+        {% if form.requires_temporary_receipt.errors %}
+          <span class="error">{{ form.requires_temporary_receipt.errors.0 }}</span>
+        {% endif %}
+      </div>
+      {% endif %}
+      
+      {% if form.serial_in_qc %}
+      <div class="checkbox-item">
+        <label for="{{ form.serial_in_qc.id_for_label }}">
+          {{ form.serial_in_qc }}
+          <span>{{ form.serial_in_qc.label }}</span>
+        </label>
+        {% if form.serial_in_qc.errors %}
+          <span class="error">{{ form.serial_in_qc.errors.0 }}</span>
+        {% endif %}
+      </div>
+      {% endif %}
     </div>
+  </div>
+</div>
+{% endblock %}
 
-    <div class="form-section">
-      <h3 style="margin-top: 2rem;">واحدهای ثانویه (اختیاری)</h3>
-      <p class="form-text">
-        در صورت نیاز می‌توانید تبدیل واحد تعریف کنید (مثلاً ۲ متر = ۲۰ کیلوگرم).
-      </p>
-      {{ units_formset.management_form }}
-      {% for hidden in units_formset.hidden_fields %}{{ hidden }}{% endfor %}
+{% block form_extra %}
+<div class="form-section">
+  <h3 class="section-margin-top">{% trans "Unit Conversions (Optional)" %}</h3>
+  <p class="form-text">
+    {% trans "You can define unit conversions if needed (e.g., 2 meters = 20 kilograms)." %}
+  </p>
+  {{ units_formset.management_form }}
+  {% for hidden in units_formset.hidden_fields %}{{ hidden }}{% endfor %}
+  
+  <!-- Debug: Log formset state -->
+  <script>
+    console.log('Formset state from template:');
+    console.log('  - Forms count: {{ units_formset.forms|length }}');
+    console.log('  - TOTAL_FORMS: {{ units_formset.total_form_count }}');
+    console.log('  - INITIAL_FORMS: {{ units_formset.initial_form_count }}');
+    console.log('  - MIN_NUM_FORMS: {{ units_formset.min_num }}');
+    console.log('  - MAX_NUM_FORMS: {{ units_formset.max_num|default:"None" }}');
+  </script>
 
-      <div class="unit-formset" id="unit-formset">
-        {% for unit_form in units_formset %}
-          <div class="unit-form">
-            {% for hidden in unit_form.hidden_fields %}{{ hidden }}{% endfor %}
-            <div class="unit-row">
-              <div class="unit-field">
-                <label>{{ unit_form.from_quantity.label }}</label>
-                {{ unit_form.from_quantity }}
-                {% if unit_form.from_quantity.errors %}
-                  <span class="error">{{ unit_form.from_quantity.errors.0 }}</span>
-                {% endif %}
-              </div>
-              <div class="unit-field">
-                <label>{{ unit_form.from_unit.label }}</label>
-                {{ unit_form.from_unit }}
-                {% if unit_form.from_unit.errors %}
-                  <span class="error">{{ unit_form.from_unit.errors.0 }}</span>
-                {% endif %}
-              </div>
-              <div class="unit-field">
-                <label>{{ unit_form.to_quantity.label }}</label>
-                {{ unit_form.to_quantity }}
-                {% if unit_form.to_quantity.errors %}
-                  <span class="error">{{ unit_form.to_quantity.errors.0 }}</span>
-                {% endif %}
-              </div>
-              <div class="unit-field">
-                <label>{{ unit_form.to_unit.label }}</label>
-                {{ unit_form.to_unit }}
-                {% if unit_form.to_unit.errors %}
-                  <span class="error">{{ unit_form.to_unit.errors.0 }}</span>
-                {% endif %}
-              </div>
-              <div class="unit-field">
-                <label>{{ unit_form.description.label }}</label>
-                {{ unit_form.description }}
-              </div>
-              <div class="unit-field">
-                <label>{{ unit_form.notes.label }}</label>
-                {{ unit_form.notes }}
-              </div>
-              {% if units_formset.can_delete %}
-              <div class="unit-field unit-delete">
-                <label>{{ unit_form.DELETE.label }}</label>
-                {{ unit_form.DELETE }}
-              </div>
-              {% endif %}
-            </div>
-            {% if unit_form.non_field_errors %}
-              <div class="error">{{ unit_form.non_field_errors|join:", " }}</div>
+  <div class="unit-formset" id="unit-formset" data-formset-prefix="units">
+    {% for unit_form in units_formset %}
+      <div class="unit-form">
+        {% for hidden in unit_form.hidden_fields %}{{ hidden }}{% endfor %}
+        <div class="unit-row">
+          <div class="unit-field">
+            <label>{{ unit_form.from_quantity.label }}</label>
+            {{ unit_form.from_quantity }}
+            {% if unit_form.from_quantity.errors %}
+              <span class="error">{{ unit_form.from_quantity.errors.0 }}</span>
             {% endif %}
           </div>
-        {% endfor %}
+          <div class="unit-field">
+            <label>{{ unit_form.from_unit.label }}</label>
+            {{ unit_form.from_unit }}
+            {% if unit_form.from_unit.errors %}
+              <span class="error">{{ unit_form.from_unit.errors.0 }}</span>
+            {% endif %}
+          </div>
+          <div class="unit-field">
+            <label>{{ unit_form.to_quantity.label }}</label>
+            {{ unit_form.to_quantity }}
+            {% if unit_form.to_quantity.errors %}
+              <span class="error">{{ unit_form.to_quantity.errors.0 }}</span>
+            {% endif %}
+          </div>
+          <div class="unit-field">
+            <label>{{ unit_form.to_unit.label }}</label>
+            {{ unit_form.to_unit }}
+            {% if unit_form.to_unit.errors %}
+              <span class="error">{{ unit_form.to_unit.errors.0 }}</span>
+            {% endif %}
+          </div>
+          <div class="unit-field">
+            <label>{{ unit_form.description.label }}</label>
+            {{ unit_form.description }}
+          </div>
+          <div class="unit-field">
+            <label>{{ unit_form.notes.label }}</label>
+            {{ unit_form.notes }}
+          </div>
+          {% if units_formset.can_delete %}
+          <div class="unit-field unit-delete">
+            <label>{{ unit_form.DELETE.label }}</label>
+            {{ unit_form.DELETE }}
+          </div>
+          {% endif %}
+        </div>
+        {% if unit_form.non_field_errors %}
+          <div class="error">{{ unit_form.non_field_errors|join:", " }}</div>
+        {% endif %}
       </div>
-      <button type="button" id="add-unit-row" class="btn btn-secondary" style="margin-top: 1rem;">
-        + {% trans "Add Unit Conversion" %}
-      </button>
-      
-      <!-- Empty form template for cloning -->
-      <div id="empty-unit-form" style="display: none;">
-        {{ units_formset.empty_form }}
+    {% endfor %}
+  </div>
+  <button type="button" id="add-unit-row" class="btn btn-secondary btn-mt">
+    + {% trans "Add Unit Conversion" %}
+  </button>
+  
+  <!-- Empty form template for cloning -->
+  <div id="empty-unit-form" class="hidden">
+    <div class="unit-form">
+      {% for hidden in units_formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+      <div class="unit-row">
+        <div class="unit-field">
+          <label>{{ units_formset.empty_form.from_quantity.label }}</label>
+          {{ units_formset.empty_form.from_quantity }}
+        </div>
+        <div class="unit-field">
+          <label>{{ units_formset.empty_form.from_unit.label }}</label>
+          {{ units_formset.empty_form.from_unit }}
+        </div>
+        <div class="unit-field">
+          <label>{{ units_formset.empty_form.to_quantity.label }}</label>
+          {{ units_formset.empty_form.to_quantity }}
+        </div>
+        <div class="unit-field">
+          <label>{{ units_formset.empty_form.to_unit.label }}</label>
+          {{ units_formset.empty_form.to_unit }}
+        </div>
+        <div class="unit-field">
+          <label>{{ units_formset.empty_form.description.label }}</label>
+          {{ units_formset.empty_form.description }}
+        </div>
+        <div class="unit-field">
+          <label>{{ units_formset.empty_form.notes.label }}</label>
+          {{ units_formset.empty_form.notes }}
+        </div>
+        {% if units_formset.can_delete %}
+        <div class="unit-field unit-delete">
+          <label>{{ units_formset.empty_form.DELETE.label }}</label>
+          {{ units_formset.empty_form.DELETE }}
+        </div>
+        {% endif %}
       </div>
     </div>
-
-    <div class="form-actions">
-      <button type="submit" class="btn btn-primary">ذخیره</button>
-      <a href="{% url 'inventory:items' %}" class="btn btn-secondary">لغو</a>
-    </div>
-  </form>
+  </div>
 </div>
+{% endblock %}
 
-<style>
-.unit-formset {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  margin-top: 1rem;
-}
+{% block extra_styles %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/shared.css' %}">
+{% endblock %}
 
-.unit-form {
-  padding: 1rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background-color: #f9fafb;
-}
-
-.unit-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 1rem;
-}
-
-.unit-field label {
-  display: block;
-  font-weight: 500;
-  margin-bottom: 0.25rem;
-}
-
-.unit-delete {
-  display: flex;
-  align-items: center;
-}
-
-.form-field.full-width {
-  width: 100%;
-}
-
-.checkbox-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 0.75rem 1rem;
-  margin-top: 0.5rem;
-}
-
-.checkbox-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  background-color: #ffffff;
-  cursor: pointer;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.checkbox-item:hover {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-}
-
-.checkbox-item input[type="checkbox"] {
-  width: 1.1rem;
-  height: 1.1rem;
-  cursor: pointer;
-}
-</style>
-
+{% block form_scripts %}
+{% load static %}
+<script src="{% static 'js/formset.js' %}"></script>
+<script src="{% static 'js/cascading-dropdowns.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Unit formset handling
+  // Unit formset handling - use formset.js
   const formsetContainer = document.getElementById('unit-formset');
-  const addButton = document.getElementById('add-unit-row');
-  const managementForm = document.querySelector('[name="units-TOTAL_FORMS"]');
+  const emptyFormTemplate = document.getElementById('empty-unit-form');
   
-  if (formsetContainer && addButton && managementForm) {
-    const emptyFormTemplate = document.getElementById('empty-unit-form');
+  if (formsetContainer && emptyFormTemplate) {
+    // Make template visible for cloning
+    emptyFormTemplate.classList.remove('hidden');
+    emptyFormTemplate.id = 'units-formset-template';
+    emptyFormTemplate.classList.add('formset-template');
     
-    addButton.addEventListener('click', function() {
-      const totalForms = parseInt(managementForm.value);
-      
-      // Clone the empty form template
-      const newForm = emptyFormTemplate.cloneNode(true);
-      newForm.style.display = 'block';
-      newForm.id = '';
-      
-      // Update all form field names and IDs to use the new index
-      const formFields = newForm.querySelectorAll('input, select, textarea, label');
-      formFields.forEach(function(field) {
-        if (field.name) {
-          field.name = field.name.replace(/__prefix__/g, totalForms);
-        }
-        if (field.id) {
-          field.id = field.id.replace(/__prefix__/g, totalForms);
-        }
-        if (field.getAttribute('for')) {
-          field.setAttribute('for', field.getAttribute('for').replace(/__prefix__/g, totalForms));
-        }
-      });
-      
-      // Add the new form to the formset container
-      formsetContainer.appendChild(newForm);
-      
-      // Update the total forms count
-      managementForm.value = totalForms + 1;
+    // Initialize formset using formset.js
+    initFormset('units', '#units-formset-template', {
+      minRows: 0,
+      maxRows: null,
+      addButtonSelector: '#add-unit-row',
+      removeButtonSelector: null,  // We'll handle DELETE checkboxes manually
+      rowSelector: '.unit-form'  // CRITICAL: Use correct row selector for units formset
     });
     
-    // Handle delete checkboxes
+    // Handle delete checkboxes - both visual feedback and formset management
     formsetContainer.addEventListener('change', function(e) {
       if (e.target.type === 'checkbox' && e.target.name && e.target.name.includes('DELETE')) {
         const form = e.target.closest('.unit-form');
-        if (form && e.target.checked) {
-          form.style.opacity = '0.5';
-        } else if (form) {
-          form.style.opacity = '1';
+        if (form) {
+          // Visual feedback
+          form.style.opacity = e.target.checked ? '0.5' : '1';
+          
+          // Trigger formset:row-removed event for formset.js
+          const event = new CustomEvent('formset:row-removed', {
+            detail: { prefix: 'units', row: form }
+          });
+          document.dispatchEvent(event);
         }
       }
     });
+    
+    // CRITICAL: Prepare formset for submission (convert __prefix__ to numeric indices and update TOTAL_FORMS)
+    const form = document.querySelector('form');
+    if (form) {
+      let isSubmitting = false; // Flag to prevent infinite loop
+      
+      form.addEventListener('submit', function(e) {
+        // If already submitting, let it proceed
+        if (isSubmitting) {
+          console.log('Form is already submitting, allowing default behavior...');
+          return true;
+        }
+        
+        console.log('=== PREPARING UNIT FORMSET FOR SUBMISSION (CAPTURE PHASE) ===');
+        console.log('Formset container:', formsetContainer);
+        console.log('prepareFormsetForSubmit function exists:', typeof prepareFormsetForSubmit === 'function');
+        
+        // CRITICAL: Prevent default submission until we've prepared the formset
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Use the shared function from formset.js
+        if (typeof prepareFormsetForSubmit === 'function') {
+          const result = prepareFormsetForSubmit('units', '.unit-form', {
+            countOnlyNonDeleted: true
+          });
+          
+          console.log('prepareFormsetForSubmit result:', result);
+          
+          // Double-check TOTAL_FORMS
+          const totalFormsInput = document.getElementById('id_units-TOTAL_FORMS');
+          if (totalFormsInput) {
+            console.log(`Final TOTAL_FORMS value after prepareFormsetForSubmit: ${totalFormsInput.value}`);
+          }
+          
+          // Set flag to prevent loop
+          isSubmitting = true;
+          
+          if (result.success) {
+            console.log(`✓ Formset prepared successfully: TOTAL_FORMS=${result.totalForms}, reindexed=${result.reindexedCount}`);
+          } else {
+            console.error(`✗ Failed to prepare formset: TOTAL_FORMS=${result.totalForms}, reindexed=${result.reindexedCount}`);
+          }
+          
+          // Now submit the form manually (will not trigger this handler again due to flag)
+          console.log('Submitting form manually after preparing formset...');
+          form.submit();
+        } else {
+          console.error('prepareFormsetForSubmit function not found in formset.js');
+          // Set flag and submit anyway
+          isSubmitting = true;
+          form.submit();
+        }
+        
+        return false;
+      }, true); // Use capture phase to run before other handlers
+    }
   }
   
-  // Category/Subcategory cascading
+  // Category/Subcategory cascading - use cascading-dropdowns.js
   const categorySelect = document.getElementById('id_category');
   const subcategorySelect = document.getElementById('id_subcategory');
   const typeSelect = document.getElementById('id_type');
   
-  function loadSubcategories(categoryId, typeId, selectedSubcategoryId = null) {
-    if (!subcategorySelect) return;
+  // Initialize Type → Category cascading
+  if (typeSelect && categorySelect) {
+    // Note: This requires a custom API endpoint that accepts type_id
+    // For now, we'll use the existing filtered_categories endpoint
+    const categoryApiUrl = '{% url "inventory:filtered_categories" %}';
     
-    subcategorySelect.innerHTML = '<option value="">--- انتخاب کنید ---</option>';
-    subcategorySelect.disabled = true;
-    
-    if (!categoryId) {
-      return;
-    }
-    
-    const url = new URL('{% url "inventory:filtered_subcategories" %}', window.location.origin);
-    if (typeId) url.searchParams.set('type_id', typeId);
-    if (categoryId) url.searchParams.set('category_id', categoryId);
-    
-    fetch(url)
-      .then(response => response.json())
-      .then(data => {
-        if (data.error) {
-          return;
+    // Custom handler for Type → Category
+    typeSelect.addEventListener('change', function() {
+      const typeId = this.value;
+      if (!typeId) {
+        clearDropdown(categorySelect, '--- {% trans "Please select" %} ---');
+        if (subcategorySelect) {
+          clearDropdown(subcategorySelect, '--- {% trans "Please select" %} ---');
         }
-        
-        subcategorySelect.innerHTML = '<option value="">--- انتخاب کنید ---</option>';
-        if (data.subcategories && data.subcategories.length > 0) {
-          data.subcategories.forEach(sub => {
-            const option = document.createElement('option');
-            option.value = sub.value;
-            option.textContent = sub.label;
-            if (selectedSubcategoryId && sub.value === selectedSubcategoryId.toString()) {
-              option.selected = true;
-            }
-            subcategorySelect.appendChild(option);
-          });
-        }
-        subcategorySelect.disabled = false;
+        return;
+      }
+      
+      categorySelect.disabled = true;
+      const url = new URL(categoryApiUrl, window.location.origin);
+      url.searchParams.set('type_id', typeId);
+      
+      fetch(url, {
+        method: 'GET',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        credentials: 'same-origin',
       })
-      .catch(error => {
-        subcategorySelect.disabled = false;
-      });
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.categories) {
+            const selectedCategoryId = categorySelect.value;
+            updateDropdownOptions(categorySelect, data.categories, '--- {% trans "Please select" %} ---', 'value', 'label');
+            categorySelect.disabled = false;
+            // Restore selected category if it exists in new options
+            if (selectedCategoryId && data.categories.some(cat => cat.value === selectedCategoryId)) {
+              categorySelect.value = selectedCategoryId;
+            }
+            // Trigger category change to update subcategories
+            categorySelect.dispatchEvent(new Event('change'));
+          } else {
+            clearDropdown(categorySelect, '--- {% trans "Please select" %} ---');
+            if (subcategorySelect) {
+              clearDropdown(subcategorySelect, '--- {% trans "Please select" %} ---');
+            }
+            categorySelect.disabled = false;
+          }
+        })
+        .catch(error => {
+          console.error('Error loading categories:', error);
+          categorySelect.disabled = false;
+        });
+    });
   }
   
-  if (categorySelect) {
+  // Initialize Category → Subcategory cascading
+  if (categorySelect && subcategorySelect) {
+    const subcategoryApiUrl = '{% url "inventory:filtered_subcategories" %}';
+    
+    // Custom handler for Category → Subcategory (handles both with and without type)
     categorySelect.addEventListener('change', function() {
       const categoryId = this.value;
       const typeId = typeSelect ? typeSelect.value : null;
-      loadSubcategories(categoryId, typeId);
-    });
-  }
-  
-  if (typeSelect) {
-    typeSelect.addEventListener('change', function() {
-      const typeId = this.value;
-      const categoryId = categorySelect ? categorySelect.value : null;
-      if (categoryId) {
-        loadSubcategories(categoryId, typeId);
+      
+      if (!categoryId) {
+        clearDropdown(subcategorySelect, '--- {% trans "Please select" %} ---');
+        return;
       }
+      
+      subcategorySelect.disabled = true;
+      const url = new URL(subcategoryApiUrl, window.location.origin);
+      url.searchParams.set('category_id', categoryId);
+      if (typeId) {
+        url.searchParams.set('type_id', typeId);
+      }
+      
+      fetch(url, {
+        method: 'GET',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        credentials: 'same-origin',
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.error) {
+            console.error('API error:', data.error);
+            clearDropdown(subcategorySelect, '--- {% trans "Please select" %} ---');
+            subcategorySelect.disabled = false;
+            return;
+          }
+          
+          const options = data.subcategories || [];
+          const selectedSubcategoryId = subcategorySelect.value;
+          updateDropdownOptions(subcategorySelect, options, '--- {% trans "Please select" %} ---', 'value', 'label');
+          
+          // Restore selected value if it exists
+          if (selectedSubcategoryId && options.some(opt => opt.value === selectedSubcategoryId)) {
+            subcategorySelect.value = selectedSubcategoryId;
+          }
+          
+          subcategorySelect.disabled = false;
+        })
+        .catch(error => {
+          console.error('Error loading subcategories:', error);
+          clearDropdown(subcategorySelect, '--- {% trans "Please select" %} ---');
+          subcategorySelect.disabled = false;
+        });
     });
   }
   
-  // Load subcategories on page load if category is already selected
+  // Load initial values on page load
   if (categorySelect && categorySelect.value) {
-    const categoryId = categorySelect.value;
-    const typeId = typeSelect ? typeSelect.value : null;
-    const subcategoryId = subcategorySelect ? subcategorySelect.value : null;
-    loadSubcategories(categoryId, typeId, subcategoryId);
+    // If category is already selected, trigger change to load subcategories
+    categorySelect.dispatchEvent(new Event('change'));
+  } else if (typeSelect && typeSelect.value) {
+    // If type is selected but category is not, load categories first
+    typeSelect.dispatchEvent(new Event('change'));
   }
 });
-
-function handleFormSubmit(event) {
-  const form = event.target;
-  
-  // Check form validation
-  if (!form.checkValidity()) {
-    form.reportValidity();
-    return false;
-  }
-  
-  return true;
-}
 </script>
 {% endblock %}

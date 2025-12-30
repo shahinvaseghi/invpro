@@ -11,13 +11,20 @@ from production.models import Machine
 class MachineForm(forms.ModelForm):
     """Form for creating/editing machines."""
     
+    work_lines = forms.ModelMultipleChoiceField(
+        queryset=None,
+        required=False,
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+        label=_('Work Lines'),
+        help_text=_('Select work lines for this machine'),
+    )
+    
     class Meta:
         model = Machine
         fields = [
             'name',
             'name_en',
             'machine_type',
-            'work_center',
             'manufacturer',
             'model_number',
             'serial_number',
@@ -36,7 +43,6 @@ class MachineForm(forms.ModelForm):
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'name_en': forms.TextInput(attrs={'class': 'form-control'}),
             'machine_type': forms.TextInput(attrs={'class': 'form-control'}),
-            'work_center': forms.Select(attrs={'class': 'form-control'}),
             'manufacturer': forms.TextInput(attrs={'class': 'form-control'}),
             'model_number': forms.TextInput(attrs={'class': 'form-control'}),
             'serial_number': forms.TextInput(attrs={'class': 'form-control'}),
@@ -55,7 +61,6 @@ class MachineForm(forms.ModelForm):
             'name': _('Name'),
             'name_en': _('Name (English)'),
             'machine_type': _('Machine Type'),
-            'work_center': _('Work Center'),
             'manufacturer': _('Manufacturer'),
             'model_number': _('Model Number'),
             'serial_number': _('Serial Number'),
@@ -77,9 +82,36 @@ class MachineForm(forms.ModelForm):
         self.company_id: Optional[int] = company_id or (self.instance.company_id if self.instance and self.instance.pk else None)
 
         if self.company_id:
-            from production.models import WorkCenter
-            self.fields['work_center'].queryset = WorkCenter.objects.filter(company_id=self.company_id, is_enabled=1)
+            from production.models import WorkLine
+            # Set work_lines queryset
+            self.fields['work_lines'].queryset = WorkLine.objects.filter(company_id=self.company_id, is_enabled=1)
         else:
-            from production.models import WorkCenter
-            self.fields['work_center'].queryset = WorkCenter.objects.none()
+            from production.models import WorkLine
+            self.fields['work_lines'].queryset = WorkLine.objects.none()
+        
+        # If editing, set initial work_lines
+        if self.instance and self.instance.pk:
+            self.fields['work_lines'].initial = self.instance.work_lines.all()
+    
+    def save(self, commit=True):
+        """Save machine and update work lines."""
+        instance = super().save(commit=commit)
+        
+        if commit:
+            # Get selected work lines from form
+            work_lines = self.cleaned_data.get('work_lines')
+            
+            # Update work_lines relationship
+            # Remove this machine from all work lines first
+            from production.models import WorkLine
+            WorkLine.objects.filter(machines=instance).update()
+            for wl in WorkLine.objects.filter(machines=instance):
+                wl.machines.remove(instance)
+            
+            # Add this machine to selected work lines
+            if work_lines:
+                for work_line in work_lines:
+                    work_line.machines.add(instance)
+        
+        return instance
 

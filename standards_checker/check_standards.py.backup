@@ -1,0 +1,1974 @@
+#!/usr/bin/env python3
+"""
+Standards Checker - ابزار چک کردن رعایت استانداردهای پروژه
+
+این اسکریپت فایل‌های پروژه را تحلیل می‌کند و بررسی می‌کند که آیا
+استانداردهای تعریف شده در DEVELOPMENT_GUIDE.md رعایت شده است یا خیر.
+
+استفاده:
+    python check_standards.py                    # چک کردن همه
+    python check_standards.py --module inventory # چک کردن یک ماژول خاص
+    python check_standards.py --fix              # Auto-fix مشکلات قابل تعمیر
+    python check_standards.py --json             # خروجی JSON
+    python check_standards.py --verbose          # خروجی کامل
+"""
+
+import os
+import re
+import ast
+import json
+import argparse
+import subprocess
+from pathlib import Path
+from typing import List, Dict, Set, Tuple
+from dataclasses import dataclass, field, asdict
+from enum import Enum
+
+
+# رنگ‌ها برای خروجی ترمینال
+class Colors:
+    """ANSI color codes"""
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
+class Severity(Enum):
+    """سطح شدت مشکل"""
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+    CRITICAL = "critical"
+
+
+@dataclass
+class Issue:
+    """یک مشکل/تخلف از استانداردها"""
+    file_path: str
+    line_number: int
+    severity: Severity
+    category: str
+    message: str
+    suggestion: str = ""
+    auto_fixable: bool = False
+    
+    def __str__(self):
+        """نمایش رنگی مشکل"""
+        color_map = {
+            Severity.INFO: Colors.OKBLUE,
+            Severity.WARNING: Colors.WARNING,
+            Severity.ERROR: Colors.FAIL,
+            Severity.CRITICAL: Colors.FAIL + Colors.BOLD,
+        }
+        color = color_map.get(self.severity, "")
+        
+        output = f"{color}[{self.severity.value.upper()}]{Colors.ENDC} "
+        output += f"{Colors.BOLD}{self.file_path}:{self.line_number}{Colors.ENDC}\n"
+        output += f"  Category: {self.category}\n"
+        output += f"  {self.message}\n"
+        
+        if self.suggestion:
+            output += f"  {Colors.OKCYAN}💡 Suggestion: {self.suggestion}{Colors.ENDC}\n"
+        
+        if self.auto_fixable:
+            output += f"  {Colors.OKGREEN}🔧 Auto-fixable{Colors.ENDC}\n"
+        
+        return output
+
+
+@dataclass
+class CheckResult:
+    """نتیجه چک کردن"""
+    issues: List[Issue] = field(default_factory=list)
+    stats: Dict = field(default_factory=dict)
+    
+    def add_issue(self, issue: Issue):
+        """اضافه کردن یک مشکل"""
+        self.issues.append(issue)
+    
+    def get_summary(self) -> Dict:
+        """خلاصه نتایج"""
+        return {
+            'total_issues': len(self.issues),
+            'critical': sum(1 for i in self.issues if i.severity == Severity.CRITICAL),
+            'errors': sum(1 for i in self.issues if i.severity == Severity.ERROR),
+            'warnings': sum(1 for i in self.issues if i.severity == Severity.WARNING),
+            'info': sum(1 for i in self.issues if i.severity == Severity.INFO),
+            'auto_fixable': sum(1 for i in self.issues if i.auto_fixable),
+        }
+
+
+class BaseClassChecker:
+    """چک کردن استفاده از Base Classes"""
+    
+    # Base Classes که باید استفاده شوند
+    REQUIRED_BASE_CLASSES = {
+        'ListView': 'BaseListView',
+        'CreateView': 'BaseCreateView',
+        'UpdateView': 'BaseUpdateView',
+        'DeleteView': 'BaseDeleteView',
+        'DetailView': 'BaseDetailView',
+        'FormView': 'BaseFormView',
+    }
+    
+    # ماژول‌هایی که از چک معاف هستند
+    EXEMPT_MODULES = {'shared', 'migrations', 'tests'}
+    
+    def check_file(self, file_path: str) -> List[Issue]:
+        """چک کردن یک فایل Python"""
+        issues = []
+        
+        # فایل‌های معاف از چک
+        if any(exempt in file_path for exempt in self.EXEMPT_MODULES):
+            return issues
+        
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            tree = ast.parse(content, filename=file_path)
+            
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ClassDef):
+                    # بررسی base classes
+                    for base in node.bases:
+                        base_name = self._get_base_name(base)
+                        
+                        if base_name in self.REQUIRED_BASE_CLASSES:
+                            # استفاده از Django generic view به جای Base Class
+                            required = self.REQUIRED_BASE_CLASSES[base_name]
+                            issues.append(Issue(
+                                file_path=file_path,
+                                line_number=node.lineno,
+                                severity=Severity.ERROR,
+                                category="Base Classes",
+                                message=f"Class '{node.name}' uses '{base_name}' instead of '{required}'",
+                                suggestion=f"Replace 'from django.views.generic import {base_name}' "
+                                          f"with 'from shared.views.base import {required}'",
+                                auto_fixable=False
+                            ))
+        
+        except Exception as e:
+            issues.append(Issue(
+                file_path=file_path,
+                line_number=0,
+                severity=Severity.WARNING,
+                category="Parsing",
+                message=f"Failed to parse file: {str(e)}"
+            ))
+        
+        return issues
+    
+    def _get_base_name(self, base) -> str:
+        """دریافت نام base class"""
+        if isinstance(base, ast.Name):
+            return base.id
+        elif isinstance(base, ast.Attribute):
+            return base.attr
+        return ""
+
+
+class TemplateChecker:
+    """چک کردن Templates"""
+    
+    GENERIC_TEMPLATES = [
+        'generic_list.html',
+        'generic_form.html',
+        'generic_detail.html',
+        'generic_confirm_delete.html'
+    ]
+    
+    def check_file(self, file_path: str) -> List[Issue]:
+        """چک کردن یک فایل template"""
+        issues = []
+        
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                lines = content.split('\n')
+            
+            # چک کردن inline styles
+            issues.extend(self._check_inline_styles(file_path, lines))
+            
+            # چک کردن inline JavaScript
+            issues.extend(self._check_inline_javascript(file_path, lines))
+            
+            # چک کردن استفاده از generic templates
+            issues.extend(self._check_generic_templates(file_path, content))
+            
+            # چک کردن استفاده از template tags
+            issues.extend(self._check_template_tags(file_path, content))
+        
+        except Exception as e:
+            issues.append(Issue(
+                file_path=file_path,
+                line_number=0,
+                severity=Severity.WARNING,
+                category="Parsing",
+                message=f"Failed to read template: {str(e)}"
+            ))
+        
+        return issues
+    
+    def _check_inline_styles(self, file_path: str, lines: List[str]) -> List[Issue]:
+        """چک کردن inline styles"""
+        issues = []
+        
+        # Pattern برای inline style
+        style_pattern = re.compile(r'style\s*=\s*["\']')
+        
+        for i, line in enumerate(lines, 1):
+            if style_pattern.search(line):
+                # استثنا برای برخی موارد خاص
+                if 'display: none' in line or 'visibility: hidden' in line:
+                    continue
+                
+                issues.append(Issue(
+                    file_path=file_path,
+                    line_number=i,
+                    severity=Severity.ERROR,
+                    category="Template - CSS",
+                    message="Inline style detected",
+                    suggestion="Move styles to shared.css",
+                    auto_fixable=False
+                ))
+        
+        return issues
+    
+    def _check_inline_javascript(self, file_path: str, lines: List[str]) -> List[Issue]:
+        """چک کردن inline JavaScript"""
+        issues = []
+        
+        # Pattern برای inline event handlers
+        inline_js_patterns = [
+            r'onclick\s*=',
+            r'onchange\s*=',
+            r'onsubmit\s*=',
+            r'onload\s*=',
+        ]
+        
+        for i, line in enumerate(lines, 1):
+            for pattern in inline_js_patterns:
+                if re.search(pattern, line, re.IGNORECASE):
+                    issues.append(Issue(
+                        file_path=file_path,
+                        line_number=i,
+                        severity=Severity.ERROR,
+                        category="Template - JavaScript",
+                        message="Inline event handler detected",
+                        suggestion="Use addEventListener in separate JS file",
+                        auto_fixable=False
+                    ))
+                    break
+        
+        return issues
+    
+    def _check_generic_templates(self, file_path: str, content: str) -> List[Issue]:
+        """چک کردن استفاده از generic templates"""
+        issues = []
+        
+        # فقط برای فایل‌های اصلی (نه partials)
+        if 'partials' in file_path or 'generic' in file_path:
+            return issues
+        
+        # چک کردن extends
+        extends_match = re.search(r'{%\s*extends\s+["\'](.+?)["\']\s*%}', content)
+        
+        if extends_match:
+            extended_template = extends_match.group(1)
+            
+            # آیا از generic template استفاده کرده؟
+            if not any(generic in extended_template for generic in self.GENERIC_TEMPLATES):
+                # تشخیص نوع template
+                if '_list.html' in file_path or 'list.html' in file_path:
+                    suggestion = "Consider extending 'shared/generic/generic_list.html'"
+                elif '_form.html' in file_path or 'form.html' in file_path:
+                    suggestion = "Consider extending 'shared/generic/generic_form.html'"
+                elif '_detail.html' in file_path or 'detail.html' in file_path:
+                    suggestion = "Consider extending 'shared/generic/generic_detail.html'"
+                else:
+                    suggestion = "Consider using a generic template if applicable"
+                
+                issues.append(Issue(
+                    file_path=file_path,
+                    line_number=1,
+                    severity=Severity.WARNING,
+                    category="Template - Structure",
+                    message=f"Not using generic template (extends '{extended_template}')",
+                    suggestion=suggestion,
+                    auto_fixable=False
+                ))
+        
+        return issues
+    
+    def _check_template_tags(self, file_path: str, content: str) -> List[Issue]:
+        """چک کردن استفاده از template tags"""
+        issues = []
+        
+        # اگر از static استفاده می‌کند، باید load static داشته باشد
+        if "{% static" in content and "{% load static %}" not in content:
+            issues.append(Issue(
+                file_path=file_path,
+                line_number=1,
+                severity=Severity.ERROR,
+                category="Template - Tags",
+                message="Using {% static %} without {% load static %}",
+                suggestion="Add {% load static %} at the top of template",
+                auto_fixable=True
+            ))
+        
+        return issues
+
+
+class DocstringChecker:
+    """چک کردن docstrings"""
+    
+    def check_file(self, file_path: str) -> List[Issue]:
+        """چک کردن docstrings در یک فایل"""
+        issues = []
+        
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            tree = ast.parse(content, filename=file_path)
+            
+            for node in ast.walk(tree):
+                # چک کردن functions
+                if isinstance(node, ast.FunctionDef):
+                    if not self._has_docstring(node):
+                        # استثنا برای متدهای خاص
+                        if node.name.startswith('_') or node.name in ['setUp', 'tearDown']:
+                            continue
+                        
+                        issues.append(Issue(
+                            file_path=file_path,
+                            line_number=node.lineno,
+                            severity=Severity.WARNING,
+                            category="Documentation",
+                            message=f"Function '{node.name}' missing docstring",
+                            suggestion="Add docstring explaining function purpose, args, and returns",
+                            auto_fixable=False
+                        ))
+                
+                # چک کردن classes
+                elif isinstance(node, ast.ClassDef):
+                    if not self._has_docstring(node):
+                        issues.append(Issue(
+                            file_path=file_path,
+                            line_number=node.lineno,
+                            severity=Severity.WARNING,
+                            category="Documentation",
+                            message=f"Class '{node.name}' missing docstring",
+                            suggestion="Add docstring explaining class purpose",
+                            auto_fixable=False
+                        ))
+        
+        except Exception as e:
+            pass  # Ignore parsing errors
+        
+        return issues
+    
+    def _has_docstring(self, node) -> bool:
+        """بررسی وجود docstring"""
+        return (
+            ast.get_docstring(node) is not None and 
+            len(ast.get_docstring(node).strip()) > 0
+        )
+
+
+class SecurityChecker:
+    """چک کردن مشکلات امنیتی"""
+    
+    DANGEROUS_PATTERNS = {
+        'sql_injection': [
+            (r'cursor\.execute\([^)]*%s', 'Potential SQL injection - use parameterized queries'),
+            (r'\.raw\([^)]*%', 'Potential SQL injection in raw query'),
+        ],
+        'xss': [
+            (r'\|safe(?!\})', 'Using |safe filter - ensure content is trusted'),
+            (r'mark_safe\(', 'Using mark_safe - ensure content is sanitized'),
+        ],
+        'secrets': [
+            (r'SECRET_KEY\s*=\s*["\'][^"\']+["\']', 'Hardcoded SECRET_KEY - use environment variables'),
+            (r'PASSWORD\s*=\s*["\'][^"\']+["\']', 'Hardcoded password - use environment variables'),
+            (r'API_KEY\s*=\s*["\'][^"\']+["\']', 'Hardcoded API key - use environment variables'),
+        ],
+    }
+    
+    def check_file(self, file_path: str) -> List[Issue]:
+        """چک کردن امنیت یک فایل"""
+        issues = []
+        
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+            
+            for i, line in enumerate(lines, 1):
+                for category, patterns in self.DANGEROUS_PATTERNS.items():
+                    for pattern, message in patterns:
+                        if re.search(pattern, line):
+                            issues.append(Issue(
+                                file_path=file_path,
+                                line_number=i,
+                                severity=Severity.CRITICAL,
+                                category=f"Security - {category}",
+                                message=message,
+                                suggestion="Review security best practices in DEVELOPMENT_GUIDE.md",
+                                auto_fixable=False
+                            ))
+        
+        except Exception:
+            pass
+        
+        return issues
+
+
+class NamingChecker:
+    """چک کردن naming conventions"""
+    
+    def check_file(self, file_path: str) -> List[Issue]:
+        """چک کردن naming conventions"""
+        issues = []
+        
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            tree = ast.parse(content, filename=file_path)
+            
+            for node in ast.walk(tree):
+                # Classes باید PascalCase باشند
+                if isinstance(node, ast.ClassDef):
+                    if not self._is_pascal_case(node.name):
+                        issues.append(Issue(
+                            file_path=file_path,
+                            line_number=node.lineno,
+                            severity=Severity.WARNING,
+                            category="Naming - Class",
+                            message=f"Class '{node.name}' should use PascalCase",
+                            suggestion=f"Rename to {self._to_pascal_case(node.name)}",
+                            auto_fixable=False
+                        ))
+                
+                # Functions باید snake_case باشند
+                elif isinstance(node, ast.FunctionDef):
+                    if not node.name.startswith('_') and not self._is_snake_case(node.name):
+                        issues.append(Issue(
+                            file_path=file_path,
+                            line_number=node.lineno,
+                            severity=Severity.WARNING,
+                            category="Naming - Function",
+                            message=f"Function '{node.name}' should use snake_case",
+                            suggestion=f"Rename to {self._to_snake_case(node.name)}",
+                            auto_fixable=False
+                        ))
+        
+        except Exception:
+            pass
+        
+        return issues
+    
+    def _is_pascal_case(self, name: str) -> bool:
+        """بررسی PascalCase"""
+        return bool(re.match(r'^[A-Z][a-zA-Z0-9]*$', name))
+    
+    def _is_snake_case(self, name: str) -> bool:
+        """بررسی snake_case"""
+        return bool(re.match(r'^[a-z][a-z0-9_]*$', name))
+    
+    def _to_pascal_case(self, name: str) -> str:
+        """تبدیل به PascalCase"""
+        return ''.join(word.capitalize() for word in name.split('_'))
+    
+    def _to_snake_case(self, name: str) -> str:
+        """تبدیل به snake_case"""
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+
+class PerformanceChecker:
+    """چک کردن بهینه‌سازی Performance"""
+    
+    EXEMPT_MODULES = {'shared', 'migrations', 'tests'}
+    
+    def check_file(self, file_path: str) -> List[Issue]:
+        """چک کردن performance issues"""
+        issues = []
+        
+        # فایل‌های معاف از چک
+        if any(exempt in file_path for exempt in self.EXEMPT_MODULES):
+            return issues
+        
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            tree = ast.parse(content, filename=file_path)
+            
+            # چک select_related و prefetch_related
+            issues.extend(self._check_query_optimization(file_path, tree, content))
+            
+            # چک N+1 queries در loops
+            issues.extend(self._check_n_plus_one_queries(file_path, tree, content))
+            
+        except Exception:
+            pass
+        
+        return issues
+    
+    def _check_query_optimization(self, file_path: str, tree: ast.AST, content: str) -> List[Issue]:
+        """چک استفاده از select_related و prefetch_related"""
+        issues = []
+        
+        # پیدا کردن get_queryset methods
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and node.name == 'get_queryset':
+                # بررسی اینکه آیا از select_related یا prefetch_related استفاده می‌کند
+                method_content = ast.get_source_segment(content, node) or ""
+                
+                # پیدا کردن .objects.all() یا .objects.filter()
+                if re.search(r'\.objects\.(all|filter|get)', method_content):
+                    # چک کردن ForeignKey fields که باید select_related داشته باشند
+                    if re.search(r'\.(category|subcategory|type|created_by|company|warehouse|supplier)', method_content):
+                        if 'select_related' not in method_content:
+                            issues.append(Issue(
+                                file_path=file_path,
+                                line_number=node.lineno,
+                                severity=Severity.WARNING,
+                                category="Performance - Query Optimization",
+                                message="Query uses ForeignKey fields but missing select_related()",
+                                suggestion="Add .select_related('category', 'subcategory', ...) to avoid N+1 queries",
+                                auto_fixable=False
+                            ))
+                    
+                    # چک کردن ManyToMany یا reverse relations که باید prefetch_related داشته باشند
+                    if re.search(r'\.(lines|items|materials|components)', method_content):
+                        if 'prefetch_related' not in method_content:
+                            issues.append(Issue(
+                                file_path=file_path,
+                                line_number=node.lineno,
+                                severity=Severity.WARNING,
+                                category="Performance - Query Optimization",
+                                message="Query uses reverse relations but missing prefetch_related()",
+                                suggestion="Add .prefetch_related('lines', 'items', ...) to avoid N+1 queries",
+                                auto_fixable=False
+                            ))
+        
+        return issues
+    
+    def _check_n_plus_one_queries(self, file_path: str, tree: ast.AST, content: str) -> List[Issue]:
+        """چک N+1 queries در loops"""
+        issues = []
+        
+        # پیدا کردن for loops
+        for node in ast.walk(tree):
+            if isinstance(node, ast.For):
+                loop_content = ast.get_source_segment(content, node) or ""
+                
+                # اگر در loop از attribute access استفاده می‌شود که ممکن است query باشد
+                # مثلاً: for item in items: print(item.category.name)
+                if re.search(r'\.(category|subcategory|type|created_by|company|warehouse|supplier)\.', loop_content):
+                    # چک کردن که آیا قبل از loop select_related استفاده شده
+                    # بررسی context اطراف loop
+                    parent_function = self._get_parent_function(node, tree)
+                    if parent_function:
+                        func_content = ast.get_source_segment(content, parent_function) or ""
+                        if 'select_related' not in func_content:
+                            issues.append(Issue(
+                                file_path=file_path,
+                                line_number=node.lineno,
+                                severity=Severity.ERROR,
+                                category="Performance - N+1 Query",
+                                message="Potential N+1 query detected in loop - accessing ForeignKey attributes",
+                                suggestion="Use select_related() before the loop to prefetch related objects",
+                                auto_fixable=False
+                            ))
+                    else:
+                        # اگر parent function پیدا نشد، کل فایل را چک کن
+                        if 'select_related' not in content[:node.lineno * 100]:  # چک خطوط قبل
+                            issues.append(Issue(
+                                file_path=file_path,
+                                line_number=node.lineno,
+                                severity=Severity.ERROR,
+                                category="Performance - N+1 Query",
+                                message="Potential N+1 query detected in loop - accessing ForeignKey attributes",
+                                suggestion="Use select_related() before the loop to prefetch related objects",
+                                auto_fixable=False
+                            ))
+        
+        return issues
+    
+    def _get_parent_function(self, node: ast.AST, tree: ast.AST) -> ast.FunctionDef:
+        """دریافت parent function برای یک node"""
+        # استفاده از visitor pattern برای پیدا کردن parent
+        class ParentFinder(ast.NodeVisitor):
+            def __init__(self, target_node):
+                self.target_node = target_node
+                self.parent = None
+                self.current_parent = None
+            
+            def visit_FunctionDef(self, node):
+                old_parent = self.current_parent
+                self.current_parent = node
+                self.generic_visit(node)
+                self.current_parent = old_parent
+            
+            def generic_visit(self, node):
+                if node == self.target_node and self.current_parent:
+                    self.parent = self.current_parent
+                super().generic_visit(node)
+        
+        finder = ParentFinder(node)
+        finder.visit(tree)
+        return finder.parent
+
+
+class SharedComponentsChecker:
+    """چک کردن استفاده از Shared Components"""
+    
+    EXEMPT_MODULES = {'shared', 'migrations', 'tests'}
+    
+    # Filter Functions که باید استفاده شوند
+    FILTER_FUNCTIONS = {
+        'apply_search': 'shared.filters',
+        'apply_status_filter': 'shared.filters',
+        'apply_company_filter': 'shared.filters',
+        'apply_date_range_filter': 'shared.filters',
+        'apply_multi_field_filter': 'shared.filters',
+    }
+    
+    # Mixins که باید استفاده شوند
+    MIXINS = {
+        'PermissionFilterMixin': 'shared.mixins',
+        'CompanyScopedViewMixin': 'shared.mixins',
+        'AutoSetFieldsMixin': 'shared.mixins',
+        'SuccessMessageMixin': 'shared.mixins',
+        'FeaturePermissionRequiredMixin': 'shared.mixins',
+    }
+    
+    def check_file(self, file_path: str) -> List[Issue]:
+        """چک کردن استفاده از shared components"""
+        issues = []
+        
+        # فایل‌های معاف از چک
+        if any(exempt in file_path for exempt in self.EXEMPT_MODULES):
+            return issues
+        
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                lines = content.split('\n')
+            
+            tree = ast.parse(content, filename=file_path)
+            
+            # چک Filter Functions
+            issues.extend(self._check_filter_functions(file_path, tree, content, lines))
+            
+            # چک Mixins
+            issues.extend(self._check_mixins(file_path, tree, content))
+            
+            # چک JavaScript مشترک (در templates)
+            if file_path.endswith('.html'):
+                issues.extend(self._check_shared_javascript(file_path, content, lines))
+                issues.extend(self._check_template_partials(file_path, content))
+        
+        except Exception:
+            pass
+        
+        return issues
+    
+    def _check_filter_functions(self, file_path: str, tree: ast.AST, content: str, lines: List[str]) -> List[Issue]:
+        """چک استفاده از Filter Functions"""
+        issues = []
+        
+        # پیدا کردن get_queryset methods
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and node.name == 'get_queryset':
+                method_content = ast.get_source_segment(content, node) or ""
+                method_lines = method_content.split('\n')
+                
+                # چک کردن manual search implementation
+                if re.search(r'\.filter\(.*Q\(.*__icontains', method_content):
+                    if 'apply_search' not in method_content:
+                        issues.append(Issue(
+                            file_path=file_path,
+                            line_number=node.lineno,
+                            severity=Severity.WARNING,
+                            category="Shared Components - Filter Functions",
+                            message="Manual search implementation detected - use apply_search() instead",
+                            suggestion="Import and use 'apply_search' from shared.filters",
+                            auto_fixable=False
+                        ))
+                
+                # چک کردن manual status filter
+                if re.search(r'\.filter\(.*status\s*=', method_content):
+                    if 'apply_status_filter' not in method_content:
+                        issues.append(Issue(
+                            file_path=file_path,
+                            line_number=node.lineno,
+                            severity=Severity.INFO,
+                            category="Shared Components - Filter Functions",
+                            message="Manual status filter detected - consider using apply_status_filter()",
+                            suggestion="Import and use 'apply_status_filter' from shared.filters",
+                            auto_fixable=False
+                        ))
+                
+                # چک کردن manual company filter
+                if re.search(r'\.filter\(.*company_id\s*=', method_content):
+                    if 'apply_company_filter' not in method_content and 'CompanyScopedViewMixin' not in content:
+                        issues.append(Issue(
+                            file_path=file_path,
+                            line_number=node.lineno,
+                            severity=Severity.INFO,
+                            category="Shared Components - Filter Functions",
+                            message="Manual company filter detected - consider using apply_company_filter() or CompanyScopedViewMixin",
+                            suggestion="Use 'apply_company_filter' from shared.filters or 'CompanyScopedViewMixin' from shared.mixins",
+                            auto_fixable=False
+                        ))
+        
+        return issues
+    
+    def _check_mixins(self, file_path: str, tree: ast.AST, content: str) -> List[Issue]:
+        """چک استفاده از Mixins"""
+        issues = []
+        
+        # پیدا کردن classes که از Base Views ارث‌بری می‌کنند
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef):
+                base_names = [self._get_base_name(base) for base in node.bases]
+                
+                # اگر از BaseListView یا BaseCreateView استفاده می‌کند
+                if any(base in ['BaseListView', 'BaseCreateView', 'BaseUpdateView'] for base in base_names):
+                    class_content = ast.get_source_segment(content, node) or ""
+                    
+                    # چک PermissionFilterMixin
+                    if re.search(r'def get_queryset.*permission', class_content, re.IGNORECASE):
+                        if 'PermissionFilterMixin' not in content:
+                            issues.append(Issue(
+                                file_path=file_path,
+                                line_number=node.lineno,
+                                severity=Severity.INFO,
+                                category="Shared Components - Mixins",
+                                message="Manual permission filtering detected - consider using PermissionFilterMixin",
+                                suggestion="Add 'PermissionFilterMixin' from shared.mixins to class bases",
+                                auto_fixable=False
+                            ))
+                    
+                    # چک AutoSetFieldsMixin
+                    if re.search(r'company_id.*=.*session', class_content, re.IGNORECASE):
+                        if 'AutoSetFieldsMixin' not in content:
+                            issues.append(Issue(
+                                file_path=file_path,
+                                line_number=node.lineno,
+                                severity=Severity.INFO,
+                                category="Shared Components - Mixins",
+                                message="Manual field setting detected - consider using AutoSetFieldsMixin",
+                                suggestion="Add 'AutoSetFieldsMixin' from shared.mixins to class bases",
+                                auto_fixable=False
+                            ))
+        
+        return issues
+    
+    def _check_shared_javascript(self, file_path: str, content: str, lines: List[str]) -> List[Issue]:
+        """چک استفاده از JavaScript مشترک"""
+        issues = []
+        
+        # چک formset.js
+        if re.search(r'function.*addFormsetRow|function.*removeFormsetRow', content, re.IGNORECASE):
+            if 'formset.js' not in content:
+                issues.append(Issue(
+                    file_path=file_path,
+                    line_number=1,
+                    severity=Severity.WARNING,
+                    category="Shared Components - JavaScript",
+                    message="Custom formset management code detected - use formset.js instead",
+                    suggestion="Use {% load static %} and <script src=\"{% static 'js/formset.js' %}\"></script>",
+                    auto_fixable=False
+                ))
+        
+        # چک cascading-dropdowns.js
+        if re.search(r'function.*cascad|dropdown.*change', content, re.IGNORECASE):
+            if 'cascading-dropdowns.js' not in content:
+                issues.append(Issue(
+                    file_path=file_path,
+                    line_number=1,
+                    severity=Severity.INFO,
+                    category="Shared Components - JavaScript",
+                    message="Custom cascading dropdown code detected - consider using cascading-dropdowns.js",
+                    suggestion="Use {% load static %} and <script src=\"{% static 'js/cascading-dropdowns.js' %}\"></script>",
+                    auto_fixable=False
+                ))
+        
+        # چک table-export.js
+        if re.search(r'function.*export.*csv|function.*export.*excel|function.*print.*table', content, re.IGNORECASE):
+            if 'table-export.js' not in content:
+                issues.append(Issue(
+                    file_path=file_path,
+                    line_number=1,
+                    severity=Severity.INFO,
+                    category="Shared Components - JavaScript",
+                    message="Custom table export code detected - consider using table-export.js",
+                    suggestion="Use {% load static %} and <script src=\"{% static 'js/table-export.js' %}\"></script>",
+                    auto_fixable=False
+                ))
+        
+        return issues
+    
+    def _check_template_partials(self, file_path: str, content: str) -> List[Issue]:
+        """چک استفاده از Template Partials"""
+        issues = []
+        
+        # فقط برای فایل‌های اصلی (نه partials)
+        if 'partials' in file_path or 'generic' in file_path:
+            return issues
+        
+        # چک row_actions.html
+        if re.search(r'<a\s+href.*edit|<a\s+href.*delete|<a\s+href.*detail', content, re.IGNORECASE):
+            if 'row_actions.html' not in content:
+                issues.append(Issue(
+                    file_path=file_path,
+                    line_number=1,
+                    severity=Severity.INFO,
+                    category="Shared Components - Template Partials",
+                    message="Manual row actions detected - consider using row_actions.html partial",
+                    suggestion="Use {% include 'shared/partials/row_actions.html' with object=object feature_code=feature_code %}",
+                    auto_fixable=False
+                ))
+        
+        # چک pagination.html
+        if re.search(r'<div.*pagination|<ul.*pagination', content, re.IGNORECASE):
+            if 'pagination.html' not in content and 'generic_list.html' not in content:
+                issues.append(Issue(
+                    file_path=file_path,
+                    line_number=1,
+                    severity=Severity.INFO,
+                    category="Shared Components - Template Partials",
+                    message="Manual pagination detected - consider using pagination.html partial",
+                    suggestion="Use {% include 'shared/partials/pagination.html' %}",
+                    auto_fixable=False
+                ))
+        
+        return issues
+    
+    def _get_base_name(self, base) -> str:
+        """دریافت نام base class"""
+        if isinstance(base, ast.Name):
+            return base.id
+        elif isinstance(base, ast.Attribute):
+            return base.attr
+        return ""
+
+
+class SecurityEnhancedChecker:
+    """چک‌های امنیتی پیشرفته"""
+    
+    def check_file(self, file_path: str) -> List[Issue]:
+        """چک کردن امنیت پیشرفته"""
+        issues = []
+
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                lines = content.split('\n')
+
+            tree = ast.parse(content, filename=file_path)
+
+            if file_path.endswith('.html'):
+                # چک CSRF token در templates
+                issues.extend(self._check_csrf_token(file_path, content, lines))
+
+            elif file_path.endswith('.py'):
+                # چک Authentication و Permissions
+                issues.extend(self._check_authentication(file_path, tree, content))
+                issues.extend(self._check_permission_decorators(file_path, tree, content))
+
+                # چک File Upload Security
+                issues.extend(self._check_file_upload_security(file_path, tree, content))
+
+                # چک Input Sanitization
+                issues.extend(self._check_input_sanitization(file_path, tree, content))
+
+                # چک Rate Limiting
+                issues.extend(self._check_rate_limiting(file_path, tree, content))
+
+        except Exception:
+            pass
+
+        return issues
+    
+    def _check_csrf_token(self, file_path: str, content: str, lines: List[str]) -> List[Issue]:
+        """چک وجود CSRF token در forms"""
+        issues = []
+        
+        # پیدا کردن forms
+        if re.search(r'<form\s+method\s*=\s*["\']post', content, re.IGNORECASE):
+            if '{% csrf_token %}' not in content and 'csrf_token' not in content:
+                # پیدا کردن خط form
+                for i, line in enumerate(lines, 1):
+                    if re.search(r'<form\s+method\s*=\s*["\']post', line, re.IGNORECASE):
+                        issues.append(Issue(
+                            file_path=file_path,
+                            line_number=i,
+                            severity=Severity.CRITICAL,
+                            category="Security - CSRF",
+                            message="POST form missing CSRF token",
+                            suggestion="Add {% csrf_token %} inside the <form> tag",
+                            auto_fixable=True
+                        ))
+                        break
+        
+        return issues
+    
+    def _check_authentication(self, file_path: str, tree: ast.AST, content: str) -> List[Issue]:
+        """چک استفاده از @login_required"""
+        issues = []
+        
+        # پیدا کردن view functions
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef):
+                # چک کردن که آیا view function است (request parameter دارد)
+                has_request = any(
+                    isinstance(arg, ast.arg) and arg.arg == 'request'
+                    for arg in node.args.args
+                )
+                
+                if has_request:
+                    # چک کردن decorators
+                    decorators = [self._get_decorator_name(d) for d in node.decorator_list]
+                    
+                    if 'login_required' not in decorators and 'LoginRequiredMixin' not in content:
+                        # استثنا برای Base Views که خودشان permission دارند
+                        if 'BaseListView' in content or 'BaseCreateView' in content:
+                            continue
+                        
+                        issues.append(Issue(
+                            file_path=file_path,
+                            line_number=node.lineno,
+                            severity=Severity.WARNING,
+                            category="Security - Authentication",
+                            message=f"View function '{node.name}' missing @login_required decorator",
+                            suggestion="Add @login_required decorator or use LoginRequiredMixin",
+                            auto_fixable=False
+                        ))
+        
+        return issues
+    
+    def _check_permission_decorators(self, file_path: str, tree: ast.AST, content: str) -> List[Issue]:
+        """چک استفاده از permission decorators"""
+        issues = []
+
+        # پیدا کردن functions با decorators
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef):
+                # چک کردن که آیا view function است (request parameter دارد)
+                has_request = any(
+                    isinstance(arg, ast.arg) and arg.arg == 'request'
+                    for arg in node.args.args
+                )
+
+                if has_request:
+                    # چک کردن decorators
+                    decorators = [self._get_decorator_name(d) for d in node.decorator_list]
+
+                    # چک feature_permission_required
+                    if 'feature_permission_required' not in decorators and 'login_required' not in decorators:
+                        # استثنا برای Base Views که خودشان permission دارند
+                        parent_class = self._get_parent_class(node, tree)
+                        if not parent_class or not any('Base' in base and 'View' in base for base in [self._get_base_name(b) for b in parent_class.bases]):
+                            issues.append(Issue(
+                                file_path=file_path,
+                                line_number=node.lineno,
+                                severity=Severity.WARNING,
+                                category="Security - Permissions",
+                                message=f"View function '{node.name}' missing permission decorators",
+                                suggestion="Add @feature_permission_required('module.feature', action='action') or @login_required",
+                                auto_fixable=False
+                            ))
+
+        # پیدا کردن classes که از Base Views ارث‌بری می‌کنند
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef):
+                base_names = [self._get_base_name(base) for base in node.bases]
+
+                # اگر از Base View استفاده می‌کند
+                if any('Base' in base and 'View' in base for base in base_names):
+                    class_content = ast.get_source_segment(content, node) or ""
+
+                    # چک کردن feature_code
+                    if 'feature_code' not in class_content:
+                        issues.append(Issue(
+                            file_path=file_path,
+                            line_number=node.lineno,
+                            severity=Severity.WARNING,
+                            category="Security - Permissions",
+                            message=f"View class '{node.name}' missing feature_code attribute",
+                            suggestion="Add feature_code = 'module.feature.name' to enable permission checking",
+                            auto_fixable=False
+                        ))
+
+        return issues
+
+    def _check_file_upload_security(self, file_path: str, tree: ast.AST, content: str) -> List[Issue]:
+        """چک امنیت file upload"""
+        issues = []
+
+        # چک کردن file field در forms
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef):
+                class_content = ast.get_source_segment(content, node) or ""
+
+                # چک FileField یا ImageField
+                if 'FileField' in class_content or 'ImageField' in class_content:
+                    # چک validation
+                    if not any(validation in class_content for validation in [
+                        'validators=', 'validate_file', 'validate_image', 'max_length', 'allowed_extensions'
+                    ]):
+                        issues.append(Issue(
+                            file_path=file_path,
+                            line_number=node.lineno,
+                            severity=Severity.ERROR,
+                            category="Security - File Upload",
+                            message=f"FileField in class '{node.name}' missing validation",
+                            suggestion="Add validators for file type, size, and content validation",
+                            auto_fixable=False
+                        ))
+
+                    # چک secure storage
+                    if 'upload_to=' in class_content and 'os.path.join' in class_content:
+                        issues.append(Issue(
+                            file_path=file_path,
+                            line_number=node.lineno,
+                            severity=Severity.WARNING,
+                            category="Security - File Upload",
+                            message=f"FileField in class '{node.name}' may use insecure upload path",
+                            suggestion="Use secure upload paths and avoid user-controlled paths",
+                            auto_fixable=False
+                        ))
+
+        return issues
+
+    def _check_input_sanitization(self, file_path: str, tree: ast.AST, content: str) -> List[Issue]:
+        """چک sanitization ورودی‌ها"""
+        issues = []
+
+        # چک کردن form fields بدون validation
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef):
+                class_content = ast.get_source_segment(content, node) or ""
+
+                # اگر ModelForm است
+                if 'ModelForm' in class_content:
+                    # چک clean methods
+                    if not any(method in class_content for method in [
+                        'def clean_', 'clean(', 'validate_', 'validators='
+                    ]):
+                        issues.append(Issue(
+                            file_path=file_path,
+                            line_number=node.lineno,
+                            severity=Severity.INFO,
+                            category="Security - Input Validation",
+                            message=f"Form class '{node.name}' missing input validation",
+                            suggestion="Add clean_<field>() methods or field validators for input sanitization",
+                            auto_fixable=False
+                        ))
+
+                # چک CharField بدون max_length
+                if 'CharField(' in class_content and 'max_length=' not in class_content:
+                    issues.append(Issue(
+                        file_path=file_path,
+                        line_number=node.lineno,
+                        severity=Severity.WARNING,
+                        category="Security - Input Validation",
+                        message=f"CharField in class '{node.name}' missing max_length",
+                        suggestion="Add max_length parameter to prevent buffer overflow attacks",
+                        auto_fixable=False
+                    ))
+
+        # چک raw SQL یا string formatting
+        dangerous_patterns = [
+            (r'%.*\+.*%', 'Potential unsafe string formatting in SQL'),
+            (r'f".*\{.*\}.*".*cursor', 'Potential SQL injection with f-strings'),
+            (r'format\(.*\).*"SELECT|INSERT|UPDATE|DELETE"', 'Potential SQL injection with format()'),
+        ]
+
+        lines = content.split('\n')
+        for i, line in enumerate(lines, 1):
+            for pattern, message in dangerous_patterns:
+                if re.search(pattern, line):
+                    issues.append(Issue(
+                        file_path=file_path,
+                        line_number=i,
+                        severity=Severity.CRITICAL,
+                        category="Security - Input Sanitization",
+                        message=message,
+                        suggestion="Use parameterized queries or ORM methods instead",
+                        auto_fixable=False
+                    ))
+
+        return issues
+
+    def _check_rate_limiting(self, file_path: str, tree: ast.AST, content: str) -> List[Issue]:
+        """چک rate limiting"""
+        issues = []
+
+        # چک کردن view functions که ممکن است نیاز به rate limiting داشته باشند
+        sensitive_operations = ['login', 'register', 'password', 'reset', 'api']
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef):
+                func_name = node.name.lower()
+
+                # اگر operation حساس است
+                if any(op in func_name for op in sensitive_operations):
+                    # چک decorators
+                    decorators = [self._get_decorator_name(d) for d in node.decorator_list]
+
+                    if not any(rate_limit in decorator for decorator in decorators
+                             for rate_limit in ['ratelimit', 'throttle', 'rate_limit']):
+                        issues.append(Issue(
+                            file_path=file_path,
+                            line_number=node.lineno,
+                            severity=Severity.INFO,
+                            category="Security - Rate Limiting",
+                            message=f"Sensitive function '{node.name}' missing rate limiting",
+                            suggestion="Add @ratelimit decorator or implement rate limiting middleware",
+                            auto_fixable=False
+                        ))
+
+        # چک API views
+        if 'APIView' in content or 'ViewSet' in content:
+            if 'throttle' not in content and 'rate' not in content:
+                issues.append(Issue(
+                    file_path=file_path,
+                    line_number=1,
+                    severity=Severity.INFO,
+                    category="Security - Rate Limiting",
+                    message="API views missing rate limiting configuration",
+                    suggestion="Configure throttling classes in settings or view-level throttling",
+                    auto_fixable=False
+                ))
+
+        return issues
+
+    def _get_parent_class(self, node: ast.FunctionDef, tree: ast.AST) -> ast.ClassDef:
+        """دریافت parent class برای یک method"""
+        for parent in ast.walk(tree):
+            if isinstance(parent, ast.ClassDef):
+                for child in ast.walk(parent):
+                    if child == node:
+                        return parent
+        return None
+    
+    def _get_decorator_name(self, decorator) -> str:
+        """دریافت نام decorator"""
+        if isinstance(decorator, ast.Name):
+            return decorator.id
+        elif isinstance(decorator, ast.Attribute):
+            return decorator.attr
+        elif isinstance(decorator, ast.Call):
+            if isinstance(decorator.func, ast.Name):
+                return decorator.func.id
+            elif isinstance(decorator.func, ast.Attribute):
+                return decorator.func.attr
+        return ""
+    
+    def _get_base_name(self, base) -> str:
+        """دریافت نام base class"""
+        if isinstance(base, ast.Name):
+            return base.id
+        elif isinstance(base, ast.Attribute):
+            return base.attr
+        return ""
+
+
+class TestingChecker:
+    """چک کردن Testing Standards"""
+
+    EXEMPT_MODULES = {'shared', 'migrations'}
+
+    def __init__(self):
+        self.project_root = None
+
+    def check_file(self, file_path: str) -> List[Issue]:
+        """چک کردن testing standards"""
+        issues = []
+
+        # فقط فایل‌های test را چک کن
+        if not self._is_test_file(file_path):
+            return issues
+
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                lines = content.split('\n')
+
+            tree = ast.parse(content, filename=file_path)
+
+            # چک نام‌گذاری test methods
+            issues.extend(self._check_test_naming(file_path, tree))
+
+            # چک وجود docstrings در test methods
+            issues.extend(self._check_test_docstrings(file_path, tree))
+
+            # چک استفاده از AAA pattern
+            issues.extend(self._check_aaa_pattern(file_path, tree, content))
+
+            # چک وجود setUp و tearDown
+            issues.extend(self._check_setup_teardown(file_path, tree))
+
+        except Exception:
+            pass
+
+        return issues
+
+    def check_project(self, project_root: Path) -> List[Issue]:
+        """چک کردن testing standards برای کل پروژه"""
+        issues = []
+        self.project_root = project_root
+
+        # چک وجود فایل‌های test
+        issues.extend(self._check_test_file_existence(project_root))
+
+        # چک پوشش test classes
+        issues.extend(self._check_test_classes_coverage(project_root))
+
+        # چک استفاده از factories
+        issues.extend(self._check_factory_usage(project_root))
+
+        # چک isolation tests
+        issues.extend(self._check_test_isolation(project_root))
+
+        # چک test execution time
+        issues.extend(self._check_test_execution_time(project_root))
+
+        return issues
+    def _is_test_file(self, file_path: str) -> bool:
+        """بررسی اینکه آیا فایل test است"""
+    def _is_test_file(self, file_path: str) -> bool:
+        """بررسی اینکه آیا فایل test است"""
+        path = Path(file_path)
+        return (
+            'test' in path.name.lower() or
+            path.name.startswith('test_') or
+            path.name.endswith('_test.py') or
+            'tests' in path.parts
+        )
+    def _check_test_naming(self, file_path: str, tree: ast.AST) -> List[Issue]:
+        """چک نام‌گذاری test methods"""
+        issues = []
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and node.name.startswith('test'):
+                # چک اینکه آیا نام test واضح است
+                if len(node.name) < 8 or node.name == 'test':  # خیلی کوتاه
+                    issues.append(Issue(
+                        file_path=file_path,
+                        line_number=node.lineno,
+                        severity=Severity.WARNING,
+                        category="Testing - Naming",
+                        message=f"Test method name '{node.name}' is too short or unclear",
+                        suggestion="Use descriptive names like 'test_user_creation_with_valid_data'",
+                        auto_fixable=False
+                    ))
+                elif not self._is_snake_case(node.name):
+                    issues.append(Issue(
+                        file_path=file_path,
+                        line_number=node.lineno,
+                        severity=Severity.WARNING,
+                        category="Testing - Naming",
+                        message=f"Test method '{node.name}' should use snake_case",
+                        suggestion=f"Rename to {self._to_snake_case(node.name)}",
+                        auto_fixable=False
+                    ))
+
+        return issues
+
+    def _check_test_docstrings(self, file_path: str, tree: ast.AST) -> List[Issue]:
+        """چک وجود docstrings در test methods"""
+        issues = []
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and node.name.startswith('test'):
+                if not ast.get_docstring(node):
+                    issues.append(Issue(
+                        file_path=file_path,
+                        line_number=node.lineno,
+                        severity=Severity.INFO,
+                        category="Testing - Documentation",
+                        message=f"Test method '{node.name}' missing docstring",
+                        suggestion="Add docstring explaining what the test verifies",
+                        auto_fixable=False
+                    ))
+
+        return issues
+
+    def _check_aaa_pattern(self, file_path: str, tree: ast.AST, content: str) -> List[Issue]:
+        """چک استفاده از AAA pattern (Arrange, Act, Assert)"""
+        issues = []
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and node.name.startswith('test'):
+                method_content = ast.get_source_segment(content, node) or ""
+
+                # چک وجود comments برای AAA
+                has_arrange = 'arrange' in method_content.lower() or '# arrange' in method_content.lower()
+                has_act = 'act' in method_content.lower() or '# act' in method_content.lower()
+                has_assert = 'assert' in method_content.lower() or '# assert' in method_content.lower()
+
+                if not (has_arrange and has_act and has_assert):
+                    # اگر هیچ‌کدام وجود ندارد، پیشنهاد بده
+                    if not any([has_arrange, has_act, has_assert]):
+                        issues.append(Issue(
+                            file_path=file_path,
+                            line_number=node.lineno,
+                            severity=Severity.INFO,
+                            category="Testing - Structure",
+                            message=f"Test method '{node.name}' could use AAA pattern comments",
+                            suggestion="Add comments: # Arrange, # Act, # Assert to structure the test",
+                            auto_fixable=False
+                        ))
+
+        return issues
+
+    def _check_setup_teardown(self, file_path: str, tree: ast.AST) -> List[Issue]:
+        """چک وجود setUp و tearDown methods"""
+        issues = []
+
+        class_names = []
+        setup_methods = []
+        teardown_methods = []
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef):
+                class_names.append(node.name)
+            elif isinstance(node, ast.FunctionDef):
+                if node.name == 'setUp':
+                    setup_methods.append(node)
+                elif node.name == 'tearDown':
+                    teardown_methods.append(node)
+
+        # چک هر کلاس test
+        for class_name in class_names:
+            has_setup = any(setup.lineno for setup in setup_methods)
+            has_teardown = any(teardown.lineno for teardown in teardown_methods)
+
+            # اگر tearDown دارد ولی setUp ندارد، پیشنهاد بده
+            if has_teardown and not has_setup:
+                issues.append(Issue(
+                    file_path=file_path,
+                    line_number=1,  # نمی‌توانیم خط کلاس را دقیق پیدا کنیم
+                    severity=Severity.INFO,
+                    category="Testing - Structure",
+                    message=f"Test class has tearDown but no setUp method",
+                    suggestion="Add setUp method to initialize test data",
+                    auto_fixable=False
+                ))
+
+        return issues
+
+    def _check_test_file_existence(self, project_root: Path) -> List[Issue]:
+        """چک وجود فایل‌های test"""
+        issues = []
+
+        # پیدا کردن تمام فایل‌های Python غیر test
+        python_files = []
+        for py_file in project_root.rglob('*.py'):
+            if not self._is_test_file(str(py_file)):
+                python_files.append(py_file)
+
+        # چک وجود فایل test برای هر فایل Python
+        for py_file in python_files:
+            if 'migrations' in str(py_file) or '__pycache__' in str(py_file):
+                continue
+
+            # پیدا کردن فایل test مربوطه
+            test_file = self._find_test_file(py_file, project_root)
+            if not test_file:
+                issues.append(Issue(
+                    file_path=str(py_file),
+                    line_number=1,
+                    severity=Severity.INFO,
+                    category="Testing - File Existence",
+                    message=f"No test file found for {py_file.name}",
+                    suggestion="Create test file (e.g., test_models.py, test_views.py) with appropriate test cases",
+                    auto_fixable=False
+                ))
+
+        return issues
+
+    def _check_test_classes_coverage(self, project_root: Path) -> List[Issue]:
+        """چک پوشش test classes برای models و views"""
+        issues = []
+
+        # پیدا کردن models
+        model_files = list(project_root.rglob('models.py'))
+        for model_file in model_files:
+            if 'migrations' in str(model_file) or '__pycache__' in str(model_file):
+                continue
+
+            model_classes = self._extract_model_classes(model_file)
+            test_file = self._find_test_file(model_file, project_root)
+
+            if test_file:
+                test_classes = self._extract_test_classes(test_file)
+                missing_tests = model_classes - test_classes
+
+                for model_name in missing_tests:
+                    issues.append(Issue(
+                        file_path=str(model_file),
+                        line_number=1,
+                        severity=Severity.WARNING,
+                        category="Testing - Coverage",
+                        message=f"Model '{model_name}' has no corresponding test class",
+                        suggestion=f"Create test class '{model_name}Test' in {test_file.name}",
+                        auto_fixable=False
+                    ))
+
+        # پیدا کردن views
+        view_files = []
+        for pattern in ['views.py', 'viewsets.py', 'apis.py']:
+            view_files.extend(list(project_root.rglob(pattern)))
+
+        for view_file in view_files:
+            if 'migrations' in str(view_file) or '__pycache__' in str(view_file):
+                continue
+
+            view_functions = self._extract_view_functions(view_file)
+            test_file = self._find_test_file(view_file, project_root)
+
+            if test_file:
+                test_methods = self._extract_test_methods(test_file)
+                missing_tests = view_functions - test_methods
+
+                for view_name in missing_tests:
+                    issues.append(Issue(
+                        file_path=str(view_file),
+                        line_number=1,
+                        severity=Severity.WARNING,
+                        category="Testing - Coverage",
+                        message=f"View function '{view_name}' has no corresponding test method",
+                        suggestion=f"Create test method 'test_{view_name}' in {test_file.name}",
+                        auto_fixable=False
+                    ))
+
+        return issues
+
+    def _check_factory_usage(self, project_root: Path) -> List[Issue]:
+        """چک استفاده از factories به جای fixtures"""
+        issues = []
+
+        # پیدا کردن فایل‌های test
+        test_files = []
+        for pattern in ['test*.py', '*_test.py']:
+            test_files.extend(list(project_root.rglob(pattern)))
+
+        for test_file in test_files:
+            try:
+                with open(test_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+
+                # چک استفاده از fixtures
+                if 'fixtures' in content:
+                    issues.append(Issue(
+                        file_path=str(test_file),
+                        line_number=1,
+                        severity=Severity.INFO,
+                        category="Testing - Data Management",
+                        message="Test file uses fixtures instead of factories",
+                        suggestion="Consider using factories (e.g., factory_boy) instead of fixtures for better maintainability",
+                        auto_fixable=False
+                    ))
+
+                # چک وجود factory classes
+                if not ('factory' in content.lower() and ('Factory' in content or 'factory' in content)):
+                    issues.append(Issue(
+                        file_path=str(test_file),
+                        line_number=1,
+                        severity=Severity.INFO,
+                        category="Testing - Data Management",
+                        message="Test file could benefit from factory pattern",
+                        suggestion="Consider using factory classes for test data creation",
+                        auto_fixable=False
+                    ))
+
+            except Exception:
+                pass
+
+        return issues
+
+    def _check_test_isolation(self, project_root: Path) -> List[Issue]:
+        """چک isolation tests"""
+        issues = []
+
+        test_files = []
+        for pattern in ['test*.py', '*_test.py']:
+            test_files.extend(list(project_root.rglob(pattern)))
+
+        for test_file in test_files:
+            try:
+                with open(test_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+
+                # چک استفاده از setUp و tearDown
+                has_setup = 'def setUp' in content
+                has_teardown = 'def tearDown' in content
+
+                if not has_setup:
+                    issues.append(Issue(
+                        file_path=str(test_file),
+                        line_number=1,
+                        severity=Severity.INFO,
+                        category="Testing - Isolation",
+                        message="Test class missing setUp method",
+                        suggestion="Add setUp method to initialize test data and ensure test isolation",
+                        auto_fixable=False
+                    ))
+
+                # چک استفاده از mock
+                if 'mock' in content.lower() or 'patch' in content:
+                    # چک که از unittest.mock استفاده شود نه mock library قدیمی
+                    if 'from unittest.mock import' not in content and 'import unittest.mock' not in content:
+                        issues.append(Issue(
+                            file_path=str(test_file),
+                            line_number=1,
+                            severity=Severity.WARNING,
+                            category="Testing - Isolation",
+                            message="Using external mock library instead of unittest.mock",
+                            suggestion="Use unittest.mock for better Python 3 compatibility",
+                            auto_fixable=False
+                        ))
+
+            except Exception:
+                pass
+
+        return issues
+
+    def _check_test_execution_time(self, project_root: Path) -> List[Issue]:
+        """چک test execution time (ساده)"""
+        issues = []
+
+        # این چک ساده فقط تعداد test methods را می‌شمارد
+        # در واقعیت باید از pytest یا unittest profiling استفاده شود
+
+        test_files = []
+        for pattern in ['test*.py', '*_test.py']:
+            test_files.extend(list(project_root.rglob(pattern)))
+
+        for test_file in test_files:
+            try:
+                with open(test_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+
+                # شمارش test methods
+                test_methods = len(re.findall(r'def test_', content))
+
+                if test_methods == 0:
+                    continue  # قبلاً چک شده
+
+                # اگر تعداد test methods خیلی زیاد است، پیشنهاد تقسیم
+                if test_methods > 50:
+                    issues.append(Issue(
+                        file_path=str(test_file),
+                        line_number=1,
+                        severity=Severity.INFO,
+                        category="Testing - Performance",
+                        message=f"Test file has {test_methods} test methods - consider splitting",
+                        suggestion="Split large test files into smaller, focused test files for better maintainability",
+                        auto_fixable=False
+                    ))
+
+            except Exception:
+                pass
+
+        return issues
+
+    def _find_test_file(self, source_file: Path, project_root: Path) -> Path:
+        """پیدا کردن فایل test مربوطه"""
+        # استراتژی‌های مختلف برای پیدا کردن فایل test
+
+        # 1. test_*.py در همان دایرکتوری
+        test_name = f"test_{source_file.stem}.py"
+        test_file = source_file.parent / test_name
+        if test_file.exists():
+            return test_file
+
+        # 2. test_*.py در دایرکتوری tests
+        tests_dir = source_file.parent / "tests"
+        if tests_dir.exists():
+            test_file = tests_dir / test_name
+            if test_file.exists():
+                return test_file
+
+        # 3. *_test.py در همان دایرکتوری
+        test_name = f"{source_file.stem}_test.py"
+        test_file = source_file.parent / test_name
+        if test_file.exists():
+            return test_file
+
+        # 4. *_test.py در دایرکتوری tests
+        if tests_dir.exists():
+            test_file = tests_dir / test_name
+            if test_file.exists():
+                return test_file
+
+        return None
+
+    def _extract_model_classes(self, model_file: Path) -> Set[str]:
+        """استخراج نام کلاس‌های model"""
+        model_classes = set()
+        try:
+            with open(model_file, 'r', encoding='utf-8') as f:
+                tree = ast.parse(f.read())
+
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ClassDef):
+                    # چک ارث‌بری از models.Model
+                    for base in node.bases:
+                        base_name = ""
+                        if isinstance(base, ast.Name):
+                            base_name = base.id
+                        elif isinstance(base, ast.Attribute):
+                            base_name = base.attr
+
+                        if base_name == 'Model':
+                            model_classes.add(node.name)
+                            break
+
+        except Exception:
+            pass
+
+        return model_classes
+
+    def _extract_view_functions(self, view_file: Path) -> Set[str]:
+        """استخراج نام توابع view"""
+        view_functions = set()
+        try:
+            with open(view_file, 'r', encoding='utf-8') as f:
+                tree = ast.parse(f.read())
+
+            for node in ast.walk(tree):
+                if isinstance(node, ast.FunctionDef):
+                    # چک داشتن request parameter
+                    has_request = any(
+                        isinstance(arg, ast.arg) and arg.arg == 'request'
+                        for arg in node.args.args
+                    )
+                    if has_request:
+                        view_functions.add(node.name)
+
+        except Exception:
+            pass
+
+        return view_functions
+
+    def _extract_test_classes(self, test_file: Path) -> Set[str]:
+        """استخراج نام کلاس‌های test"""
+        test_classes = set()
+        try:
+            with open(test_file, 'r', encoding='utf-8') as f:
+                tree = ast.parse(f.read())
+
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ClassDef):
+                    # چک ارث‌بری از TestCase
+                    for base in node.bases:
+                        base_name = ""
+                        if isinstance(base, ast.Name):
+                            base_name = base.id
+                        elif isinstance(base, ast.Attribute):
+                            base_name = base.attr
+
+                        if 'Test' in base_name and 'Case' in base_name:
+                            # حذف 'Test' از انتها اگر وجود دارد
+                            class_name = node.name
+                            if class_name.endswith('Test'):
+                                class_name = class_name[:-4]
+                            test_classes.add(class_name)
+                            break
+
+        except Exception:
+            pass
+
+        return test_classes
+
+    def _extract_test_methods(self, test_file: Path) -> Set[str]:
+        """استخراج نام متدهای test"""
+        test_methods = set()
+        try:
+            with open(test_file, 'r', encoding='utf-8') as f:
+                tree = ast.parse(f.read())
+
+            for node in ast.walk(tree):
+                if isinstance(node, ast.FunctionDef) and node.name.startswith('test_'):
+                    # حذف پیشوند test_
+                    method_name = node.name[5:]  # remove 'test_'
+                    test_methods.add(method_name)
+
+        except Exception:
+            pass
+
+        return test_methods
+
+    def _is_snake_case(self, name: str) -> bool:
+        """بررسی snake_case"""
+        return bool(re.match(r'^[a-z][a-z0-9_]*$', name))
+
+    def _to_snake_case(self, name: str) -> str:
+        """تبدیل به snake_case"""
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+            'tests' in path.parts
+        )
+
+class ApiChecker:
+    """چک کردن API Standards"""
+
+    def check_file(self, file_path: str) -> List[Issue]:
+        """چک کردن API standards"""
+        issues = []
+
+        # فقط فایل‌های API را چک کن
+        if not self._is_api_file(file_path):
+            return issues
+
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                lines = content.split('\n')
+
+            tree = ast.parse(content, filename=file_path)
+
+            # چک استفاده از BaseAPIView
+            issues.extend(self._check_base_api_view(file_path, tree, content))
+
+            # چک HTTP status codes
+            issues.extend(self._check_http_status_codes(file_path, tree, content))
+
+            # چک فرمت response
+            issues.extend(self._check_response_format(file_path, tree, content))
+
+            # چک error handling
+            issues.extend(self._check_error_handling(file_path, tree, content))
+
+        except Exception:
+            pass
+
+        return issues
+
+    def check_project(self, project_root: Path) -> List[Issue]:
+        """چک کردن API standards برای کل پروژه"""
+        issues = []
+
+        # چک versioning consistency
+        issues.extend(self._check_api_versioning_consistency(project_root))
+
+        # چک URL patterns
+        issues.extend(self._check_api_url_patterns(project_root))
+
+        return issues
+
+    def _is_api_file(self, file_path: str) -> bool:
+        """بررسی اینکه آیا فایل API است"""
+        path = Path(file_path)
+        return (
+            'api' in path.name.lower() or
+            'view' in path.name.lower() or
+            'serializers' in path.name or
+            path.name.endswith('_api.py') or
+            'APIView' in open(path, 'r', encoding='utf-8').read() or
+            'ViewSet' in open(path, 'r', encoding='utf-8').read()
+        )
+
+    def _check_base_api_view(self, file_path: str, tree: ast.AST, content: str) -> List[Issue]:
+        """چک استفاده از BaseAPIView"""
+        issues = []
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef):
+                # چک ارث‌بری از APIView یا ViewSet
+                base_names = [self._get_base_name(base) for base in node.bases]
+
+                if any(base in ['APIView', 'ViewSet', 'ModelViewSet', 'GenericAPIView'] for base in base_names):
+                    # چک استفاده از BaseAPIView
+                    if not any('Base' in base and 'API' in base for base in base_names):
+                        issues.append(Issue(
+                            file_path=file_path,
+                            line_number=node.lineno,
+                            severity=Severity.WARNING,
+                            category="API - Base Classes",
+                            message=f"API View class '{node.name}' should inherit from BaseAPIView instead of {base_names[0]}",
+                            suggestion="Use BaseAPIView, BaseViewSet, or BaseModelViewSet for consistent API behavior",
+                            auto_fixable=False
+                        ))
+
+        return issues
+
+    def _check_http_status_codes(self, file_path: str, tree: ast.AST, content: str) -> List[Issue]:
+        """چک استفاده از HTTP status codes صحیح"""
+        issues = []
+
+        # لیست status codes صحیح Django REST framework
+        valid_status_codes = [
+            'status.HTTP_200_OK', 'status.HTTP_201_CREATED', 'status.HTTP_204_NO_CONTENT',
+            'status.HTTP_400_BAD_REQUEST', 'status.HTTP_401_UNAUTHORIZED', 'status.HTTP_403_FORBIDDEN',
+            'status.HTTP_404_NOT_FOUND', 'status.HTTP_422_UNPROCESSABLE_ENTITY', 'status.HTTP_500_INTERNAL_SERVER_ERROR'
+        ]
+
+        lines = content.split('\n')
+        for i, line in enumerate(lines, 1):
+            # چک استفاده از magic numbers به جای named constants
+            if 'return Response(' in line or 'status=' in line:
+                # اگر عدد خام استفاده شده
+                if re.search(r'status\s*=\s*\d{3}', line):
+                    issues.append(Issue(
+                        file_path=file_path,
+                        line_number=i,
+                        severity=Severity.INFO,
+                        category="API - Status Codes",
+                        message="Using magic number for HTTP status code",
+                        suggestion="Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)",
+                        auto_fixable=False
+                    ))
+
+        return issues
+
+    def _check_response_format(self, file_path: str, tree: ast.AST, content: str) -> List[Issue]:
+        """چک فرمت response استاندارد"""
+        issues = []
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Return):
+                # چک return Response
+                if self._is_response_return(node):
+                    response_content = ast.get_source_segment(content, node) or ""
+
+                    # چک وجود کلیدهای استاندارد
+                    has_status = 'status' in response_content
+                    has_data = 'data' in response_content
+                    has_message = 'message' in response_content
+
+                    # اگر هیچ‌کدام وجود ندارد، پیشنهاد بده
+                    if not (has_status or has_data or has_message):
+                        issues.append(Issue(
+                            file_path=file_path,
+                            line_number=node.lineno,
+                            severity=Severity.INFO,
+                            category="API - Response Format",
+                            message="API response should use standard format with status, data, and message keys",
+                            suggestion="Use format: {'status': 'success', 'data': {...}, 'message': '...'}",
+                            auto_fixable=False
+                        ))
+
+        return issues
+
+    def _check_error_handling(self, file_path: str, tree: ast.AST, content: str) -> List[Issue]:
+        """چک error handling در API views"""
+        issues = []
+
+        # چک وجود exception handling در API views
+        has_try_except = 'try:' in content and 'except' in content
+        has_api_exception = 'APIException' in content or 'ValidationError' in content
+
+        if 'APIView' in content or 'ViewSet' in content:
+            if not has_try_except and not has_api_exception:
+                issues.append(Issue(
+                    file_path=file_path,
+                    line_number=1,
+                    severity=Severity.INFO,
+                    category="API - Error Handling",
+                    message="API view should have proper error handling",
+                    suggestion="Use try-except blocks or DRF exceptions (ValidationError, APIException)",
+                    auto_fixable=False
+                ))
+
+        return issues
+
+    def _check_api_versioning_consistency(self, project_root: Path) -> List[Issue]:
+        """چک consistency در API versioning"""
+        issues = []
+
+        # پیدا کردن فایل‌های urls.py
+        url_files = list(project_root.rglob('urls.py'))
+
+        api_versions = set()
+        for url_file in url_files:
+            try:
+                with open(url_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+
+                # پیدا کردن API version patterns
+                version_matches = re.findall(r'/api/v(\d+)/', content)
+                api_versions.update(version_matches)
+
+            except Exception:
+                pass
+
+        # اگر چندین نسخه مختلف وجود دارد، چک consistency
+        if len(api_versions) > 1:
+            issues.append(Issue(
+                file_path=str(project_root / "urls.py"),
+                line_number=1,
+                severity=Severity.INFO,
+                category="API - Versioning",
+                message=f"Multiple API versions detected: {', '.join(sorted(api_versions))}",
+                suggestion="Ensure consistent API versioning across the project",
+                auto_fixable=False
+            ))
+
+        return issues
+
+    def _check_api_url_patterns(self, project_root: Path) -> List[Issue]:
+        """چک URL patterns برای API"""
+        issues = []
+
+        # پیدا کردن فایل‌های urls.py
+        url_files = list(project_root.rglob('urls.py'))
+
+        for url_file in url_files:
+            try:
+                with open(url_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+
+                # چک وجود API versioning
+                if 'api' in content.lower() and not re.search(r'/api/v\d+/', content):
+                    issues.append(Issue(
+                        file_path=str(url_file),
+                        line_number=1,
+                        severity=Severity.INFO,
+                        category="API - Versioning",
+                        message="API endpoints should be versioned",
+                        suggestion="Use versioned URLs like /api/v1/endpoint/",
+                        auto_fixable=False
+                    ))
+
+            except Exception:
+                pass
+
+        return issues
+
+    def _is_response_return(self, node: ast.Return) -> bool:
+        """بررسی اینکه آیا return یک Response است"""
+        if node.value and isinstance(node.value, ast.Call):
+            if isinstance(node.value.func, ast.Name) and node.value.func.id == 'Response':
+                return True
+            elif isinstance(node.value.func, ast.Attribute) and node.value.func.attr == 'Response':
+                return True
+        return False
+
+    def _get_base_name(self, base) -> str:
+        """دریافت نام base class"""
+        if isinstance(base, ast.Name):
+            return base.id
+        elif isinstance(base, ast.Attribute):
+            return base.attr
+        return ""
+
+
+class StandardsChecker:

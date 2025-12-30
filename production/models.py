@@ -423,6 +423,27 @@ class BOMMaterial(ProductionBaseModel):
     )
     line_number = models.PositiveSmallIntegerField(default=1)
     is_optional = models.PositiveSmallIntegerField(default=0)
+    source_warehouse = models.ForeignKey(
+        "inventory.Warehouse",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bom_materials",
+        verbose_name=_("Source Warehouse"),
+        help_text=_("The warehouse from which this material should be transferred (optional)"),
+    )
+    source_warehouse_code = models.CharField(
+        max_length=8,
+        validators=[NUMERIC_CODE_VALIDATOR],
+        blank=True,
+        help_text=_("Warehouse code for reference"),
+    )
+    source_warehouses = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=_("List of source warehouses with priorities. Format: [{'warehouse_id': 1, 'warehouse_code': '001', 'priority': 1}, ...]"),
+        verbose_name=_("Source Warehouses"),
+    )
     description = models.CharField(max_length=255, blank=True)
     notes = models.TextField(blank=True)
 
@@ -447,9 +468,94 @@ class BOMMaterial(ProductionBaseModel):
     def save(self, *args, **kwargs):
         if not self.material_item_code and self.material_item_id:
             self.material_item_code = self.material_item.item_code
+        # Auto-assign source_warehouse_code from source_warehouse
+        if self.source_warehouse and not self.source_warehouse_code:
+            self.source_warehouse_code = self.source_warehouse.public_code
         # Auto-assign company from BOM
         if not self.company_id and self.bom_id:
             self.company_id = self.bom.company_id
+        super().save(*args, **kwargs)
+
+
+class BOMMaterialAlternative(ProductionBaseModel):
+    """
+    BOM Material Alternative Item - کالای جایگزین برای ردیف BOM
+    هر ردیف BOMMaterial می‌تواند بین 1 تا 10 کالای جایگزین داشته باشد
+    """
+    
+    bom_material = models.ForeignKey(
+        BOMMaterial,
+        on_delete=models.CASCADE,
+        related_name="alternatives",
+        verbose_name=_("BOM Material"),
+        help_text=_("The BOM material line this alternative belongs to"),
+    )
+    alternative_item = models.ForeignKey(
+        "inventory.Item",
+        on_delete=models.PROTECT,
+        related_name="bom_material_alternatives",
+        verbose_name=_("Alternative Item"),
+        help_text=_("The alternative item that can replace the main material"),
+    )
+    alternative_item_code = models.CharField(
+        max_length=16,
+        validators=[NUMERIC_CODE_VALIDATOR],
+        verbose_name=_("Alternative Item Code"),
+    )
+    quantity = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+        verbose_name=_("Quantity"),
+        help_text=_("Required quantity of the alternative item (can differ from main material quantity)"),
+    )
+    unit = models.CharField(
+        max_length=50,
+        verbose_name=_("Unit"),
+        help_text=_("Unit of measurement for this alternative item (must be from alternative item's allowed units)"),
+    )
+    priority = models.PositiveSmallIntegerField(
+        verbose_name=_("Priority"),
+        help_text=_("Priority order for using this alternative (1 = highest priority, must be unique per BOM material)"),
+    )
+    source_warehouses = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=_("List of source warehouses with priorities (1-5 warehouses). Format: [{'warehouse_id': 1, 'warehouse_code': '001', 'priority': 1}, ...]"),
+        verbose_name=_("Source Warehouses"),
+    )
+    is_combinable = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name=_("Combinable"),
+        help_text=_("Whether this alternative item can be combined with other alternatives (0 = No, 1 = Yes)"),
+    )
+    description = models.CharField(max_length=255, blank=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = _("BOM Material Alternative")
+        verbose_name_plural = _("BOM Material Alternatives")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("bom_material", "priority"),
+                name="production_bom_material_alternative_priority_unique",
+            ),
+            models.UniqueConstraint(
+                fields=("bom_material", "alternative_item"),
+                name="production_bom_material_alternative_item_unique",
+            ),
+        ]
+        ordering = ("bom_material", "priority")
+
+    def __str__(self) -> str:
+        return f"{self.bom_material} · Alt {self.priority}: {self.alternative_item}"
+
+    def save(self, *args, **kwargs):
+        if not self.alternative_item_code and self.alternative_item_id:
+            self.alternative_item_code = self.alternative_item.item_code
+        # Auto-assign company from bom_material
+        if not self.company_id and self.bom_material_id:
+            self.company_id = self.bom_material.company_id
         super().save(*args, **kwargs)
 
 
@@ -624,6 +730,19 @@ class ProcessOperation(ProductionBaseModel):
         validators=[POSITIVE_DECIMAL],
         default=Decimal("0"),
         help_text=_("Machine minutes required per unit"),
+    )
+    work_line = models.ForeignKey(
+        "WorkLine",
+        on_delete=models.SET_NULL,
+        related_name="process_operations",
+        null=True,
+        blank=True,
+        help_text=_("Work line where this operation is performed"),
+    )
+    requires_qc = models.PositiveSmallIntegerField(
+        default=0,
+        help_text=_("Whether this operation requires QC inspection"),
+        verbose_name=_("Requires QC"),
     )
     notes = models.TextField(
         blank=True,
@@ -880,6 +999,13 @@ class TransferToLine(ProductionBaseModel, LockableModel):
         PENDING_APPROVAL = "pending_approval", _("Pending Approval")
         APPROVED = "approved", _("Approved")
         REJECTED = "rejected", _("Rejected")
+        PENDING_QC_APPROVAL = "pending_qc_approval", _("Pending QC Approval")
+
+    class QCStatus(models.TextChoices):
+        NOT_REQUIRED = "not_required", _("Not Required")
+        PENDING_APPROVAL = "pending_approval", _("Pending Approval")
+        APPROVED = "approved", _("Approved")
+        REJECTED = "rejected", _("Rejected")
 
     transfer_code = models.CharField(max_length=30, unique=True)
     order = models.ForeignKey(
@@ -899,6 +1025,28 @@ class TransferToLine(ProductionBaseModel, LockableModel):
         verbose_name=_("Approver"),
         help_text=_("User who can approve this transfer request"),
     )
+    is_scrap_replacement = models.PositiveSmallIntegerField(
+        default=0,
+        choices=ENABLED_FLAG_CHOICES,
+        verbose_name=_("Scrap Replacement"),
+        help_text=_("Whether this transfer is for replacing scrap/waste materials"),
+    )
+    qc_approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="qc_approved_transfers",
+        null=True,
+        blank=True,
+        verbose_name=_("QC Approver"),
+        help_text=_("User who can approve QC for this transfer request (only for scrap replacement)"),
+    )
+    qc_status = models.CharField(
+        max_length=20,
+        choices=QCStatus.choices,
+        default=QCStatus.NOT_REQUIRED,
+        verbose_name=_("QC Status"),
+        help_text=_("Quality Control approval status for scrap replacement transfers"),
+    )
     notes = models.TextField(blank=True)
 
     class Meta:
@@ -912,6 +1060,17 @@ class TransferToLine(ProductionBaseModel, LockableModel):
     def save(self, *args, **kwargs):
         if not self.order_code:
             self.order_code = self.order.order_code
+        
+        # Set QC status based on is_scrap_replacement
+        if self.is_scrap_replacement == 1:
+            # If scrap replacement is checked and QC status is not required, set to pending
+            if self.qc_status == self.QCStatus.NOT_REQUIRED:
+                self.qc_status = self.QCStatus.PENDING_APPROVAL
+        else:
+            # If scrap replacement is not checked, QC is not required
+            self.qc_status = self.QCStatus.NOT_REQUIRED
+            self.qc_approved_by = None
+        
         super().save(*args, **kwargs)
 
 
@@ -946,11 +1105,13 @@ class TransferToLineItem(ProductionBaseModel):
     )
     source_warehouse_code = models.CharField(max_length=5, validators=[NUMERIC_CODE_VALIDATOR])
     destination_work_center = models.ForeignKey(
-        WorkCenter,
+        WorkLine,
         on_delete=models.PROTECT,
         related_name="transfer_items",
         null=True,
         blank=True,
+        verbose_name=_("Destination Work Line"),
+        help_text=_("Work line where materials should be transferred (determines destination warehouse)"),
     )
     destination_location_code = models.CharField(max_length=30, blank=True)
     material_scrap_allowance = models.DecimalField(
@@ -999,8 +1160,19 @@ class PerformanceRecord(ProductionBaseModel, LockableModel):
         PENDING_APPROVAL = "pending_approval", _("Pending Approval")
         APPROVED = "approved", _("Approved")
         REJECTED = "rejected", _("Rejected")
+    
+    class DocumentType(models.TextChoices):
+        OPERATIONAL = "operational", _("Operational")  # عملیاتی
+        GENERAL = "general", _("General")  # کلی
 
     performance_code = models.CharField(max_length=30, unique=True)
+    document_type = models.CharField(
+        max_length=20,
+        choices=DocumentType.choices,
+        default=DocumentType.OPERATIONAL,
+        verbose_name=_("Document Type"),
+        help_text=_("Type of performance record: Operational (for specific operation) or General (for entire order)"),
+    )
     order = models.ForeignKey(
         ProductOrder,
         on_delete=models.PROTECT,
@@ -1009,6 +1181,15 @@ class PerformanceRecord(ProductionBaseModel, LockableModel):
         help_text=_("The product order this performance record is for"),
     )
     order_code = models.CharField(max_length=30)
+    operation = models.ForeignKey(
+        "ProcessOperation",
+        on_delete=models.PROTECT,
+        related_name="performance_records",
+        null=True,
+        blank=True,
+        verbose_name=_("Process Operation"),
+        help_text=_("The process operation this performance record is for (only for operational documents)"),
+    )
     transfer = models.ForeignKey(
         TransferToLine,
         on_delete=models.PROTECT,
@@ -1057,6 +1238,20 @@ class PerformanceRecord(ProductionBaseModel, LockableModel):
         verbose_name = _("Performance Record")
         verbose_name_plural = _("Performance Records")
         ordering = ("-performance_date", "performance_code")
+        constraints = [
+            # Constraint: Only one operational performance record per operation per order
+            models.UniqueConstraint(
+                fields=("company", "order", "operation"),
+                condition=models.Q(document_type="operational", operation__isnull=False),
+                name="production_performance_operational_unique",
+            ),
+            # Constraint: Only one general performance record per order
+            models.UniqueConstraint(
+                fields=("company", "order"),
+                condition=models.Q(document_type="general"),
+                name="production_performance_general_unique",
+            ),
+        ]
 
     def __str__(self) -> str:
         return self.performance_code
@@ -1076,6 +1271,13 @@ class PerformanceRecord(ProductionBaseModel, LockableModel):
             self.unit = self.order.unit
         if self.transfer and not self.transfer_code:
             self.transfer_code = self.transfer.transfer_code
+        
+        # Validate document_type and operation relationship
+        if self.document_type == self.DocumentType.OPERATIONAL and not self.operation_id:
+            raise ValueError("Operation must be specified for operational performance records.")
+        if self.document_type == self.DocumentType.GENERAL and self.operation_id:
+            raise ValueError("Operation must be null for general performance records.")
+        
         super().save(*args, **kwargs)
 
 
@@ -1250,4 +1452,160 @@ class PerformanceRecordMachine(ProductionBaseModel):
             self.machine_code = self.machine.public_code
         if self.work_line and not self.work_line_code:
             self.work_line_code = self.work_line.public_code
+        super().save(*args, **kwargs)
+
+
+class OperationQCStatus(ProductionBaseModel):
+    """
+    Operation QC Status - وضعیت QC عملیات
+    Tracks QC approval/rejection status for operations that require QC.
+    Only operations with requires_qc=1 and having a performance document are eligible.
+    """
+    class QCStatus(models.TextChoices):
+        PENDING = "pending", _("Pending")
+        APPROVED = "approved", _("Approved")
+        REJECTED = "rejected", _("Rejected")
+    
+    order = models.ForeignKey(
+        ProductOrder,
+        on_delete=models.CASCADE,
+        related_name="operation_qc_statuses",
+        verbose_name=_("Product Order"),
+        help_text=_("The production order this QC status belongs to"),
+    )
+    order_code = models.CharField(max_length=30)
+    operation = models.ForeignKey(
+        ProcessOperation,
+        on_delete=models.CASCADE,
+        related_name="qc_statuses",
+        verbose_name=_("Process Operation"),
+        help_text=_("The operation this QC status is for"),
+    )
+    performance = models.ForeignKey(
+        PerformanceRecord,
+        on_delete=models.CASCADE,
+        related_name="qc_statuses",
+        verbose_name=_("Performance Record"),
+        help_text=_("The performance document for this operation"),
+    )
+    performance_code = models.CharField(max_length=30)
+    qc_status = models.CharField(
+        max_length=20,
+        choices=QCStatus.choices,
+        default=QCStatus.PENDING,
+        verbose_name=_("QC Status"),
+        help_text=_("Current QC approval status"),
+    )
+    qc_approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="qc_approved_operations",
+        null=True,
+        blank=True,
+        verbose_name=_("QC Approver"),
+        help_text=_("User who approved/rejected this operation"),
+    )
+    qc_status_date = models.DateTimeField(null=True, blank=True, verbose_name=_("QC Status Date"))
+    qc_notes = models.TextField(blank=True, verbose_name=_("QC Notes"), help_text=_("Notes from QC reviewer"))
+    
+    class Meta:
+        verbose_name = _("Operation QC Status")
+        verbose_name_plural = _("Operation QC Statuses")
+        ordering = ("-qc_status_date", "order", "operation")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "order", "operation", "performance"),
+                name="production_operation_qc_status_unique",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["order", "operation", "qc_status"]),
+            models.Index(fields=["qc_status", "qc_status_date"]),
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.order_code} · {self.operation} · {self.get_qc_status_display()}"
+    
+    def save(self, *args, **kwargs):
+        if not self.order_code:
+            self.order_code = self.order.order_code
+        if not self.performance_code:
+            self.performance_code = self.performance.performance_code
+        if self.qc_status != self.QCStatus.PENDING and not self.qc_status_date:
+            self.qc_status_date = timezone.now()
+        super().save(*args, **kwargs)
+
+
+class ReworkDocument(ProductionBaseModel, LockableModel):
+    """
+    Rework Document - سند دوباره کاری
+    Records rework operations for orders when operations don't have performance documents
+    or when performance documents are rejected by QC.
+    """
+    class Status(models.TextChoices):
+        PENDING_APPROVAL = "pending_approval", _("Pending Approval")
+        APPROVED = "approved", _("Approved")
+        REJECTED = "rejected", _("Rejected")
+    
+    rework_code = models.CharField(max_length=30, unique=True, verbose_name=_("Rework Code"))
+    order = models.ForeignKey(
+        ProductOrder,
+        on_delete=models.PROTECT,
+        related_name="rework_documents",
+        verbose_name=_("Product Order"),
+        help_text=_("The production order this rework document belongs to"),
+    )
+    order_code = models.CharField(max_length=30)
+    rework_date = models.DateField(default=timezone.now, verbose_name=_("Rework Date"))
+    operation = models.ForeignKey(
+        ProcessOperation,
+        on_delete=models.PROTECT,
+        related_name="rework_documents",
+        null=True,
+        blank=True,
+        verbose_name=_("Process Operation"),
+        help_text=_("The operation this rework is for (null if rework is for operations without performance documents)"),
+    )
+    original_performance = models.ForeignKey(
+        PerformanceRecord,
+        on_delete=models.SET_NULL,
+        related_name="rework_documents",
+        null=True,
+        blank=True,
+        verbose_name=_("Original Performance Record"),
+        help_text=_("The original performance record that was rejected by QC (null if operation had no performance document)"),
+    )
+    reason = models.TextField(verbose_name=_("Rework Reason"), help_text=_("Reason for rework"))
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING_APPROVAL,
+        verbose_name=_("Status"),
+    )
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="approved_rework_documents",
+        null=True,
+        blank=True,
+        verbose_name=_("Approver"),
+        help_text=_("User who approved this rework document"),
+    )
+    notes = models.TextField(blank=True, verbose_name=_("Notes"))
+    
+    class Meta:
+        verbose_name = _("Rework Document")
+        verbose_name_plural = _("Rework Documents")
+        ordering = ("-rework_date", "rework_code")
+        indexes = [
+            models.Index(fields=["order", "rework_date"]),
+            models.Index(fields=["status", "rework_date"]),
+        ]
+    
+    def __str__(self) -> str:
+        return self.rework_code
+    
+    def save(self, *args, **kwargs):
+        if not self.order_code:
+            self.order_code = self.order.order_code
         super().save(*args, **kwargs)

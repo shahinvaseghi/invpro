@@ -1,0 +1,224 @@
+{% extends "shared/generic/generic_list.html" %}
+{% load i18n jalali_tags access_tags %}
+
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Issues" %}</span>
+<span class="separator">/</span>
+<span>{% trans "Warehouse Transfer Issues" %}</span>
+{% endblock %}
+
+{% block page_actions %}
+<div class="page-actions">
+  {% if create_url %}
+    <a href="{{ create_url }}" class="btn btn-primary">
+      + {% trans "Create" %} {{ create_label|default:_("Warehouse Transfer Issue") }}
+    </a>
+  {% endif %}
+  {% if print_enabled %}
+    <button class="btn btn-secondary btn-print" data-action="print" data-table-id="mainTable" data-print-title="{% trans 'Warehouse Transfers' %}">
+      {% trans "Print" %}
+    </button>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block before_table %}
+<style>
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+  }
+  .stat-label {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+  }
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #111827;
+  }
+</style>
+{% if stats %}
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">{% trans "Total" %}</div>
+    <div class="stat-value">{{ stats.total }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">{% trans "Posted" %}</div>
+    <div class="stat-value">{{ stats.posted }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">{% trans "Draft" %}</div>
+    <div class="stat-value">{{ stats.draft }}</div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block filter_fields %}
+<div class="form-group">
+  <label for="posted">{% trans "Posted Status" %}</label>
+  <select name="posted" id="posted" class="form-control">
+    <option value="">-- {% trans "All" %} --</option>
+    <option value="1" {% if request.GET.posted == '1' %}selected{% endif %}>{% trans "Posted" %}</option>
+    <option value="0" {% if request.GET.posted == '0' %}selected{% endif %}>{% trans "Not Posted" %}</option>
+  </select>
+</div>
+
+<div class="form-group">
+  <label for="search">{% trans "Search" %}</label>
+  <input type="text" name="search" id="search" 
+         placeholder="{% trans 'Document code or item' %}" 
+         value="{{ request.GET.search }}"
+         class="form-control">
+</div>
+{% endblock %}
+
+{% block table_headers %}
+<th>{% trans "Document Code" %}</th>
+<th>{% trans "Document Date" %}</th>
+<th>{% trans "Production Transfer" %}</th>
+<th>{% trans "Finished Item" %}</th>
+<th>{% trans "Status" %}</th>
+<th>{% trans "Lock Status" %}</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for warehouse_transfer in object_list %}
+<tr>
+  <td><code>{{ warehouse_transfer.document_code }}</code></td>
+  <td>{{ warehouse_transfer.document_date|jalali_date }}</td>
+  <td>
+    {% if warehouse_transfer.production_transfer %}
+      <a href="{% url 'production:transfer_request_detail' warehouse_transfer.production_transfer.pk %}" style="color: #3b82f6; text-decoration: underline;">
+        <code>{{ warehouse_transfer.production_transfer_code }}</code>
+      </a>
+    {% else %}
+      -
+    {% endif %}
+  </td>
+  <td>
+    {% if warehouse_transfer.production_transfer and warehouse_transfer.production_transfer.order.finished_item %}
+      {{ warehouse_transfer.production_transfer.order.finished_item.name }}
+    {% else %}
+      -
+    {% endif %}
+  </td>
+  <td>
+    {% if warehouse_transfer.is_locked %}
+      <span class="badge badge-success">{% trans "Approved" %}</span>
+    {% else %}
+      <span class="badge badge-secondary">{% trans "Pending Approval" %}</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if warehouse_transfer.is_locked %}
+      <span class="badge badge-locked">{% trans "Locked" %}</span>
+    {% else %}
+      <span class="badge badge-secondary">{% trans "EDITABLE" %}</span>
+    {% endif %}
+  </td>
+  {% if show_actions %}
+  <td>
+    {% load access_tags %}
+    {# View button - always show if user has view permission #}
+    {% can_view_object warehouse_transfer feature_code|default:"" as can_view %}
+    {% if can_view %}
+      <a href="{% url 'inventory:issue_warehouse_transfer_detail' warehouse_transfer.pk %}" class="btn btn-info" style="padding: 4px 12px; font-size: 0.85rem; background-color: #0dcaf0; border-color: #0dcaf0; color: #000;">
+        {% trans "View" %}
+      </a>
+    {% endif %}
+    {# Edit button - only show if not locked and user has edit permission #}
+    {% if not warehouse_transfer.is_locked %}
+      {% can_edit_object warehouse_transfer feature_code|default:"" as can_edit %}
+      {% if can_edit %}
+        <a href="{% url edit_url_name warehouse_transfer.pk %}" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">
+          {% trans "Edit" %}
+        </a>
+      {% endif %}
+    {% else %}
+      {# Unlock button - only show if locked and user has unlock permission #}
+      {% if user_feature_permissions|feature_allowed:'inventory.issues.warehouse_transfer:unlock_own' or user.is_superuser %}
+        <form method="post" action="{% url 'inventory:issue_warehouse_transfer_unlock' warehouse_transfer.pk %}" style="display: inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-warning" style="padding: 4px 12px; font-size: 0.85rem; background-color: #ffc107; border-color: #ffc107; color: #000;" data-confirm="{% trans 'Are you sure you want to unlock this warehouse transfer?' %}">
+            {% trans "Unlock" %}
+          </button>
+        </form>
+      {% endif %}
+    {% endif %}
+    {# Lock button - only show if not locked and user has lock permission #}
+    {% if not warehouse_transfer.is_locked %}
+      {% if user_feature_permissions|feature_allowed:'inventory.issues.warehouse_transfer:lock' or user.is_superuser %}
+        <form method="post" action="{% url 'inventory:issue_warehouse_transfer_lock' warehouse_transfer.pk %}" style="display: inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-success" style="padding: 4px 12px; font-size: 0.85rem; background-color: #10b981; border-color: #10b981;" data-confirm="{% trans 'Are you sure you want to lock this warehouse transfer?' %}">
+            {% trans "Lock" %}
+          </button>
+        </form>
+      {% endif %}
+    {% endif %}
+    {# Approve button - only show if user is the approver and document is not locked #}
+    {% if warehouse_transfer.can_current_user_approve %}
+      <form method="post" action="{% url approve_url_name warehouse_transfer.pk %}" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.85rem; background-color: #0d6efd; border-color: #0d6efd;" data-confirm="{% trans 'Are you sure you want to approve this warehouse transfer?' %}">
+          {% trans "Approve" %}
+        </button>
+      </form>
+    {% endif %}
+    {# Reject button - only show if user is the approver and document is not locked #}
+    {% if warehouse_transfer.can_current_user_reject %}
+      <button type="button" class="btn btn-danger" style="padding: 4px 12px; font-size: 0.85rem; background-color: #dc3545; border-color: #dc3545;" onclick="showRejectModal({{ warehouse_transfer.pk }})">
+        {% trans "Reject" %}
+      </button>
+    {% endif %}
+  </td>
+  {% endif %}
+</tr>
+{% endfor %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showRejectModal(pk) {
+  const reason = prompt('{% trans "Please enter the rejection reason:" %}');
+  if (reason && reason.trim()) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{% url "inventory:issue_warehouse_transfer_reject" 0 %}'.replace('0', pk);
+    
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (csrfToken) {
+      const csrfInput = document.createElement('input');
+      csrfInput.type = 'hidden';
+      csrfInput.name = 'csrfmiddlewaretoken';
+      csrfInput.value = csrfToken.value;
+      form.appendChild(csrfInput);
+    }
+    
+    const reasonInput = document.createElement('input');
+    reasonInput.type = 'hidden';
+    reasonInput.name = 'rejection_reason';
+    reasonInput.value = reason.trim();
+    form.appendChild(reasonInput);
+    
+    document.body.appendChild(form);
+    form.submit();
+  }
+}
+</script>
+{% endblock %}
+

@@ -1,0 +1,1026 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+{% load jalali_tags %}
+
+{% block title %}{% trans "Create Accounting Document" %} - {{ block.super }}{% endblock %}
+
+{% block extra_head %}
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<style>
+.select2-container--bootstrap-5 .select2-selection {
+    min-height: 38px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+}
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    line-height: 36px;
+    padding-right: 10px;
+}
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
+    height: 36px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="section-header">
+        <nav class="breadcrumb">
+            <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+            {% for crumb in breadcrumbs %}
+                <span class="separator">/</span>
+                {% if crumb.url %}
+                    <a href="{{ crumb.url }}">{{ crumb.label }}</a>
+                {% else %}
+                    <span>{{ crumb.label }}</span>
+                {% endif %}
+            {% endfor %}
+        </nav>
+        <h1>{% trans "سند حسابداری" %}</h1>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}" style="margin-bottom: 1rem; padding: 1rem; border-radius: 4px;">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="post" id="accounting-document-form">
+        {% csrf_token %}
+        
+        <!-- Document Header Section (Hidden fields for auto-filled values) -->
+        <div style="display: none;">
+            {{ form.document_date }}
+            {{ form.document_type }}
+            {{ form.fiscal_year }}
+            {{ form.period }}
+            {{ form.status }}
+        </div>
+        
+        <!-- Document Information Section -->
+        <div class="document-header-section" style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 1.5rem;">
+            <div class="row" style="display: flex; flex-wrap: wrap; gap: 1rem;">
+                <div class="form-group" style="flex: 1; min-width: 200px;">
+                    <label for="id_document_number_display">{% trans "شماره سند:" %}</label>
+                    <input type="text" id="id_document_number_display" class="form-control" readonly style="background: #f9fafb;">
+                </div>
+                <div class="form-group" style="flex: 1; min-width: 200px;">
+                    <label for="id_document_date_display">{% trans "تاریخ سند:" %}</label>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        {% if document_date_display %}
+                            <input type="text" id="id_document_date_display" class="form-control" readonly style="background: #f9fafb; flex: 1;" value="{{ document_date_display|jalali_date }}">
+                        {% elif form.document_date.value %}
+                            <input type="text" id="id_document_date_display" class="form-control" readonly style="background: #f9fafb; flex: 1;" value="{{ form.document_date.value|jalali_date }}">
+                        {% elif form.document_date.initial %}
+                            <input type="text" id="id_document_date_display" class="form-control" readonly style="background: #f9fafb; flex: 1;" value="{{ form.document_date.initial|jalali_date }}">
+                        {% else %}
+                            {% now "Y-m-d" as today %}
+                            <input type="text" id="id_document_date_display" class="form-control" readonly style="background: #f9fafb; flex: 1;" value="{{ today|jalali_date }}">
+                        {% endif %}
+                        <span style="cursor: pointer;">📅</span>
+                    </div>
+                </div>
+                <div class="form-group" style="flex: 1; min-width: 200px;">
+                    <label for="id_document_type_display">{% trans "نوع سند:" %}</label>
+                    <input type="text" id="id_document_type_display" class="form-control" readonly style="background: #f9fafb;" value="{% trans "عمومی" %}">
+                </div>
+                <div class="form-group" style="flex: 1; min-width: 200px;">
+                    <label for="id_status_display">{% trans "وضعیت:" %}</label>
+                    <input type="text" id="id_status_display" class="form-control" readonly style="background: #f9fafb;" value="{% trans "موقت" %}">
+                </div>
+            </div>
+            <div class="row" style="display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem;">
+                <div class="form-group" style="flex: 1; min-width: 200px;">
+                    <label for="id_daily_number">{% trans "شماره روزانه:" %}</label>
+                    <input type="text" id="id_daily_number" class="form-control" readonly style="background: #f9fafb;">
+                </div>
+                <div class="form-group" style="flex: 1; min-width: 200px;">
+                    <label for="id_reference_number">{% trans "شماره عطف:" %}</label>
+                    {{ form.reference_number }}
+                    {% if form.reference_number.errors %}
+                        <span class="error">{{ form.reference_number.errors.0 }}</span>
+                    {% endif %}
+                </div>
+                <div class="form-group" style="flex: 2; min-width: 300px;">
+                    <label for="{{ form.description.id_for_label }}">{% trans "شرح:" %}</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                        <span class="error">{{ form.description.errors.0 }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Lines Table -->
+        <div class="document-lines-section" style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0;">{% trans "جزئیات سند" %}</h3>
+                <button type="button" class="btn btn-primary" id="add-line-btn" style="padding: 0.5rem 1rem; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    + {% trans "افزودن ردیف" %}
+                </button>
+            </div>
+            
+            <div class="table-responsive" style="overflow-x: auto;">
+                <table class="table table-bordered" id="document-lines-table" style="width: 100%; border-collapse: collapse;">
+                    <thead style="background: #f9fafb;">
+                        <tr>
+                            <th style="width: 50px; padding: 0.75rem; text-align: center; border: 1px solid #e5e7eb;">#</th>
+                            <th style="width: 150px; padding: 0.75rem; text-align: right; border: 1px solid #e5e7eb;">{% trans "سند کل" %}</th>
+                            <th style="width: 150px; padding: 0.75rem; text-align: right; border: 1px solid #e5e7eb;">{% trans "معین" %}</th>
+                            <th style="width: 150px; padding: 0.75rem; text-align: right; border: 1px solid #e5e7eb;">{% trans "تفصیلی" %}</th>
+                            <th style="padding: 0.75rem; text-align: right; border: 1px solid #e5e7eb;">{% trans "عنوان" %}</th>
+                            <th style="padding: 0.75rem; text-align: right; border: 1px solid #e5e7eb;">{% trans "شرح" %}</th>
+                            <th style="width: 150px; padding: 0.75rem; text-align: right; border: 1px solid #e5e7eb;">{% trans "بدهکار" %}</th>
+                            <th style="width: 150px; padding: 0.75rem; text-align: right; border: 1px solid #e5e7eb;">{% trans "بستانکار" %}</th>
+                            <th style="width: 80px; padding: 0.75rem; text-align: center; border: 1px solid #e5e7eb;">{% trans "عملیات" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lines-tbody">
+                        {{ formset.management_form }}
+                        {% for form in formset %}
+                            {% if form.non_field_errors %}
+                                <tr>
+                                    <td colspan="9" style="padding: 0.5rem; border: 1px solid #e5e7eb;">
+                                        {% for error in form.non_field_errors %}
+                                            <div class="error" style="color: #ef4444; background: #fee; padding: 0.5rem; border-radius: 4px; margin-bottom: 0.5rem; font-size: 0.875rem;">
+                                                {{ error }}
+                                            </div>
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                            {% endif %}
+                            <tr class="line-row" data-form-index="{{ forloop.counter0 }}">
+                                <td style="text-align: center; padding: 0.75rem; border: 1px solid #e5e7eb;">{{ forloop.counter }}</td>
+                                <td style="padding: 0.5rem; border: 1px solid #e5e7eb;">
+                                    {{ form.gl_account }}
+                                    {% if form.gl_account.errors %}
+                                        <span class="error" style="color: red; font-size: 0.75rem; display: block; margin-top: 0.25rem;">{{ form.gl_account.errors.0 }}</span>
+                                    {% endif %}
+                                </td>
+                                <td style="padding: 0.5rem; border: 1px solid #e5e7eb;">
+                                    {{ form.sub_account }}
+                                    {% if form.sub_account.errors %}
+                                        <span class="error" style="color: red; font-size: 0.75rem; display: block; margin-top: 0.25rem;">{{ form.sub_account.errors.0 }}</span>
+                                    {% endif %}
+                                </td>
+                                <td style="padding: 0.5rem; border: 1px solid #e5e7eb;">
+                                    {{ form.tafsili_account }}
+                                    {{ form.sort_order }}
+                                    {% if form.DELETE %}{{ form.DELETE }}{% endif %}
+                                    {% if form.tafsili_account.errors %}
+                                        <span class="error" style="color: red; font-size: 0.75rem; display: block; margin-top: 0.25rem;">{{ form.tafsili_account.errors.0 }}</span>
+                                    {% endif %}
+                                </td>
+                                <td style="padding: 0.5rem; border: 1px solid #e5e7eb;">
+                                    {{ form.description }}
+                                    {% if form.description.errors %}
+                                        <span class="error" style="color: red; font-size: 0.75rem; display: block; margin-top: 0.25rem;">{{ form.description.errors.0 }}</span>
+                                    {% endif %}
+                                </td>
+                                <td style="padding: 0.5rem; border: 1px solid #e5e7eb;">
+                                    <input type="text" class="form-control line-explanation" name="lines-{{ forloop.counter0 }}-explanation" placeholder="{% trans 'شرح' %}" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                                </td>
+                                <td style="padding: 0.5rem; border: 1px solid #e5e7eb;">
+                                    {{ form.debit }}
+                                    {% if form.debit.errors %}
+                                        <span class="error" style="color: red; font-size: 0.75rem; display: block; margin-top: 0.25rem;">{{ form.debit.errors.0 }}</span>
+                                    {% endif %}
+                                </td>
+                                <td style="padding: 0.5rem; border: 1px solid #e5e7eb;">
+                                    {{ form.credit }}
+                                    {% if form.credit.errors %}
+                                        <span class="error" style="color: red; font-size: 0.75rem; display: block; margin-top: 0.25rem;">{{ form.credit.errors.0 }}</span>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: center; padding: 0.5rem; border: 1px solid #e5e7eb;">
+                                    <button type="button" class="btn btn-sm btn-danger remove-line-btn" {% if forloop.first %}disabled{% endif %} style="padding: 0.25rem 0.5rem; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">
+                                        {% trans "حذف" %}
+                                    </button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr style="background: #f9fafb; font-weight: bold;">
+                            <td colspan="6" style="text-align: right; padding: 0.75rem; border: 1px solid #e5e7eb;">{% trans "جمع کل:" %}</td>
+                            <td id="total-debit" style="text-align: right; padding: 0.75rem; border: 1px solid #e5e7eb;">0.00</td>
+                            <td id="total-credit" style="text-align: right; padding: 0.75rem; border: 1px solid #e5e7eb;">0.00</td>
+                            <td style="padding: 0.75rem; border: 1px solid #e5e7eb;"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="form-actions" style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: flex-end;">
+            <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1.5rem; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                {% trans "ذخیره" %}
+            </button>
+            <a href="{% url 'accounting:document_list' %}" class="btn btn-secondary" style="padding: 0.5rem 1.5rem; background: #6b7280; color: white; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-block;">
+                {% trans "انصراف" %}
+            </a>
+        </div>
+    </form>
+</section>
+
+<!-- jQuery and Select2 JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+// Select2 Persian language
+if (typeof jQuery !== 'undefined' && jQuery.fn.select2) {
+    jQuery.fn.select2.amd.define('select2/i18n/fa', [], function () {
+        return {
+            errorLoading: function () {
+                return 'نتوانست نتایج را بارگذاری کند.';
+            },
+            inputTooLong: function (args) {
+                var overChars = args.input.length - args.maximum;
+                return 'لطفاً ' + overChars + ' کاراکتر را حذف کنید.';
+            },
+            inputTooShort: function (args) {
+                var remainingChars = args.minimum - args.input.length;
+                return 'لطفاً ' + remainingChars + ' کاراکتر بیشتر وارد کنید.';
+            },
+            loadingMore: function () {
+                return 'در حال بارگذاری نتایج بیشتر...';
+            },
+            maximumSelected: function (args) {
+                return 'شما فقط می‌توانید ' + args.maximum + ' مورد را انتخاب کنید.';
+            },
+            noResults: function () {
+                return 'نتیجه‌ای یافت نشد.';
+            },
+            searching: function () {
+                return 'در حال جستجو...';
+            }
+        };
+    });
+}
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const formsetPrefix = '{{ formset.prefix }}';
+    const totalFormsInput = document.getElementById('id_' + formsetPrefix + '-TOTAL_FORMS');
+    let formCount = parseInt(totalFormsInput.value);
+    const tbody = document.getElementById('lines-tbody');
+    const addLineBtn = document.getElementById('add-line-btn');
+    
+    // Add new line
+    addLineBtn.addEventListener('click', function() {
+        const firstRow = document.querySelector('.line-row');
+        if (!firstRow) return;
+        
+        const newRow = firstRow.cloneNode(true);
+        const newIndex = formCount;
+        
+        // Destroy Select2 on cloned selects before updating
+        newRow.querySelectorAll('select').forEach(function(select) {
+            if ($(select).hasClass('select2-hidden-accessible')) {$(select).select2('destroy');
+            }
+        });
+        
+        // Update form indices
+        newRow.querySelectorAll('input, select').forEach(function(input) {
+            if (input.name) {
+                input.name = input.name.replace(/-\d+-/, '-' + newIndex + '-');
+                input.id = input.id.replace(/-\d+-/, '-' + newIndex + '-');
+            }
+        });
+        
+        // Clear values
+        newRow.querySelectorAll('input[type="text"], input[type="number"]').forEach(function(input) {
+            if (!input.name.includes('DELETE') && !input.name.includes('sort_order')) {
+                input.value = '';
+            }
+        });
+        
+        // Clear select values
+        newRow.querySelectorAll('select').forEach(function(select) {
+            if (!select.name.includes('DELETE')) {
+                select.value = '';
+            }
+        });
+        
+        // Update row number
+        newRow.querySelector('td:first-child').textContent = formCount + 1;
+        
+        // Enable remove button
+        const removeBtn = newRow.querySelector('.remove-line-btn');
+        if (removeBtn) {
+            removeBtn.disabled = false;
+        }
+        
+        // Remove error messages
+        newRow.querySelectorAll('.error').forEach(function(error) {
+            error.remove();
+        });
+        
+        tbody.appendChild(newRow);
+        formCount++;
+        totalFormsInput.value = formCount;
+        
+        // Attach event listeners to new row
+        attachRowEventListeners(newRow);
+        
+        // Initialize Select2 for new rowinitializeSelect2(newRow);
+    });
+    
+    // Remove line
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-line-btn')) {
+            const row = e.target.closest('.line-row');
+            const deleteInput = row.querySelector('input[name*="-DELETE"]');
+            
+            if (deleteInput) {
+                deleteInput.checked = true;
+                row.style.display = 'none';
+            } else {
+                row.remove();
+                updateRowNumbers();
+                formCount--;
+                totalFormsInput.value = formCount;
+            }
+            calculateTotals();
+        }
+    });
+    
+    // Calculate totals
+    function calculateTotals() {
+        let totalDebit = 0;
+        let totalCredit = 0;
+        
+        document.querySelectorAll('.line-row').forEach(function(row) {
+            if (row.style.display !== 'none') {
+                const debitInput = row.querySelector('.line-debit');
+                const creditInput = row.querySelector('.line-credit');
+                if (debitInput && creditInput) {
+                    const debit = parseFloat(debitInput.value) || 0;
+                    const credit = parseFloat(creditInput.value) || 0;
+                    totalDebit += debit;
+                    totalCredit += credit;
+                }
+            }
+        });
+        
+        const totalDebitEl = document.getElementById('total-debit');
+        const totalCreditEl = document.getElementById('total-credit');
+        if (totalDebitEl) {
+            totalDebitEl.textContent = totalDebit.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+        if (totalCreditEl) {
+            totalCreditEl.textContent = totalCredit.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+        
+        // Highlight if not balanced
+        const footer = document.querySelector('tfoot tr');
+        if (footer) {
+            if (Math.abs(totalDebit - totalCredit) > 0.01) {
+                footer.style.background = '#fee';
+            } else {
+                footer.style.background = '#efe';
+            }
+        }
+    }
+    
+    // Attach event listeners to a row
+    function attachRowEventListeners(row) {
+        // Debit/Credit listeners
+        const debitInput = row.querySelector('.line-debit');
+        const creditInput = row.querySelector('.line-credit');
+        
+        if (debitInput) {
+            debitInput.addEventListener('input', function() {
+                // Clear credit if debit is entered
+                if (parseFloat(this.value) > 0 && creditInput) {
+                    creditInput.value = '';
+                }
+                calculateTotals();
+            });
+        }
+        
+        if (creditInput) {
+            creditInput.addEventListener('input', function() {
+                // Clear debit if credit is entered
+                if (parseFloat(this.value) > 0 && debitInput) {
+                    debitInput.value = '';
+                }
+                calculateTotals();
+            });
+        }
+        
+        // Account hierarchy listeners will be handled by Select2 in initializeSelect2
+    }
+    
+    // Attach event listeners to existing rows
+    document.querySelectorAll('.line-row').forEach(function(row) {
+        attachRowEventListeners(row);
+    });
+    
+    // Update row numbers
+    function updateRowNumbers() {
+        let index = 1;
+        document.querySelectorAll('.line-row').forEach(function(row) {
+            if (row.style.display !== 'none') {
+                const firstCell = row.querySelector('td:first-child');
+                if (firstCell) {
+                    firstCell.textContent = index++;
+                }
+            }
+        });
+    }
+    
+    // Initial calculation
+    calculateTotals();
+    
+    // Attach event listener for tafsili account change
+    function attachTafsiliAccountChangeListener(tafsiliSelectElement) {
+        $(tafsiliSelectElement).off('change.tafsili-handler').on('change.tafsili-handler', function() {
+            const tafsiliId = $(this).val();
+            const subSelectInRow = $(this).closest('tr').find('.line-sub-account');
+            const glSelectInRow = $(this).closest('tr').find('.line-gl-account');
+            
+            // Set flag to prevent infinite loop
+            const row = $(this).closest('tr');
+            if (row.data('updating-from-tafsili')) {
+                return; // Already updating, skip to avoid loop
+            }
+            row.data('updating-from-tafsili', true);
+            
+            // Store current values
+            const currentSubValue = subSelectInRow.val();
+            const currentGLValue = glSelectInRow.val();
+            
+            if (tafsiliId) {
+                // Fetch sub accounts for this tafsili
+                fetch('{% url "accounting:api_filter_sub_by_tafsili" %}?tafsili_id=' + tafsiliId)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('API request failed with status ' + response.status);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.sub_accounts && data.sub_accounts.length > 0) {
+                            // Destroy Select2 first to prevent conflicts
+                            if (subSelectInRow.hasClass('select2-hidden-accessible')) {
+                                subSelectInRow.select2('destroy');
+                            }
+                            
+                            // Clear existing options
+                            subSelectInRow.empty();
+                            subSelectInRow.append('<option value="">{% trans "انتخاب معین" %}</option>');
+                            
+                            // Add filtered options
+                            data.sub_accounts.forEach(function(sub) {
+                                subSelectInRow.append(
+                                    $('<option></option>')
+                                        .attr('value', sub.id)
+                                        .text(sub.code + ' - ' + sub.name)
+                                );
+                            });
+                            
+                            // Reinitialize Select2 with new options
+                            subSelectInRow.select2({
+                                theme: 'bootstrap-5',
+                                language: 'fa',
+                                dir: 'rtl',
+                                placeholder: '{% trans "انتخاب معین" %}',
+                                allowClear: true,
+                                width: '100%'
+                            });
+                            
+                            // Restore value if it exists in new options
+                            if (currentSubValue && subSelectInRow.find('option[value="' + currentSubValue + '"]').length > 0) {
+                                subSelectInRow.val(currentSubValue).trigger('change.select2');
+                            }
+                            
+                            // Clear flag after update
+                            row.data('updating-from-tafsili', false);
+                            
+                            // Reattach event listener for sub account change
+                            setTimeout(function() {
+                                attachSubAccountChangeListener(subSelectInRow);
+                            }, 100);
+                        } else {
+                            // Clear flag
+                            row.data('updating-from-tafsili', false);
+                            console.log('No sub accounts found for tafsili account:', tafsiliId);
+                        }
+                    })
+                    .catch(error => {
+                        row.data('updating-from-tafsili', false);
+                        console.error('Error fetching sub accounts:', error);
+                    });
+            } else {
+                // Reset to all sub accounts - reload from original options
+                const originalSubOptions = subSelectInRow.data('original-options');
+                if (originalSubOptions && subSelectInRow.length) {
+                    // Destroy Select2 if initialized
+                    if (subSelectInRow.hasClass('select2-hidden-accessible')) {
+                        subSelectInRow.select2('destroy');
+                    }
+                    subSelectInRow.empty();
+                    subSelectInRow.append(originalSubOptions);
+                    // Reinitialize Select2
+                    subSelectInRow.select2({
+                        theme: 'bootstrap-5',
+                        language: 'fa',
+                        dir: 'rtl',
+                        placeholder: '{% trans "انتخاب معین" %}',
+                        allowClear: true,
+                        width: '100%'
+                    });
+                    // Restore value if it exists
+                    if (currentSubValue && subSelectInRow.find('option[value="' + currentSubValue + '"]').length > 0) {
+                        subSelectInRow.val(currentSubValue).trigger('change.select2');
+                    }
+                    // Reattach event listener
+                    attachSubAccountChangeListener(subSelectInRow);
+                }
+                row.data('updating-from-tafsili', false);
+            }
+        });
+    }
+    
+    // Attach event listener for sub account change
+    function attachSubAccountChangeListener(subSelectElement) {
+        $(subSelectElement).off('change.sub-handler').on('change.sub-handler', function() {
+            const subId = $(this).val();
+            const glSelectInRow = $(this).closest('tr').find('.line-gl-account');
+            const tafsiliSelectInRow = $(this).closest('tr').find('.line-tafsili-account');
+            const row = $(this).closest('tr');
+            
+            // Set flag to prevent infinite loop
+            if (row.data('updating-from-sub')) {
+                return;
+            }
+            row.data('updating-from-sub', true);
+            
+            // Store current values
+            const currentGLValue = glSelectInRow.val();
+            const currentTafsiliValue = tafsiliSelectInRow.val();
+            
+            if (subId) {
+                // Fetch GL accounts for this sub (upward direction)
+                fetch('{% url "accounting:api_filter_gl_by_sub" %}?sub_id=' + subId)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.gl_accounts && data.gl_accounts.length > 0) {
+                            if (glSelectInRow.hasClass('select2-hidden-accessible')) {
+                                glSelectInRow.select2('destroy');
+                            }
+                            
+                            glSelectInRow.empty();
+                            glSelectInRow.append('<option value="">{% trans "انتخاب سند کل" %}</option>');
+                            
+                            data.gl_accounts.forEach(function(gl) {
+                                glSelectInRow.append(
+                                    $('<option></option>')
+                                        .attr('value', gl.id)
+                                        .text(gl.code + ' - ' + gl.name)
+                                );
+                            });
+                            
+                            glSelectInRow.select2({
+                                theme: 'bootstrap-5',
+                                language: 'fa',
+                                dir: 'rtl',
+                                placeholder: '{% trans "انتخاب سند کل" %}',
+                                allowClear: true,
+                                width: '100%'
+                            });
+                            
+                            // Restore value if it exists in new options
+                            if (currentGLValue && glSelectInRow.find('option[value="' + currentGLValue + '"]').length > 0) {
+                                glSelectInRow.val(currentGLValue).trigger('change.select2');
+                            }
+                            
+                            setTimeout(function() {
+                                attachGLAccountChangeListener(glSelectInRow);
+                            }, 100);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching GL accounts:', error);
+                    });
+                
+                // Fetch tafsili accounts for this sub (downward direction)
+                fetch('{% url "accounting:api_filter_tafsili_by_sub" %}?sub_id=' + subId)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.tafsili_accounts && data.tafsili_accounts.length > 0) {
+                            if (tafsiliSelectInRow.hasClass('select2-hidden-accessible')) {
+                                tafsiliSelectInRow.select2('destroy');
+                            }
+                            
+                            tafsiliSelectInRow.empty();
+                            tafsiliSelectInRow.append('<option value="">{% trans "انتخاب تفصیلی" %}</option>');
+                            
+                            data.tafsili_accounts.forEach(function(tafsili) {
+                                tafsiliSelectInRow.append(
+                                    $('<option></option>')
+                                        .attr('value', tafsili.id)
+                                        .text(tafsili.code + ' - ' + tafsili.name)
+                                );
+                            });
+                            
+                            tafsiliSelectInRow.select2({
+                                theme: 'bootstrap-5',
+                                language: 'fa',
+                                dir: 'rtl',
+                                placeholder: '{% trans "انتخاب تفصیلی" %}',
+                                allowClear: true,
+                                width: '100%'
+                            });
+                            
+                            // Restore value if it exists in new options
+                            if (currentTafsiliValue && tafsiliSelectInRow.find('option[value="' + currentTafsiliValue + '"]').length > 0) {
+                                tafsiliSelectInRow.val(currentTafsiliValue).trigger('change.select2');
+                            }
+                            
+                            setTimeout(function() {
+                                attachTafsiliAccountChangeListener(tafsiliSelectInRow);
+                            }, 100);
+                        }
+                        
+                        row.data('updating-from-sub', false);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching tafsili accounts:', error);
+                        row.data('updating-from-sub', false);
+                    });
+            } else {
+                // Reset to original options
+                const originalGLOptions = glSelectInRow.data('original-options');
+                const originalTafsiliOptions = tafsiliSelectInRow.data('original-options');
+                
+                if (originalGLOptions) {
+                    if (glSelectInRow.hasClass('select2-hidden-accessible')) {
+                        glSelectInRow.select2('destroy');
+                    }
+                    glSelectInRow.empty();
+                    glSelectInRow.append(originalGLOptions);
+                    glSelectInRow.select2({
+                        theme: 'bootstrap-5',
+                        language: 'fa',
+                        dir: 'rtl',
+                        placeholder: '{% trans "انتخاب سند کل" %}',
+                        allowClear: true,
+                        width: '100%'
+                    });
+                    // Restore value if it exists
+                    if (currentGLValue && glSelectInRow.find('option[value="' + currentGLValue + '"]').length > 0) {
+                        glSelectInRow.val(currentGLValue).trigger('change.select2');
+                    }
+                    attachGLAccountChangeListener(glSelectInRow);
+                }
+                
+                if (originalTafsiliOptions) {
+                    if (tafsiliSelectInRow.hasClass('select2-hidden-accessible')) {
+                        tafsiliSelectInRow.select2('destroy');
+                    }
+                    tafsiliSelectInRow.empty();
+                    tafsiliSelectInRow.append(originalTafsiliOptions);
+                    tafsiliSelectInRow.select2({
+                        theme: 'bootstrap-5',
+                        language: 'fa',
+                        dir: 'rtl',
+                        placeholder: '{% trans "انتخاب تفصیلی" %}',
+                        allowClear: true,
+                        width: '100%'
+                    });
+                    // Restore value if it exists
+                    if (currentTafsiliValue && tafsiliSelectInRow.find('option[value="' + currentTafsiliValue + '"]').length > 0) {
+                        tafsiliSelectInRow.val(currentTafsiliValue).trigger('change.select2');
+                    }
+                    attachTafsiliAccountChangeListener(tafsiliSelectInRow);
+                }
+                
+                row.data('updating-from-sub', false);
+            }
+        });
+    }
+    
+    // Attach event listener for GL account change
+    function attachGLAccountChangeListener(glSelectElement) {
+        $(glSelectElement).off('change.gl-handler').on('change.gl-handler', function() {
+            const glId = $(this).val();
+            const subSelectInRow = $(this).closest('tr').find('.line-sub-account');
+            const tafsiliSelectInRow = $(this).closest('tr').find('.line-tafsili-account');
+            const row = $(this).closest('tr');
+            
+            // Set flag to prevent infinite loop
+            if (row.data('updating-from-gl')) {
+                return;
+            }
+            row.data('updating-from-gl', true);
+            
+            // Store current values
+            const currentSubValue = subSelectInRow.val();
+            const currentTafsiliValue = tafsiliSelectInRow.val();
+            
+            if (glId) {
+                // Fetch sub accounts for this GL (downward direction)
+                fetch('{% url "accounting:api_filter_sub_by_gl" %}?gl_id=' + glId)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.sub_accounts && data.sub_accounts.length > 0) {
+                            if (subSelectInRow.hasClass('select2-hidden-accessible')) {
+                                subSelectInRow.select2('destroy');
+                            }
+                            
+                            subSelectInRow.empty();
+                            subSelectInRow.append('<option value="">{% trans "انتخاب معین" %}</option>');
+                            
+                            data.sub_accounts.forEach(function(sub) {
+                                subSelectInRow.append(
+                                    $('<option></option>')
+                                        .attr('value', sub.id)
+                                        .text(sub.code + ' - ' + sub.name)
+                                );
+                            });
+                            
+                            subSelectInRow.select2({
+                                theme: 'bootstrap-5',
+                                language: 'fa',
+                                dir: 'rtl',
+                                placeholder: '{% trans "انتخاب معین" %}',
+                                allowClear: true,
+                                width: '100%'
+                            });
+                            
+                            // Restore value if it exists in new options
+                            if (currentSubValue && subSelectInRow.find('option[value="' + currentSubValue + '"]').length > 0) {
+                                subSelectInRow.val(currentSubValue).trigger('change.select2');
+                            }
+                            
+                            setTimeout(function() {
+                                attachSubAccountChangeListener(subSelectInRow);
+                            }, 100);
+                        }
+                        
+                        row.data('updating-from-gl', false);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching sub accounts:', error);
+                        row.data('updating-from-gl', false);
+                    });
+            } else {
+                // Reset to original options
+                const originalSubOptions = subSelectInRow.data('original-options');
+                const originalTafsiliOptions = tafsiliSelectInRow.data('original-options');
+                
+                if (originalSubOptions) {
+                    if (subSelectInRow.hasClass('select2-hidden-accessible')) {
+                        subSelectInRow.select2('destroy');
+                    }
+                    subSelectInRow.empty();
+                    subSelectInRow.append(originalSubOptions);
+                    subSelectInRow.select2({
+                        theme: 'bootstrap-5',
+                        language: 'fa',
+                        dir: 'rtl',
+                        placeholder: '{% trans "انتخاب معین" %}',
+                        allowClear: true,
+                        width: '100%'
+                    });
+                    // Restore value if it exists
+                    if (currentSubValue && subSelectInRow.find('option[value="' + currentSubValue + '"]').length > 0) {
+                        subSelectInRow.val(currentSubValue).trigger('change.select2');
+                    }
+                    attachSubAccountChangeListener(subSelectInRow);
+                }
+                
+                if (originalTafsiliOptions) {
+                    if (tafsiliSelectInRow.hasClass('select2-hidden-accessible')) {
+                        tafsiliSelectInRow.select2('destroy');
+                    }
+                    tafsiliSelectInRow.empty();
+                    tafsiliSelectInRow.append(originalTafsiliOptions);
+                    tafsiliSelectInRow.select2({
+                        theme: 'bootstrap-5',
+                        language: 'fa',
+                        dir: 'rtl',
+                        placeholder: '{% trans "انتخاب تفصیلی" %}',
+                        allowClear: true,
+                        width: '100%'
+                    });
+                    // Restore value if it exists
+                    if (currentTafsiliValue && tafsiliSelectInRow.find('option[value="' + currentTafsiliValue + '"]').length > 0) {
+                        tafsiliSelectInRow.val(currentTafsiliValue).trigger('change.select2');
+                    }
+                    attachTafsiliAccountChangeListener(tafsiliSelectInRow);
+                }
+                
+                row.data('updating-from-gl', false);
+            }
+        });
+    }
+    
+    // Initialize Select2 for account dropdowns
+    function initializeSelect2(row) {
+        const glSelect = row.querySelector('.line-gl-account');
+        const subSelect = row.querySelector('.line-sub-account');
+        const tafsiliSelect = row.querySelector('.line-tafsili-account');
+        
+        if (glSelect && !$(glSelect).hasClass('select2-hidden-accessible')) {
+            $(glSelect).select2({
+                theme: 'bootstrap-5',
+                language: 'fa',
+                dir: 'rtl',
+                placeholder: '{% trans "انتخاب سند کل" %}',
+                allowClear: true,
+                width: '100%'
+            });
+            
+            // Store original options for reset
+            if (!glSelect.hasAttribute('data-original-stored')) {
+                glSelect.setAttribute('data-original-stored', 'true');
+                $(glSelect).data('original-options', $(glSelect).html());
+            }
+            
+            // Attach event listener for GL account change
+            attachGLAccountChangeListener(glSelect);
+        }
+        
+        if (subSelect) {
+            // Store original options for reset
+            if (!subSelect.hasAttribute('data-original-stored')) {
+                subSelect.setAttribute('data-original-stored', 'true');
+                $(subSelect).data('original-options', $(subSelect).html());
+            }
+            
+            // Destroy Select2 if already initialized to avoid conflicts
+            if ($(subSelect).hasClass('select2-hidden-accessible')) {
+                $(subSelect).select2('destroy');
+            }
+            
+            $(subSelect).select2({
+                theme: 'bootstrap-5',
+                language: 'fa',
+                dir: 'rtl',
+                placeholder: '{% trans "انتخاب معین" %}',
+                allowClear: true,
+                width: '100%'
+            });
+            
+            // Listen to select2:select event to ensure value is set
+            $(subSelect).off('select2:select').on('select2:select', function(e) {
+                const data = e.params.data;
+                const selectElement = this;selectElement.value = data.id;
+                $(selectElement).val(data.id);
+            });
+            
+            // Attach event listener for sub account change
+            attachSubAccountChangeListener(subSelect);
+        }
+        
+        if (tafsiliSelect) {
+            // Store original options for reset
+            if (!tafsiliSelect.hasAttribute('data-original-stored')) {
+                tafsiliSelect.setAttribute('data-original-stored', 'true');
+                $(tafsiliSelect).data('original-options', $(tafsiliSelect).html());
+            }
+            
+            // Destroy Select2 if already initialized to avoid conflicts
+            if ($(tafsiliSelect).hasClass('select2-hidden-accessible')) {
+                $(tafsiliSelect).select2('destroy');
+            }
+            
+            // Initialize Select2
+            $(tafsiliSelect).select2({
+                theme: 'bootstrap-5',
+                language: 'fa',
+                dir: 'rtl',
+                placeholder: '{% trans "انتخاب تفصیلی" %}',
+                allowClear: true,
+                width: '100%'
+            });
+            
+            // Attach event listener for tafsili account change
+            attachTafsiliAccountChangeListener(tafsiliSelect);
+        }
+    }
+    
+    // Initialize Select2 for existing rows
+    document.querySelectorAll('.line-row').forEach(function(row) {
+        initializeSelect2(row);
+    });
+    
+});
+</script>
+
+<style>
+.line-row input, .line-row select {
+    width: 100%;
+    min-width: 100px;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.error {
+    color: #ef4444;
+    font-size: 0.75rem;
+    display: block;
+    margin-top: 0.25rem;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th, .table td {
+    padding: 0.75rem;
+    text-align: right;
+    border: 1px solid #e5e7eb;
+}
+
+.table thead th {
+    background: #f9fafb;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.btn {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background-color 0.2s;
+}
+
+.btn-primary {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2563eb;
+}
+
+.btn-secondary {
+    background: #6b7280;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #4b5563;
+}
+
+.btn-danger {
+    background: #ef4444;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+</style>
+{% endblock %}

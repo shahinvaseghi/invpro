@@ -1,0 +1,78 @@
+{% extends "shared/generic/generic_detail.html" %}
+{% load i18n jalali_tags %}
+
+{% block detail_sections %}
+{{ block.super }}
+
+{% if object.purchase_date or object.installation_date %}
+<div class="form-section">
+  <h3>{% trans "Dates" %}</h3>
+  <div class="form-row">
+    {% if object.purchase_date %}
+    <div class="form-field">
+      <label>{% trans "Purchase Date" %}</label>
+      <div class="readonly-field">{{ object.purchase_date|jalali_date }}</div>
+    </div>
+    {% endif %}
+    {% if object.installation_date %}
+    <div class="form-field">
+      <label>{% trans "Installation Date" %}</label>
+      <div class="readonly-field">{{ object.installation_date|jalali_date }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% if object.last_maintenance_date or object.next_maintenance_date %}
+<div class="form-section">
+  <h3>{% trans "Maintenance Information" %}</h3>
+  <div class="form-row">
+    {% if object.last_maintenance_date %}
+    <div class="form-field">
+      <label>{% trans "Last Maintenance Date" %}</label>
+      <div class="readonly-field">{{ object.last_maintenance_date|jalali_date }}</div>
+    </div>
+    {% endif %}
+    {% if object.next_maintenance_date %}
+    <div class="form-field">
+      <label>{% trans "Next Maintenance Date" %}</label>
+      <div class="readonly-field">{{ object.next_maintenance_date|jalali_date }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% if object.created_at or object.updated_at or object.created_by or object.edited_by %}
+<div class="form-section">
+  <h3>{% trans "Audit Information" %}</h3>
+  <div class="form-row">
+    {% if object.created_by %}
+    <div class="form-field">
+      <label>{% trans "Created By" %}</label>
+      <div class="readonly-field">{{ object.created_by.get_full_name|default:object.created_by.username }}</div>
+    </div>
+    {% endif %}
+    {% if object.created_at %}
+    <div class="form-field">
+      <label>{% trans "Created At" %}</label>
+      <div class="readonly-field">{{ object.created_at|jalali_date:"%Y/%m/%d %H:%M" }}</div>
+    </div>
+    {% endif %}
+    {% if object.edited_by %}
+    <div class="form-field">
+      <label>{% trans "Edited By" %}</label>
+      <div class="readonly-field">{{ object.edited_by.get_full_name|default:object.edited_by.username }}</div>
+    </div>
+    {% endif %}
+    {% if object.updated_at %}
+    <div class="form-field">
+      <label>{% trans "Last Updated" %}</label>
+      <div class="readonly-field">{{ object.updated_at|jalali_date:"%Y/%m/%d %H:%M" }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

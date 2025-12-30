@@ -1,75 +1,42 @@
-{% extends "inventory/item_types.html" %}
+{% extends "shared/generic/generic_list.html" %}
 {% load i18n %}
 
-{% block page_title %}زیردسته‌های کالا{% endblock %}
-
-{% block breadcrumb_extra %}
-<span class="separator">/</span>
-<span>اطلاعات پایه</span>
-<span class="separator">/</span>
-<span>زیردسته‌های کالا</span>
+{% block table_headers %}
+<th>{% trans "Code" %}</th>
+<th>{% trans "Name" %} (FA)</th>
+<th>{% trans "Name" %} (EN)</th>
+<th>{% trans "Category" %}</th>
+<th>Sort Order</th>
+<th>{% trans "Status" %}</th>
+{% if show_actions %}
+  <th>{% trans "Actions" %}</th>
+{% endif %}
 {% endblock %}
 
-{% block page_actions %}
-<div class="page-actions">
-  <a href="{% url 'inventory:itemsubcategory_create' %}" class="btn btn-primary">
-    + ایجاد زیردسته کالا
-  </a>
-</div>
+{% block table_rows %}
+{% for subcategory in object_list %}
+<tr>
+  <td><code>{{ subcategory.public_code }}</code></td>
+  <td><strong>{{ subcategory.name }}</strong></td>
+  <td>{{ subcategory.name_en|default:"-" }}</td>
+  <td>{{ subcategory.category.name|default:"-" }}</td>
+  <td style="text-align: center;">{{ subcategory.sort_order }}</td>
+  <td>
+    {% if subcategory.is_enabled %}
+      <span class="badge badge-active">{% trans "Active" %}</span>
+    {% else %}
+      <span class="badge badge-inactive">{% trans "Inactive" %}</span>
+    {% endif %}
+  </td>
+  {% if show_actions %}
+  <td>
+    {% include 'shared/partials/row_actions.html' with object=subcategory feature_code=feature_code detail_url_name=detail_url_name edit_url_name=edit_url_name delete_url_name=delete_url_name %}
+  </td>
+  {% endif %}
+</tr>
+{% endfor %}
 {% endblock %}
 
-{% block inventory_content %}
-<div class="data-table-container">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>کد</th>
-        <th>دسته‌بندی</th>
-        <th>نام (فارسی)</th>
-        <th>نام (English)</th>
-        <th>ترتیب نمایش</th>
-        <th>وضعیت</th>
-        <th>عملیات</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% if item_subcategories %}
-        {% for subcategory in item_subcategories %}
-        <tr>
-          <td><code>{{ subcategory.public_code }}</code></td>
-          <td>{{ subcategory.category.name }}</td>
-          <td><strong>{{ subcategory.name }}</strong></td>
-          <td>{{ subcategory.name_en }}</td>
-          <td style="text-align: center;">{{ subcategory.sort_order }}</td>
-          <td>
-            {% if subcategory.is_enabled %}
-              <span class="badge badge-active">فعال</span>
-            {% else %}
-              <span class="badge badge-inactive">غیرفعال</span>
-            {% endif %}
-          </td>
-          <td>
-            <a href="{% url 'inventory:itemsubcategory_edit' subcategory.pk %}" class="btn btn-sm">ویرایش</a>
-            <a href="{% url 'inventory:itemsubcategory_delete' subcategory.pk %}" class="btn btn-sm btn-danger">حذف</a>
-          </td>
-        </tr>
-        {% endfor %}
-      {% else %}
-        <tr>
-          <td colspan="7">
-            <div class="empty-state">
-              <div class="empty-state-icon">📚</div>
-              <h3>هیچ زیردسته‌ای ثبت نشده است</h3>
-              <p>برای شروع، اولین زیردسته را ایجاد کنید.</p>
-              <a href="{% url 'inventory:itemsubcategory_create' %}" class="btn btn-primary">
-                + ایجاد زیردسته کالا
-              </a>
-            </div>
-          </td>
-        </tr>
-      {% endif %}
-    </tbody>
-  </table>
-</div>
-{% endblock %}
-
+{% block empty_state_title %}{% trans "No Item Subcategories Found" %}{% endblock %}
+{% block empty_state_message %}{% trans "Start by creating your first item subcategory." %}{% endblock %}
+{% block empty_state_icon %}📋{% endblock %}

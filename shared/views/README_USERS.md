@@ -30,12 +30,12 @@
 
 **Type**: `FeaturePermissionRequiredMixin, ListView`
 
-**Template**: `shared/users_list.html`
+**Template**: `shared/users_list.html` (extends `shared/generic/generic_list.html`)
 
 **Attributes**:
 - `model`: `User` (از `get_user_model()`)
 - `template_name`: `'shared/users_list.html'`
-- `context_object_name`: `'users'`
+- `context_object_name`: `'object_list'`
 - `paginate_by`: `20`
 - `feature_code`: `'shared.users'`
 
@@ -66,10 +66,19 @@
 **توضیح**: اضافه کردن active module و filter values به context.
 
 **Context Variables**:
-- `users`: queryset کاربران (paginated)
+- `object_list`: queryset کاربران (paginated، از `page_obj.object_list`)
 - `active_module`: `'shared'`
-- `search_term`: مقدار search از GET
-- `status_filter`: مقدار status از GET
+- `page_title`: `_('Users')`
+- `breadcrumbs`: لیست breadcrumbs
+- `create_url`: URL برای ایجاد کاربر جدید
+- `show_filters`: `True`
+- `status_filter_value`: مقدار status از GET
+- `search_placeholder`: `_('Username, email or name')`
+- `show_actions`: `True`
+- `edit_url_name`: `'shared:user_edit'`
+- `delete_url_name`: `'shared:user_delete'`
+- `table_headers`: لیست header های جدول
+- `empty_state_title`, `empty_state_message`, `empty_state_icon`: برای empty state
 
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: context با filter values
@@ -82,7 +91,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, UserAccessFormsetMixin, CreateView`
 
-**Template**: `shared/user_form.html`
+**Template**: `shared/user_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `UserCreateForm`
 
@@ -102,8 +111,11 @@
 - `form`: `UserCreateForm`
 - `access_formset`: `UserCompanyAccessFormSet` (از `get_access_formset()`)
 - `active_module`: `'shared'`
+- `form_title`: `_('Create User')`
 - `page_title`: `_('Create User')`
 - `is_create`: `True`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `cancel_url`: URL برای cancel (back to users list)
 
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: context با access formset
@@ -142,7 +154,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, UserAccessFormsetMixin, UpdateView`
 
-**Template**: `shared/user_form.html`
+**Template**: `shared/user_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `UserUpdateForm`
 
@@ -162,8 +174,11 @@
 - `form`: `UserUpdateForm`
 - `access_formset`: `UserCompanyAccessFormSet` (از `get_access_formset()`)
 - `active_module`: `'shared'`
+- `form_title`: `_('Edit User')`
 - `page_title`: `_('Edit User')`
 - `is_create`: `False`
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `cancel_url`: URL برای cancel (back to users list)
 
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: context با access formset
@@ -202,7 +217,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, DeleteView`
 
-**Template**: `shared/user_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `shared:users`
 
@@ -234,8 +249,13 @@
 **توضیح**: اضافه کردن active module به context.
 
 **Context Variables**:
-- `user`: user object (از `get_object()`)
+- `object`: user object (از `get_object()`)
 - `active_module`: `'shared'`
+- `delete_title`: `_('Delete User')`
+- `confirmation_message`: پیام تایید حذف با username
+- `breadcrumbs`: لیست breadcrumbs برای navigation
+- `object_details`: لیست جزئیات user برای نمایش (username, email, name)
+- `cancel_url`: URL برای cancel (back to users list)
 
 **مقدار بازگشتی**:
 - `Dict[str, Any]`: context با active_module
@@ -347,4 +367,31 @@ path('users/<int:pk>/delete/', UserDeleteView.as_view(), name='user_delete'),
 ### Django Auth
 - از `get_user_model()` برای دریافت User model استفاده می‌کند
 - با Django's built-in User model کار می‌کند
+
+---
+
+## Migration to Generic Templates
+
+این views در migration به template های generic منتقل شده‌اند:
+
+### List Template
+- **Template**: `shared/users_list.html` (extends `shared/generic/generic_list.html`)
+- **Changes**: 
+  - `context_object_name` از `'users'` به `'object_list'` تغییر یافت
+  - Context variables برای generic template اضافه شد (breadcrumbs, page_title, create_url, etc.)
+  - `get_context_data` به‌روزرسانی شد تا `object_list` از `page_obj.object_list` استخراج شود
+
+### Form Template
+- **Template**: `shared/user_form.html` (extends `shared/generic/generic_form.html`)
+- **Changes**:
+  - Template از `base.html` به `generic_form.html` منتقل شد
+  - Blocks override شده: `form_sections`, `form_extra` (برای access_formset), `form_actions_extra`
+  - Context variables اضافه شد: `breadcrumbs`, `cancel_url`, `form_title`
+
+### Delete Template
+- **Template**: `shared/generic/generic_confirm_delete.html` (مستقیم استفاده می‌شود)
+- **Changes**:
+  - Template اختصاصی حذف شد
+  - `get_context_data` به‌روزرسانی شد تا context variables مناسب را برای generic template ارسال کند:
+    - `delete_title`, `confirmation_message`, `breadcrumbs`, `object_details`, `cancel_url`
 

@@ -1,71 +1,38 @@
-{% extends "inventory/item_types.html" %}
+{% extends "shared/generic/generic_list.html" %}
 {% load i18n %}
 
-{% block page_title %}دسته‌بندی تأمین‌کنندگان{% endblock %}
-
-{% block breadcrumb_extra %}
-<span class="separator">/</span>
-<span>تأمین‌کنندگان</span>
-<span class="separator">/</span>
-<span>دسته‌بندی تأمین‌کنندگان</span>
+{% block table_headers %}
+<th>{% trans "Supplier" %}</th>
+<th>{% trans "Category" %}</th>
+<th>{% trans "Is Primary?" %}</th>
+<th>{% trans "Notes" %}</th>
+{% if show_actions %}
+  <th>{% trans "Actions" %}</th>
+{% endif %}
 {% endblock %}
 
-{% block page_actions %}
-<div class="page-actions">
-  <a href="{% url 'inventory:suppliercategory_create' %}" class="btn btn-primary">
-    + ایجاد دسته‌بندی تأمین‌کننده
-  </a>
-</div>
+{% block table_rows %}
+{% for record in object_list %}
+<tr>
+  <td>{{ record.supplier.name }}</td>
+  <td>{{ record.category.name }}</td>
+  <td>
+    {% if record.is_primary %}
+      <span class="badge badge-active">{% trans "Yes" %}</span>
+    {% else %}
+      <span class="badge badge-inactive">{% trans "No" %}</span>
+    {% endif %}
+  </td>
+  <td>{{ record.notes|default:"—" }}</td>
+  {% if show_actions %}
+  <td>
+    {% include 'shared/partials/row_actions.html' with object=record feature_code=feature_code detail_url_name=detail_url_name edit_url_name=edit_url_name delete_url_name=delete_url_name %}
+  </td>
+  {% endif %}
+</tr>
+{% endfor %}
 {% endblock %}
 
-{% block inventory_content %}
-<div class="data-table-container">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>تأمین‌کننده</th>
-        <th>دسته‌بندی کالا</th>
-        <th>دستهٔ اصلی؟</th>
-        <th>یادداشت‌ها</th>
-        <th>عملیات</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% if supplier_categories %}
-        {% for record in supplier_categories %}
-        <tr>
-          <td>{{ record.supplier.name }}</td>
-          <td>{{ record.category.name }}</td>
-          <td>
-            {% if record.is_primary %}
-              <span class="badge badge-active">بله</span>
-            {% else %}
-              <span class="badge badge-inactive">خیر</span>
-            {% endif %}
-          </td>
-          <td>{{ record.notes|default:"—" }}</td>
-          <td>
-            <a href="{% url 'inventory:suppliercategory_edit' record.pk %}" class="btn btn-sm">ویرایش</a>
-            <a href="{% url 'inventory:suppliercategory_delete' record.pk %}" class="btn btn-sm btn-danger">حذف</a>
-          </td>
-        </tr>
-        {% endfor %}
-      {% else %}
-        <tr>
-          <td colspan="5">
-            <div class="empty-state">
-              <div class="empty-state-icon">🏷️</div>
-              <h3>هیچ دسته‌بندی تأمین‌کننده‌ای ثبت نشده است</h3>
-              <p>برای شروع، یک دسته‌بندی جدید برای تأمین‌کننده بسازید.</p>
-              <a href="{% url 'inventory:suppliercategory_create' %}" class="btn btn-primary">
-                + ایجاد دسته‌بندی تأمین‌کننده
-              </a>
-            </div>
-          </td>
-        </tr>
-      {% endif %}
-    </tbody>
-  </table>
-</div>
-{% endblock %}
-
+{% block empty_state_title %}{% trans "No Supplier Categories Found" %}{% endblock %}
+{% block empty_state_message %}{% trans "Start by creating your first supplier category." %}{% endblock %}
+{% block empty_state_icon %}🏷️{% endblock %}

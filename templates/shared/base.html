@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% block page_title %}{% trans "Shared" %}{% endblock %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}" style="margin-bottom: 1rem; padding: 1rem; border-radius: 4px; {% if message.tags == 'error' %}background-color: #fee; border: 1px solid #fcc; color: #c00;{% elif message.tags == 'success' %}background-color: #efe; border: 1px solid #cfc; color: #0c0;{% elif message.tags == 'warning' %}background-color: #ffe; border: 1px solid #ffc; color: #cc0;{% else %}background-color: #eef; border: 1px solid #ccf; color: #00c;{% endif %}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+  {% block shared_content %}
+  {% endblock %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Common shared module scripts
+  document.addEventListener('DOMContentLoaded', function() {
+    // Add any common JS functionality here
+  });
+</script>
+{% block shared_scripts %}{% endblock %}
+{% endblock %}
+

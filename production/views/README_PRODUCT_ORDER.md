@@ -6,6 +6,7 @@
 - ProductOrderListView: فهرست سفارشات
 - ProductOrderCreateView: ایجاد سفارش جدید (با قابلیت ایجاد transfer request)
 - ProductOrderUpdateView: ویرایش سفارش (با قابلیت ایجاد transfer request)
+- ProductOrderDetailView: نمایش جزئیات سفارش
 - ProductOrderDeleteView: حذف سفارش
 
 ---
@@ -83,7 +84,7 @@
 
 **Type**: `FeaturePermissionRequiredMixin, CreateView`
 
-**Template**: `production/product_order_form.html`
+**Template**: `production/product_order_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `ProductOrderForm`
 
@@ -225,9 +226,9 @@
 
 ## ProductOrderUpdateView
 
-**Type**: `FeaturePermissionRequiredMixin, UpdateView`
+**Type**: `TransferRequestCreationMixin, BaseUpdateView, EditLockProtectedMixin` (از `shared.views.base`)
 
-**Template**: `production/product_order_form.html`
+**Template**: `production/product_order_form.html` (extends `shared/generic/generic_form.html`)
 
 **Form**: `ProductOrderForm`
 
@@ -302,17 +303,84 @@
 
 ---
 
+## ProductOrderDetailView
+
+### `ProductOrderDetailView`
+
+**توضیح**: نمایش جزئیات Product Order (read-only)
+
+**Type**: `BaseDetailView` (از `shared.views.base`)
+
+**Template**: `shared/generic/generic_detail.html`
+
+**Attributes**:
+- `model`: `ProductOrder`
+- `template_name`: `'shared/generic/generic_detail.html'`
+- `context_object_name`: `'object'`
+- `feature_code`: `'production.product_orders'`
+- `required_action`: `'view_own'`
+- `active_module`: `'production'`
+
+**Context Variables**:
+- `object`: ProductOrder instance
+- `detail_title`: `_('View Product Order')`
+- `info_banner`: لیست اطلاعات اصلی (order_code, order_date, status, priority)
+- `detail_sections`: لیست sections برای نمایش:
+  - Order Information: finished_item, quantity_planned, bom, process, due_date, customer_reference, approved_by
+  - Notes: اگر notes موجود باشد
+- `list_url`, `edit_url`: URLs برای navigation
+- `can_edit_object`: بررسی اینکه آیا Product Order قفل است یا نه
+
+**متدها**:
+
+#### `get_queryset(self) -> QuerySet`
+- **Returns**: queryset بهینه شده با select_related
+- **Logic**:
+  1. دریافت queryset از `super().get_queryset()`
+  2. اعمال `select_related('finished_item', 'bom', 'process', 'approved_by', 'created_by', 'edited_by')`
+  3. بازگشت queryset
+
+#### `get_context_data(self, **kwargs) -> Dict[str, Any]`
+- **Returns**: context با detail sections
+- **Logic**:
+  1. دریافت context از `super().get_context_data()`
+  2. ساخت `info_banner`:
+     - Order Code (type: 'code')
+     - Order Date
+     - Status
+     - Priority
+  3. ساخت `detail_sections`:
+     - **Order Information**: finished_item (name + code), quantity_planned + unit, bom (اگر موجود باشد), process (اگر موجود باشد), due_date (اگر موجود باشد), customer_reference (اگر موجود باشد), approved_by (اگر موجود باشد)
+     - **Notes**: اگر notes موجود باشد
+  4. بازگشت context
+
+#### `get_list_url(self) -> str`
+- **Returns**: URL برای لیست Product Orders
+
+#### `get_edit_url(self) -> str`
+- **Returns**: URL برای ویرایش Product Order
+
+#### `can_edit_object(self, obj=None, feature_code=None) -> bool`
+- **Returns**: True اگر Product Order قفل نباشد
+- **Logic**:
+  - بررسی `is_locked` attribute
+  - اگر `is_locked=True` باشد، return False
+
+**URL**: `/production/product-orders/<pk>/`
+
+---
+
 ## ProductOrderDeleteView
 
-**Type**: `FeaturePermissionRequiredMixin, DeleteView`
+**Type**: `BaseDeleteView` (از `shared.views.base`)
 
-**Template**: `production/product_order_confirm_delete.html`
+**Template**: `shared/generic/generic_confirm_delete.html`
 
 **Success URL**: `production:product_orders`
 
 **Attributes**:
 - `model`: `ProductOrder`
-- `template_name`: `'production/product_order_confirm_delete.html'`
+- `template_name`: `'shared/generic/generic_confirm_delete.html'`
 - `success_url`: `reverse_lazy('production:product_orders')`
 - `feature_code`: `'production.product_orders'`
 - `required_action`: `'delete_own'`
@@ -337,19 +405,10 @@
 ---
 
 #### `delete(self, request: Any, *args: Any, **kwargs: Any) -> HttpResponseRedirect`
-
-**توضیح**: Product Order را حذف می‌کند و پیام موفقیت نمایش می‌دهد.
-
-**پارامترهای ورودی**:
-- `request`: HTTP request
-- `*args`, `**kwargs`: آرگومان‌های اضافی
-
-**مقدار بازگشتی**:
-- `HttpResponseRedirect`: redirect به `success_url`
-
-**منطق**:
-1. نمایش پیام موفقیت: "Product order deleted successfully."
-2. فراخوانی `super().delete(request, *args, **kwargs)` (که Product Order را حذف می‌کند و redirect می‌کند)
+- **Parameters**: `request`, `*args`, `**kwargs`
+- **Returns**: redirect به `success_url`
+- **Logic**:
+  - فراخوانی `super().delete()` که Product Order را حذف می‌کند و پیام موفقیت نمایش می‌دهد
 
 ---
 
@@ -390,6 +449,47 @@
 
 ### 5. Transaction Management
 - از `@transaction.atomic` استفاده می‌کند برای atomic operations
+
+---
+
+## Generic Templates
+
+تمام templates به generic templates منتقل شده‌اند:
+
+### Product Order List
+- **Template**: `production/product_orders.html` extends `shared/generic/generic_list.html`
+- **Blocks Overridden**: 
+  - `table_headers`: Order Code, BOM, Finished Item, Quantity, Unit, Priority, Status, Approver, Order Date
+  - `table_rows`: نمایش product orders با تمام فیلدها
+- **Context Variables**:
+  - `page_title`: "Product Orders"
+  - `breadcrumbs`: Production > Product Orders
+  - `create_url`: URL برای ایجاد Product Order جدید
+  - `table_headers`: [] (overridden in template)
+  - `show_actions`: True
+  - `edit_url_name`: 'production:product_order_edit'
+  - `delete_url_name`: 'production:product_order_delete'
+  - `empty_state_title`: "No Product Orders Found"
+  - `empty_state_message`: "Create your first product order to get started."
+  - `empty_state_icon`: "📋"
+
+### Product Order Form
+- **Template**: `production/product_order_form.html` extends `shared/generic/generic_form.html`
+- **Blocks Overridden**: 
+  - `breadcrumb_extra`: مسیر breadcrumb
+  - `form_sections`: فیلدهای form (Order Information)
+  - `form_extra`: بخش Transfer Request (optional) + Extra Items formset با cascading filters
+  - `extra_styles`: CSS برای table
+  - `form_scripts`: JavaScript برای Jalali DatePicker، toggle transfer section، formset management، و cascading filters
+
+### Product Order Delete
+- **Template**: `shared/generic/generic_confirm_delete.html`
+- **Context Variables**:
+  - `delete_title`: عنوان حذف
+  - `confirmation_message`: پیام تایید
+  - `object_details`: جزئیات سفارش (Order Code, BOM, Finished Item, Quantity, Status)
+  - `cancel_url`: URL برای لغو
+  - `breadcrumbs`: مسیر breadcrumb
 
 ---
 
