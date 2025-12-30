@@ -11,6 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from shared.models import (
     ActivatableModel,
     CompanyScopedModel,
+    EditableModel,
     LockableModel,
     MetadataModel,
     SortableModel,
@@ -126,8 +127,8 @@ class FiscalYearMixin(models.Model):
         super().clean()
 
 
-class AccountingSortableModel(AccountingBaseModel, SortableModel):
-    """Base model for sortable accounting entities."""
+class AccountingSortableModel(AccountingBaseModel, SortableModel, EditableModel):
+    """Base model for sortable accounting entities with edit lock support."""
     class Meta:
         abstract = True
 

@@ -5,6 +5,7 @@ from typing import Optional
 from django import forms
 from django.utils.translation import gettext_lazy as _
 from ..models import TreasuryAccount, Account
+from ..models.hierarchy import TafsiliHierarchy
 from shared.models import Company
 
 
@@ -15,7 +16,7 @@ class TreasuryAccountForm(forms.ModelForm):
         model = TreasuryAccount
         fields = [
             'account_type',
-            'tafsili_account',
+            'tafsili_level',
             'sub_account',
             'gl_account',
             'account_name',
@@ -32,7 +33,7 @@ class TreasuryAccountForm(forms.ModelForm):
         ]
         widgets = {
             'account_type': forms.Select(attrs={'class': 'form-control', 'id': 'id_account_type'}),
-            'tafsili_account': forms.Select(attrs={'class': 'form-control', 'id': 'id_tafsili_account'}),
+            'tafsili_level': forms.Select(attrs={'class': 'form-control', 'id': 'id_tafsili_level'}),
             'sub_account': forms.Select(attrs={'class': 'form-control', 'id': 'id_sub_account'}),
             'gl_account': forms.Select(attrs={'class': 'form-control', 'id': 'id_gl_account', 'readonly': True}),
             'account_name': forms.TextInput(attrs={'class': 'form-control'}),
@@ -49,7 +50,7 @@ class TreasuryAccountForm(forms.ModelForm):
         }
         labels = {
             'account_type': _('نوع حساب'),
-            'tafsili_account': _('حساب تفصیلی'),
+            'tafsili_level': _('سطح تفضیلی'),
             'sub_account': _('حساب معین'),
             'gl_account': _('حساب کل'),
             'account_name': _('نام حساب'),
@@ -65,8 +66,8 @@ class TreasuryAccountForm(forms.ModelForm):
             'is_enabled': _('وضعیت'),
         }
         help_texts = {
-            'tafsili_account': _('ابتدا حساب تفصیلی را انتخاب کنید'),
-            'sub_account': _('معین‌های مجاز برای تفصیلی انتخاب شده نمایش داده می‌شود'),
+            'tafsili_level': _('یا سطح تفضیلی را انتخاب کنید یا حساب معین (هر دو با هم امکان‌پذیر نیست)'),
+            'sub_account': _('یا حساب معین را انتخاب کنید یا سطح تفضیلی (هر دو با هم امکان‌پذیر نیست)'),
             'gl_account': _('حساب کل به صورت خودکار از معین انتخاب می‌شود'),
         }
     
@@ -81,21 +82,26 @@ class TreasuryAccountForm(forms.ModelForm):
             except Company.DoesNotExist:
                 pass
             
-            # Filter tafsili accounts (level 3)
-            if 'tafsili_account' in self.fields:
-                self.fields['tafsili_account'].queryset = Account.objects.filter(
+            # Filter tafsili levels
+            if 'tafsili_level' in self.fields:
+                self.fields['tafsili_level'].queryset = TafsiliHierarchy.objects.filter(
                     company_id=company_id,
-                    account_level=3,
+                    is_enabled=1
+                ).order_by('code')
+                self.fields['tafsili_level'].empty_label = _("--- انتخاب کنید ---")
+                self.fields['tafsili_level'].label_from_instance = lambda obj: f"{obj.code} · {obj.name}"
+                self.fields['tafsili_level'].required = False
+            
+            # Filter sub accounts (level 2) - independent selection
+            if 'sub_account' in self.fields:
+                self.fields['sub_account'].queryset = Account.objects.filter(
+                    company_id=company_id,
+                    account_level=2,
                     is_enabled=1
                 ).order_by('account_code')
-                self.fields['tafsili_account'].empty_label = _("--- انتخاب کنید ---")
-                self.fields['tafsili_account'].label_from_instance = lambda obj: f"{obj.account_code} · {obj.account_name}"
-            
-            # Initially disable sub_account and gl_account
-            if 'sub_account' in self.fields:
-                self.fields['sub_account'].queryset = Account.objects.none()
                 self.fields['sub_account'].required = False
-                self.fields['sub_account'].empty_label = _("--- ابتدا تفصیلی را انتخاب کنید ---")
+                self.fields['sub_account'].empty_label = _("--- انتخاب کنید ---")
+                self.fields['sub_account'].label_from_instance = lambda obj: f"{obj.account_code} · {obj.account_name}"
             
             if 'gl_account' in self.fields:
                 self.fields['gl_account'].queryset = Account.objects.none()
@@ -105,28 +111,31 @@ class TreasuryAccountForm(forms.ModelForm):
     def clean(self):
         """Validate account hierarchy."""
         cleaned_data = super().clean()
-        tafsili_account = cleaned_data.get('tafsili_account')
+        tafsili_level = cleaned_data.get('tafsili_level')
         sub_account = cleaned_data.get('sub_account')
         gl_account = cleaned_data.get('gl_account')
         
-        if tafsili_account and self.company_id:
-            # Validate tafsili belongs to company
-            if tafsili_account.company_id != self.company_id:
-                raise forms.ValidationError(_('حساب تفصیلی انتخاب شده باید متعلق به شرکت فعال باشد.'))
+        # Validate that either tafsili_level or sub_account is selected, but not both
+        if not tafsili_level and not sub_account:
+            raise forms.ValidationError(_('باید یا سطح تفضیلی انتخاب شود یا حساب معین (حداقل یکی از آن‌ها الزامی است).'))
+        
+        if tafsili_level and sub_account:
+            raise forms.ValidationError(_('نمی‌توان هم سطح تفضیلی و هم حساب معین را انتخاب کرد. فقط یکی از آن‌ها باید انتخاب شود.'))
+        
+        if self.company_id:
+            # Validate tafsili_level belongs to company
+            if tafsili_level:
+                if tafsili_level.company_id != self.company_id:
+                    raise forms.ValidationError(_('سطح تفضیلی انتخاب شده باید متعلق به شرکت فعال باشد.'))
             
-            # If sub_account is selected, validate it's related to tafsili
+            # Validate sub_account belongs to company
             if sub_account:
-                from ..models import TafsiliSubAccountRelation
-                if not TafsiliSubAccountRelation.objects.filter(
-                    company_id=self.company_id,
-                    tafsili_account=tafsili_account,
-                    sub_account=sub_account,
-                ).exists():
-                    raise forms.ValidationError(_('معین انتخاب شده برای این تفصیلی مجاز نیست.'))
+                if sub_account.company_id != self.company_id:
+                    raise forms.ValidationError(_('حساب معین انتخاب شده باید متعلق به شرکت فعال باشد.'))
                 
                 # If gl_account is selected, validate it's related to sub_account
                 if gl_account:
-                    from ..models import SubAccountGLAccountRelation
+                    from ..models.accounts import SubAccountGLAccountRelation
                     if not SubAccountGLAccountRelation.objects.filter(
                         company_id=self.company_id,
                         sub_account=sub_account,

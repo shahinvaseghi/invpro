@@ -189,7 +189,7 @@
   </header>
   
   <div class="table-responsive">
-  <table class="data-table formset-table">
+  <table class="data-table formset-table" id="bom-materials-table">
     <thead>
       <tr>
         <th>{% trans "کالای مورد نیاز" %}</th>
@@ -199,7 +199,7 @@
         <th>{% trans "ضریب ضایعات (%)" %}</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody id="bom-materials-tbody">
       {% for item in bom_items %}
       <tr>
         <td>{{ item.material_item.item_code }} - {{ item.material_item.name }}</td>
@@ -902,10 +902,18 @@ document.addEventListener('DOMContentLoaded', function() {
   var operationsError = document.getElementById('operations-error');
   var scrapReplacementCheckbox = document.getElementById('id_is_scrap_replacement');
   
-  // Get order ID from select or from JSON data (for edit mode when select is disabled)
+  // Get order ID from template context (for edit mode)
+  var initialOrderId = {% if object and object.order_id %}{{ object.order_id }}{% else %}null{% endif %};
+  
+  // Get order ID from select or from template context (for edit mode when select is disabled)
   function getOrderId() {
+    // First try to get from select value
     if (orderSelect && orderSelect.value) {
       return orderSelect.value;
+    }
+    // Try to get from template context (edit mode)
+    if (initialOrderId) {
+      return initialOrderId.toString();
     }
     // Try to get from JSON data if select is disabled (edit mode)
     var orderDataScript = document.getElementById('order-data');
@@ -932,23 +940,37 @@ document.addEventListener('DOMContentLoaded', function() {
   function updateOperationsVisibility() {
     var selectedTransferType = document.querySelector('input[name="transfer_type"]:checked');
     if (selectedTransferType && selectedTransferType.value === 'operations') {
-      operationsSelectionRow.style.display = 'block';
+      // Remove hidden class and show the row
+      if (operationsSelectionRow) {
+        operationsSelectionRow.classList.remove('hidden');
+        operationsSelectionRow.style.display = 'block';
+      }
       var orderId = getOrderId();
+      console.log('Order ID:', orderId);
       if (orderId) {
         loadOperations();
       } else {
-        operationsError.textContent = '{% trans "Please select a product order first." %}';
-        operationsError.style.display = 'block';
+        if (operationsError) {
+          operationsError.textContent = '{% trans "Please select a product order first." %}';
+          operationsError.classList.remove('hidden');
+          operationsError.style.display = 'block';
+        }
       }
     } else {
-      operationsSelectionRow.style.display = 'none';
+      if (operationsSelectionRow) {
+        operationsSelectionRow.style.display = 'none';
+        operationsSelectionRow.classList.add('hidden');
+      }
     }
   }
   
   function loadOperations() {
     var orderId = getOrderId();
+    console.log('loadOperations called with orderId:', orderId);
     if (!orderId) {
-      operationsList.innerHTML = '';
+      if (operationsList) {
+        operationsList.innerHTML = '';
+      }
       return;
     }
     
@@ -960,74 +982,262 @@ document.addEventListener('DOMContentLoaded', function() {
       url += '?scrap_replacement_mode=true';
     }
     
-    operationsLoading.style.display = 'block';
-    operationsList.innerHTML = '';
-    operationsError.style.display = 'none';
+    console.log('Loading operations from URL:', url);
+    
+    if (operationsLoading) {
+      operationsLoading.classList.remove('hidden');
+      operationsLoading.style.display = 'block';
+    }
+    if (operationsList) {
+      operationsList.innerHTML = '';
+    }
+    if (operationsError) {
+      operationsError.classList.add('hidden');
+      operationsError.style.display = 'none';
+    }
     
     fetch(url)
-      .then(response => response.json())
+      .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+          throw new Error('HTTP error! status: ' + response.status);
+        }
+        return response.json();
+      })
       .then(data => {
-        operationsLoading.style.display = 'none';
+        console.log('Operations data received:', data);
+        
+        if (operationsLoading) {
+          operationsLoading.classList.add('hidden');
+          operationsLoading.style.display = 'none';
+        }
         
         if (data.error) {
-          operationsError.textContent = data.error;
-          operationsError.style.display = 'block';
+          if (operationsError) {
+            operationsError.textContent = data.error;
+            operationsError.classList.remove('hidden');
+            operationsError.style.display = 'block';
+          }
           return;
         }
         
         if (!data.has_process) {
-          operationsError.textContent = data.message || '{% trans "This order does not have an associated process." %}';
-          operationsError.style.display = 'block';
+          if (operationsError) {
+            operationsError.textContent = data.message || '{% trans "This order does not have an associated process." %}';
+            operationsError.classList.remove('hidden');
+            operationsError.style.display = 'block';
+          }
           return;
         }
         
         if (data.is_full_transferred && !scrapReplacementMode) {
-          operationsError.innerHTML = '{% trans "All materials for this order have already been transferred. If this is for scrap replacement, please check the Scrap Replacement checkbox." %}';
-          operationsError.style.display = 'block';
+          if (operationsError) {
+            operationsError.innerHTML = '{% trans "All materials for this order have already been transferred. If this is for scrap replacement, please check the Scrap Replacement checkbox." %}';
+            operationsError.classList.remove('hidden');
+            operationsError.style.display = 'block';
+          }
         }
         
         if (data.operations && data.operations.length > 0) {
-          operationsList.innerHTML = '';
-          data.operations.forEach(function(operation) {
-            var checkboxDiv = document.createElement('div');
-            checkboxDiv.className = 'checkbox-option';
-            
-            var checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.name = 'selected_operations';
-            checkbox.value = operation.id;
-            checkbox.id = 'id_selected_operations_' + operation.id;
-            checkbox.className = 'form-check-input';
-            
-            var label = document.createElement('label');
-            label.setAttribute('for', checkbox.id);
-            label.textContent = operation.sequence_order + '. ' + operation.name + 
-                               (operation.description ? ' - ' + operation.description : '');
-            
-            checkboxDiv.appendChild(checkbox);
-            checkboxDiv.appendChild(label);
-            operationsList.appendChild(checkboxDiv);
-          });
+          console.log('Found', data.operations.length, 'operations');
+          if (operationsList) {
+            operationsList.innerHTML = '';
+            data.operations.forEach(function(operation) {
+              var checkboxDiv = document.createElement('div');
+              checkboxDiv.className = 'checkbox-option';
+              
+              var checkbox = document.createElement('input');
+              checkbox.type = 'checkbox';
+              checkbox.name = 'selected_operations';
+              checkbox.value = operation.id;
+              checkbox.id = 'id_selected_operations_' + operation.id;
+              checkbox.className = 'form-check-input';
+              
+              var label = document.createElement('label');
+              label.setAttribute('for', checkbox.id);
+              label.textContent = operation.sequence_order + '. ' + operation.name + 
+                                 (operation.description ? ' - ' + operation.description : '');
+              
+              checkboxDiv.appendChild(checkbox);
+              checkboxDiv.appendChild(label);
+              operationsList.appendChild(checkboxDiv);
+              
+              // Add change event listener to update BOM materials when operation is selected/deselected
+              checkbox.addEventListener('change', updateBOMMaterials);
+            });
+          }
         } else {
-          if (scrapReplacementMode) {
-            operationsList.innerHTML = '<div style="padding: 1rem; color: #6b7280;">{% trans "هیچ عملیات انتقال داده شده‌ای یافت نشد." %}</div>';
-          } else {
-            operationsList.innerHTML = '<div style="padding: 1rem; color: #6b7280;">{% trans "هیچ عملیاتی یافت نشد." %}</div>';
+          console.log('No operations found');
+          if (operationsList) {
+            if (scrapReplacementMode) {
+              operationsList.innerHTML = '<div style="padding: 1rem; color: #6b7280;">{% trans "هیچ عملیات انتقال داده شده‌ای یافت نشد." %}</div>';
+            } else {
+              operationsList.innerHTML = '<div style="padding: 1rem; color: #6b7280;">{% trans "هیچ عملیاتی یافت نشد." %}</div>';
+            }
           }
         }
       })
       .catch(error => {
-        operationsLoading.style.display = 'none';
-          operationsError.textContent = '{% trans "خطا در بارگذاری عملیات‌ها: " %}' + error.message;
-        operationsError.style.display = 'block';
         console.error('Error loading operations:', error);
+        if (operationsLoading) {
+          operationsLoading.classList.add('hidden');
+          operationsLoading.style.display = 'none';
+        }
+        if (operationsError) {
+          operationsError.textContent = '{% trans "خطا در بارگذاری عملیات‌ها: " %}' + error.message;
+          operationsError.classList.remove('hidden');
+          operationsError.style.display = 'block';
+        }
       });
   }
   
   // Handle transfer type change
   transferTypeRadios.forEach(function(radio) {
-    radio.addEventListener('change', updateOperationsVisibility);
+    radio.addEventListener('change', function() {
+      updateOperationsVisibility();
+      // Update BOM materials when transfer type changes
+      if (radio.value === 'full') {
+        loadAllBOMMaterials();
+      } else if (radio.value === 'operations') {
+        updateBOMMaterials();
+      }
+    });
   });
+  
+  // Function to load all BOM materials (for full transfer type)
+  function loadAllBOMMaterials() {
+    var bomTableBody = document.getElementById('bom-materials-tbody');
+    if (!bomTableBody) {
+      return;
+    }
+    
+    var orderId = getOrderId();
+    if (!orderId) {
+      bomTableBody.innerHTML = '';
+      return;
+    }
+    
+    // Get order to find process
+    // We'll use the order's process to get BOM materials
+    var url = '{% url "production:api_order_operations" 0 %}'.replace('0', orderId);
+    
+    // First get order info to find process_id
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        if (data.error || !data.process_code) {
+          bomTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 1rem; color: #6b7280;">{% trans "نمی‌توان مواد BOM را بارگذاری کرد." %}</td></tr>';
+          return;
+        }
+        
+        // Get process_id from order (we need to get it from order object)
+        // For now, let's use the BOM materials from the order's process
+        // We'll need to add process_id to the order operations response or make another call
+        // For simplicity, let's restore the initial BOM items if available
+        var initialBomItems = {% if object and object.pk and bom_items %}{{ bom_items|length }}{% else %}0{% endif %};
+        if (initialBomItems > 0) {
+          // In edit mode, restore from server-rendered items
+          // The items are already in the table, so we don't need to do anything
+          return;
+        }
+        
+        // If no initial items, try to get from process BOM
+        // We need process_id - for now, show message
+        bomTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 1rem; color: #6b7280;">{% trans "لطفاً عملیات‌ها را انتخاب کنید یا مواد BOM از قبل ذخیره شده‌اند." %}</td></tr>';
+      })
+      .catch(error => {
+        console.error('Error loading BOM materials:', error);
+        bomTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 1rem; color: #dc2626;">{% trans "خطا در بارگذاری مواد BOM." %}</td></tr>';
+      });
+  }
+  
+  // Function to update BOM materials based on selected operations
+  function updateBOMMaterials() {
+    var bomTableBody = document.getElementById('bom-materials-tbody');
+    if (!bomTableBody) {
+      return;
+    }
+    
+    // Get selected operations
+    var selectedOperations = document.querySelectorAll('input[name="selected_operations"]:checked');
+    if (selectedOperations.length === 0) {
+      bomTableBody.innerHTML = '';
+      return;
+    }
+    
+    // Get order ID
+    var orderId = getOrderId();
+    if (!orderId) {
+      return;
+    }
+    
+    // Get operation IDs
+    var operationIds = Array.from(selectedOperations).map(function(cb) {
+      return cb.value;
+    });
+    
+    // Build URL
+    var url = '{% url "production:api_selected_operations_materials" 0 %}'.replace('0', orderId);
+    url += '?operation_ids=' + operationIds.join(',');
+    
+    console.log('Loading materials for operations:', operationIds);
+    
+    // Show loading state
+    bomTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 1rem; color: #6b7280;">{% trans "در حال بارگذاری مواد..." %}</td></tr>';
+    
+    // Fetch materials
+    fetch(url)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('HTTP error! status: ' + response.status);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Materials data received:', data);
+        
+        if (data.error) {
+          bomTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 1rem; color: #dc2626;">' + data.error + '</td></tr>';
+          return;
+        }
+        
+        if (data.materials && data.materials.length > 0) {
+          bomTableBody.innerHTML = '';
+          data.materials.forEach(function(material) {
+            var row = document.createElement('tr');
+            
+            var itemCell = document.createElement('td');
+            itemCell.textContent = material.material_item_code + ' - ' + material.material_item_name;
+            
+            var quantityCell = document.createElement('td');
+            quantityCell.textContent = material.quantity_required.toLocaleString('fa-IR');
+            
+            var unitCell = document.createElement('td');
+            unitCell.textContent = material.unit;
+            
+            var warehouseCell = document.createElement('td');
+            warehouseCell.textContent = material.source_warehouse || '-';
+            
+            var scrapCell = document.createElement('td');
+            scrapCell.textContent = material.material_scrap_allowance.toFixed(2) + '%';
+            
+            row.appendChild(itemCell);
+            row.appendChild(quantityCell);
+            row.appendChild(unitCell);
+            row.appendChild(warehouseCell);
+            row.appendChild(scrapCell);
+            
+            bomTableBody.appendChild(row);
+          });
+        } else {
+          bomTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 1rem; color: #6b7280;">{% trans "هیچ ماده‌ای یافت نشد." %}</td></tr>';
+        }
+      })
+      .catch(error => {
+        console.error('Error loading materials:', error);
+        bomTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 1rem; color: #dc2626;">{% trans "خطا در بارگذاری مواد: " %}' + error.message + '</td></tr>';
+      });
+  }
   
   // Function to check if order has previous transfers and update scrap replacement checkbox
   function updateScrapReplacementAvailability() {
@@ -1119,8 +1329,8 @@ document.addEventListener('DOMContentLoaded', function() {
   var qcApproverField = document.getElementById('id_qc_approved_by');
   
   // Check scrap replacement availability on page load
-  var initialOrderId = getOrderId();
-  if (initialOrderId) {
+  var pageLoadOrderId = getOrderId();
+  if (pageLoadOrderId) {
     updateScrapReplacementAvailability();
   }
   

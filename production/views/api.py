@@ -8,12 +8,14 @@ from django.views.decorators.http import require_http_methods
 from django.http import JsonResponse, HttpRequest
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
-from production.models import BOM, BOMMaterial, ProductOrder, Process, ProcessOperation
+from production.models import BOM, BOMMaterial, ProductOrder, Process, ProcessOperation, ProcessOperationMaterial
 from production.utils.transfer import (
     get_available_operations_for_order,
     is_full_order_transferred,
+    get_operation_materials,
 )
 from production.models import TransferToLine
+from decimal import Decimal
 
 logger = logging.getLogger('production.views.api')
 
@@ -249,5 +251,99 @@ def get_process_bom_materials(request: HttpRequest, process_id: int) -> JsonResp
         })
     except Exception as e:
         logger.error(f"Error in get_process_bom_materials: {e}", exc_info=True)
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+@login_required
+def get_selected_operations_materials(request: HttpRequest, order_id: int) -> JsonResponse:
+    """API endpoint to get materials for selected operations in a product order."""
+    company_id = request.session.get('active_company_id')
+    if not company_id:
+        return JsonResponse({'error': 'No active company'}, status=400)
+
+    try:
+        # Get operation IDs from query params (comma-separated)
+        operation_ids_param = request.GET.get('operation_ids', '')
+        if not operation_ids_param:
+            return JsonResponse({'error': 'operation_ids parameter is required'}, status=400)
+        
+        # Parse operation IDs
+        try:
+            operation_ids = [int(op_id.strip()) for op_id in operation_ids_param.split(',') if op_id.strip()]
+        except ValueError:
+            return JsonResponse({'error': 'Invalid operation_ids format'}, status=400)
+        
+        if not operation_ids:
+            return JsonResponse({'error': 'At least one operation_id is required'}, status=400)
+        
+        # Get order
+        order = get_object_or_404(
+            ProductOrder,
+            pk=order_id,
+            company_id=company_id,
+            is_enabled=1,
+        )
+        
+        # Get quantity_planned from order
+        quantity_planned = order.quantity_planned or Decimal('1.0')
+        
+        # Get operations
+        operations = ProcessOperation.objects.filter(
+            id__in=operation_ids,
+            process=order.process,
+            is_enabled=1,
+        ).select_related('process')
+        
+        if not operations.exists():
+            return JsonResponse({
+                'materials': [],
+                'message': _('No valid operations found.'),
+            })
+        
+        # Collect all materials from selected operations
+        materials_dict = {}
+        for operation in operations:
+            operation_materials = get_operation_materials(operation, order)
+            
+            for op_material in operation_materials:
+                # Calculate quantity: quantity_planned × quantity_used
+                quantity_required = quantity_planned * op_material.quantity_used
+                
+                # Get material item info
+                material_item = op_material.material_item
+                material_item_id = material_item.id
+                
+                # Get scrap allowance and source warehouse from BOM material
+                scrap_allowance = Decimal('0.00')
+                source_warehouse_name = None
+                if op_material.bom_material:
+                    scrap_allowance = op_material.bom_material.scrap_allowance or Decimal('0.00')
+                    if op_material.bom_material.source_warehouse:
+                        source_warehouse_name = op_material.bom_material.source_warehouse.name
+                
+                # Group by material item (sum quantities if same material in multiple operations)
+                if material_item_id in materials_dict:
+                    materials_dict[material_item_id]['quantity_required'] += quantity_required
+                else:
+                    materials_dict[material_item_id] = {
+                        'material_item_id': str(material_item_id),
+                        'material_item_code': material_item.item_code,
+                        'material_item_name': material_item.name,
+                        'quantity_required': float(quantity_required),
+                        'unit': op_material.bom_material.unit if op_material.bom_material else material_item.base_unit or '',
+                        'source_warehouse': source_warehouse_name or '',
+                        'material_scrap_allowance': float(scrap_allowance),
+                    }
+        
+        # Convert to list
+        materials_data = list(materials_dict.values())
+        
+        return JsonResponse({
+            'materials': materials_data,
+            'order_code': order.order_code,
+        })
+    except Exception as e:
+        logger.error(f"Error in get_selected_operations_materials: {e}", exc_info=True)
         return JsonResponse({'error': str(e)}, status=500)
 
