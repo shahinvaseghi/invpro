@@ -82,9 +82,13 @@ class ItemPriceCardForm(BaseModelForm):
         if self.company_id:
             from inventory.models import Item, ItemType, ItemCategory, ItemSubcategory
             
-            # Set empty queryset - JavaScript will populate via API with sellable items only
-            # This prevents showing duplicate dropdown with all items
-            self.fields['item'].queryset = Item.objects.none()
+            # Set queryset to all sellable items for validation
+            # JavaScript will still populate the dropdown via API, but Django can validate the selected value
+            self.fields['item'].queryset = Item.objects.filter(
+                company_id=self.company_id,
+                is_enabled=1,
+                is_sellable=1
+            )
             
             # Populate filter choices
             types = ItemType.objects.filter(company_id=self.company_id, is_enabled=1)
@@ -101,6 +105,11 @@ class ItemPriceCardForm(BaseModelForm):
             self.fields['item_type_filter'].choices = [('', '--------')]
             self.fields['item_category_filter'].choices = [('', '--------')]
             self.fields['item_subcategory_filter'].choices = [('', '--------')]
+        
+        # Ensure the item field widget doesn't show all options initially
+        # JavaScript will populate it dynamically
+        if 'item' in self.fields:
+            self.fields['item'].widget.attrs['data-dynamic'] = 'true'
     
     def clean_price(self):
         """Validate price is positive."""
@@ -109,10 +118,178 @@ class ItemPriceCardForm(BaseModelForm):
             raise ValidationError(_('Price must be positive.'))
         return price
     
+    def clean_item(self):
+        """Validate that the selected item is valid and belongs to the company."""
+        # #region agent log
+        import json
+        import time
+        try:
+            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    'id': f'log_{int(time.time()*1000)}_clean_item',
+                    'timestamp': int(time.time()*1000),
+                    'location': 'sales/forms.py:clean_item',
+                    'message': 'ItemPriceCardForm.clean_item called',
+                    'data': {
+                        'item_value': str(self.cleaned_data.get('item')) if 'item' in self.cleaned_data else None,
+                        'item_type': type(self.cleaned_data.get('item')).__name__ if 'item' in self.cleaned_data and self.cleaned_data.get('item') else None,
+                        'company_id': self.company_id,
+                        'is_bound': self.is_bound
+                    },
+                    'sessionId': 'debug-session',
+                    'runId': 'run1',
+                    'hypothesisId': 'P'
+                }) + '\n')
+        except Exception:
+            pass
+        # #endregion
+
+        item = self.cleaned_data.get('item')
+        
+        if not item:
+            return item
+        
+        # Handle case where item might be an ID (string or int) instead of object
+        item_id = None
+        if hasattr(item, 'pk'):
+            item_id = item.pk
+        elif isinstance(item, (int, str)):
+            item_id = int(item) if str(item).isdigit() else None
+        
+        # Validate that item exists and belongs to the company
+        if self.company_id:
+            from inventory.models import Item
+            try:
+                if item_id:
+                    item_obj = Item.objects.get(pk=item_id, company_id=self.company_id, is_enabled=1)
+                else:
+                    item_obj = Item.objects.get(pk=item.pk, company_id=self.company_id, is_enabled=1)
+                
+                # Also check if item is sellable
+                if not item_obj.is_sellable:
+                    # #region agent log
+                    try:
+                        with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                            f.write(json.dumps({
+                                'id': f'log_{int(time.time()*1000)}_item_not_sellable',
+                                'timestamp': int(time.time()*1000),
+                                'location': 'sales/forms.py:clean_item',
+                                'message': 'Item is not sellable',
+                                'data': {'item_id': item_obj.pk, 'item_name': item_obj.name},
+                                'sessionId': 'debug-session',
+                                'runId': 'run1',
+                                'hypothesisId': 'P'
+                            }) + '\n')
+                    except Exception:
+                        pass
+                    # #endregion
+                    raise ValidationError(_('Selected item is not sellable.'))
+                
+                # #region agent log
+                try:
+                    with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({
+                            'id': f'log_{int(time.time()*1000)}_item_valid',
+                            'timestamp': int(time.time()*1000),
+                            'location': 'sales/forms.py:clean_item',
+                            'message': 'Item validated successfully',
+                            'data': {'item_id': item_obj.pk, 'item_name': item_obj.name},
+                            'sessionId': 'debug-session',
+                            'runId': 'run1',
+                            'hypothesisId': 'P'
+                        }) + '\n')
+                except Exception:
+                    pass
+                # #endregion
+                return item_obj
+            except Item.DoesNotExist:
+                # #region agent log
+                try:
+                    with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({
+                            'id': f'log_{int(time.time()*1000)}_item_not_found',
+                            'timestamp': int(time.time()*1000),
+                            'location': 'sales/forms.py:clean_item',
+                            'message': 'Item not found or invalid',
+                            'data': {'item_id': item_id or (item.pk if hasattr(item, 'pk') else None), 'company_id': self.company_id},
+                            'sessionId': 'debug-session',
+                            'runId': 'run1',
+                            'hypothesisId': 'P'
+                        }) + '\n')
+                except Exception:
+                    pass
+                # #endregion
+                raise ValidationError(_('Please select a valid option. That option is not among the available options.'))
+            except (ValueError, TypeError) as e:
+                # #region agent log
+                try:
+                    with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({
+                            'id': f'log_{int(time.time()*1000)}_item_type_error',
+                            'timestamp': int(time.time()*1000),
+                            'location': 'sales/forms.py:clean_item',
+                            'message': 'Item type error',
+                            'data': {'error': str(e), 'item_value': str(item)},
+                            'sessionId': 'debug-session',
+                            'runId': 'run1',
+                            'hypothesisId': 'P'
+                        }) + '\n')
+                except Exception:
+                    pass
+                # #endregion
+                raise ValidationError(_('Please select a valid option. That option is not among the available options.'))
+        
+        return item
+    
     def clean(self):
         """Validate form data."""
+        # #region agent log
+        import json
+        import time
+        try:
+            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    'id': f'log_{int(time.time()*1000)}_clean_start',
+                    'timestamp': int(time.time()*1000),
+                    'location': 'sales/forms.py:clean',
+                    'message': 'ItemPriceCardForm.clean() called',
+                    'data': {
+                        'is_bound': self.is_bound,
+                        'company_id': self.company_id,
+                        'instance_pk': self.instance.pk if self.instance and self.instance.pk else None
+                    },
+                    'sessionId': 'debug-session',
+                    'runId': 'run1',
+                    'hypothesisId': 'Q'
+                }) + '\n')
+        except Exception:
+            pass
+        # #endregion
+
         cleaned_data = super().clean()
         item = cleaned_data.get('item')
+        
+        # #region agent log
+        try:
+            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    'id': f'log_{int(time.time()*1000)}_clean_after_super',
+                    'timestamp': int(time.time()*1000),
+                    'location': 'sales/forms.py:clean',
+                    'message': 'After super().clean()',
+                    'data': {
+                        'item': str(item) if item else None,
+                        'item_id': item.pk if item and hasattr(item, 'pk') else None,
+                        'cleaned_data_keys': list(cleaned_data.keys()),
+                        'form_errors': dict(self.errors) if hasattr(self, 'errors') else None
+                    },
+                    'sessionId': 'debug-session',
+                    'runId': 'run1',
+                    'hypothesisId': 'Q'
+                }) + '\n')
+        except Exception:
+            pass
+        # #endregion
         
         # Check if item already has a price card for this company
         if item and self.company_id:
@@ -125,6 +302,22 @@ class ItemPriceCardForm(BaseModelForm):
                 existing = existing.exclude(pk=self.instance.pk)
             
             if existing.exists():
+                # #region agent log
+                try:
+                    with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({
+                            'id': f'log_{int(time.time()*1000)}_duplicate_item',
+                            'timestamp': int(time.time()*1000),
+                            'location': 'sales/forms.py:clean',
+                            'message': 'Duplicate price card found',
+                            'data': {'item_id': item.pk if hasattr(item, 'pk') else None},
+                            'sessionId': 'debug-session',
+                            'runId': 'run1',
+                            'hypothesisId': 'Q'
+                        }) + '\n')
+                except Exception:
+                    pass
+                # #endregion
                 raise ValidationError({
                     'item': _('This item already has a price card. Please update the existing one instead.')
                 })
@@ -149,10 +342,14 @@ class ItemPriceCardFormSetBase(BaseFormSet):
                 if company_id and hasattr(form, 'fields'):
                     from inventory.models import Item, ItemType, ItemCategory, ItemSubcategory
                     
-                    # Set empty queryset - JavaScript will populate via API
-                    # This prevents showing all items in initial dropdown
+                    # Set queryset to all sellable items for validation
+                    # JavaScript will still populate the dropdown via API, but Django can validate the selected value
                     if 'item' in form.fields:
-                        form.fields['item'].queryset = Item.objects.none()
+                        form.fields['item'].queryset = Item.objects.filter(
+                            company_id=company_id,
+                            is_enabled=1,
+                            is_sellable=1
+                        )
                     
                     # Update filter choices
                     if 'item_type_filter' in form.fields:

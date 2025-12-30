@@ -153,6 +153,25 @@ class ItemPriceCardCreateView(FeaturePermissionRequiredMixin, View):
         )
         
         if formset.is_valid():
+            # #region agent log
+            import json
+            import time
+            try:
+                with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({
+                        'id': f'log_{int(time.time()*1000)}_formset_valid',
+                        'timestamp': int(time.time()*1000),
+                        'location': 'sales/views.py:155',
+                        'message': 'Formset is valid, starting save process',
+                        'data': {'forms_count': len(formset.forms)},
+                        'sessionId': 'debug-session',
+                        'runId': 'run1',
+                        'hypothesisId': 'R'
+                    }) + '\n')
+            except Exception:
+                pass
+            # #endregion
+
             with transaction.atomic():
                 company_id = request.session.get('active_company_id')
                 if not company_id:
@@ -179,17 +198,95 @@ class ItemPriceCardCreateView(FeaturePermissionRequiredMixin, View):
                                 form.add_error('item', _('This item already has a price card. Please update the existing one instead.'))
                                 return render(request, self.template_name, self.get_context_data(formset=formset))
                 
-                # Save all forms in formset
-                instances = formset.save(commit=False)
-                for instance in instances:
-                    # Set company for each instance
-                    instance.company_id = company_id
-                    instance.save()
+                # Save all forms in formset manually
+                saved_count = 0
+                for form in formset:
+                    if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
+                        # #region agent log
+                        try:
+                            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                                f.write(json.dumps({
+                                    'id': f'log_{int(time.time()*1000)}_saving_form',
+                                    'timestamp': int(time.time()*1000),
+                                    'location': 'sales/views.py:183',
+                                    'message': 'Saving form instance',
+                                    'data': {
+                                        'has_instance': form.instance is not None,
+                                        'instance_pk': form.instance.pk if form.instance and form.instance.pk else None,
+                                        'item_id': form.cleaned_data.get('item').pk if form.cleaned_data.get('item') else None
+                                    },
+                                    'sessionId': 'debug-session',
+                                    'runId': 'run1',
+                                    'hypothesisId': 'R'
+                                }) + '\n')
+                        except Exception:
+                            pass
+                        # #endregion
+
+                        # Save form instance (ItemPriceCardForm is a ModelForm, so it has save() method)
+                        try:
+                            instance = form.save(commit=False)
+                            instance.company_id = company_id
+                            instance.save()
+                            saved_count += 1
+                            # #region agent log
+                            try:
+                                with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                                    f.write(json.dumps({
+                                        'id': f'log_{int(time.time()*1000)}_form_saved',
+                                        'timestamp': int(time.time()*1000),
+                                        'location': 'sales/views.py:187',
+                                        'message': 'Form instance saved successfully',
+                                        'data': {'instance_pk': instance.pk, 'item_id': instance.item.pk if instance.item else None},
+                                        'sessionId': 'debug-session',
+                                        'runId': 'run1',
+                                        'hypothesisId': 'R'
+                                    }) + '\n')
+                            except Exception:
+                                pass
+                            # #endregion
+                        except Exception as e:
+                            # #region agent log
+                            try:
+                                with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                                    f.write(json.dumps({
+                                        'id': f'log_{int(time.time()*1000)}_form_save_error',
+                                        'timestamp': int(time.time()*1000),
+                                        'location': 'sales/views.py:187',
+                                        'message': 'Form save failed',
+                                        'data': {'error': str(e), 'error_type': type(e).__name__},
+                                        'sessionId': 'debug-session',
+                                        'runId': 'run1',
+                                        'hypothesisId': 'R'
+                                    }) + '\n')
+                            except Exception:
+                                pass
+                            # #endregion
+                            raise
                 
                 # Delete marked forms
-                for obj in formset.deleted_objects:
-                    obj.delete()
+                for form in formset:
+                    if form.cleaned_data and form.cleaned_data.get('DELETE', False):
+                        if form.instance and form.instance.pk:
+                            form.instance.delete()
             
+            # #region agent log
+            try:
+                with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({
+                        'id': f'log_{int(time.time()*1000)}_all_saved',
+                        'timestamp': int(time.time()*1000),
+                        'location': 'sales/views.py:193',
+                        'message': 'All forms saved successfully',
+                        'data': {'saved_count': saved_count},
+                        'sessionId': 'debug-session',
+                        'runId': 'run1',
+                        'hypothesisId': 'R'
+                    }) + '\n')
+            except Exception:
+                pass
+            # #endregion
+
             messages.success(request, _('Price cards created successfully.'))
             return HttpResponseRedirect(self.success_url)
         else:

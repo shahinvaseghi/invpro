@@ -10,7 +10,9 @@ This module contains CRUD views for:
 - Suppliers
 - Supplier Categories
 """
+import json
 import logging
+import time
 from typing import Dict, Any, List, Optional
 from django.contrib import messages
 from django.db.models import Q
@@ -18,6 +20,24 @@ from django.db.models.deletion import ProtectedError
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
+
+# Debug logging helper function
+def debug_log(location: str, message: str, data: Dict[str, Any], hypothesis_id: str):
+    """Write debug information to the log file."""
+    try:
+        with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({
+                'id': f'log_{int(time.time()*1000)}_{hypothesis_id.lower()}',
+                'timestamp': int(time.time()*1000),
+                'location': location,
+                'message': message,
+                'data': data,
+                'sessionId': 'debug-session',
+                'runId': 'run1',
+                'hypothesisId': hypothesis_id
+            }) + '\n')
+    except Exception:
+        pass
 
 from .base import InventoryBaseView, ItemUnitFormsetMixin
 from .receipts import DocumentDeleteViewBase
@@ -1068,13 +1088,24 @@ class ItemCreateView(ItemUnitFormsetMixin, BaseCreateView):
     
     def form_valid(self, form):
         """Save item and unit formset."""
+        # #region agent log
+        debug_log('inventory/views/master_data.py:1069', 'ItemCreateView.form_valid called', {'form_valid': 'start'}, 'A')
+        # #endregion
+
         from django.http import HttpResponseRedirect
-        
+
         company_id = self.request.session.get('active_company_id')
+        # #region agent log
+        debug_log('inventory/views/master_data.py:1074', 'Company ID check', {'company_id': company_id}, 'A')
+        # #endregion
+
         if not company_id:
             messages.error(self.request, _('Please select a company first.'))
+            # #region agent log
+            debug_log('inventory/views/master_data.py:1075', 'Company ID missing - returning form_invalid', {}, 'A')
+            # #endregion
             return self.form_invalid(form)
-        
+
         # Explicitly set company_id (AutoSetFieldsMixin might not be in inheritance chain)
         form.instance.company_id = company_id
         form.instance.created_by = self.request.user
@@ -1083,13 +1114,21 @@ class ItemCreateView(ItemUnitFormsetMixin, BaseCreateView):
         # Build formset with instance=None for new items
         # Use a temporary instance to build the formset
         temp_instance = models.Item(company_id=company_id)
+        # #region agent log
+        debug_log('inventory/views/master_data.py:1084', 'Building unit formset for new item', {'company_id': company_id}, 'B')
+        # #endregion
+
         units_formset = self.build_unit_formset(data=self.request.POST, instance=temp_instance, company_id=company_id)
-        
+
         # Check if there are any forms with data in POST
         has_forms_with_data = False
         prefix = units_formset.prefix or 'units'
         total_forms = int(self.request.POST.get(f'{prefix}-TOTAL_FORMS', 0))
-        
+
+        # #region agent log
+        debug_log('inventory/views/master_data.py:1091', 'Checking for formset data', {'total_forms': total_forms, 'prefix': prefix}, 'B')
+        # #endregion
+
         for i in range(total_forms):
             # Check if any visible field has data
             visible_fields = ['from_quantity', 'from_unit', 'to_quantity', 'to_unit', 'description', 'notes']
@@ -1100,12 +1139,23 @@ class ItemCreateView(ItemUnitFormsetMixin, BaseCreateView):
                     break
             if has_forms_with_data:
                 break
-        
+
+        # #region agent log
+        debug_log('inventory/views/master_data.py:1105', 'Formset data check result', {'has_forms_with_data': has_forms_with_data}, 'B')
+        # #endregion
+
         # Validate formset only if there are forms with data
         if has_forms_with_data:
             formset_valid = units_formset.is_valid()
-            
+
+            # #region agent log
+            debug_log('inventory/views/master_data.py:1111', 'Formset validation result', {'formset_valid': formset_valid}, 'B')
+            # #endregion
+
             if not formset_valid:
+                # #region agent log
+                debug_log('inventory/views/master_data.py:1113', 'Formset invalid - returning with errors', {'errors': units_formset.errors}, 'B')
+                # #endregion
                 return self.render_to_response(
                     self.get_context_data(form=form, units_formset=units_formset)
                 )
@@ -1113,6 +1163,11 @@ class ItemCreateView(ItemUnitFormsetMixin, BaseCreateView):
         # Explicitly set checkbox values BEFORE saving form
         # IntegerCheckboxField should handle this, but we ensure values are set correctly
         checkbox_fields = ['is_sellable', 'has_lot_tracking', 'requires_temporary_receipt', 'serial_in_qc', 'is_enabled']
+
+        # #region agent log
+        debug_log('inventory/views/master_data.py:1143', 'Processing checkbox fields', {'checkbox_fields': checkbox_fields}, 'C')
+        # #endregion
+
         for field_name in checkbox_fields:
             # First try to get from cleaned_data (processed by IntegerCheckboxField)
             value = form.cleaned_data.get(field_name)
@@ -1135,28 +1190,72 @@ class ItemCreateView(ItemUnitFormsetMixin, BaseCreateView):
                     value = 0
             # Set value directly on instance before save
             setattr(form.instance, field_name, value)
-        
+
+            # #region agent log
+            debug_log('inventory/views/master_data.py:1167', 'Checkbox field processed', {'field_name': field_name, 'value': value}, 'C')
+            # #endregion
+
         # Save the item (now with correct checkbox values)
-        self.object = form.save()
+        # #region agent log
+        debug_log('inventory/views/master_data.py:1170', 'Saving item form', {'form_valid': form.is_valid()}, 'D')
+        # #endregion
+
+        try:
+            self.object = form.save()
+            # #region agent log
+            debug_log('inventory/views/master_data.py:1172', 'Item saved successfully', {'item_id': self.object.pk, 'item_name': self.object.name}, 'D')
+            # #endregion
+        except Exception as e:
+            # #region agent log
+            debug_log('inventory/views/master_data.py:1172', 'Item save failed', {'error': str(e), 'error_type': type(e).__name__}, 'D')
+            # #endregion
+            raise
         
         # Now rebuild formset with the saved instance and save units
-        # Always try to build and save formset (even if has_forms_with_data is False, 
+        # Always try to build and save formset (even if has_forms_with_data is False,
         # because formset might have empty forms that need to be handled)
+        # #region agent log
+        debug_log('inventory/views/master_data.py:1180', 'Rebuilding formset with saved instance', {'item_id': self.object.pk}, 'E')
+        # #endregion
+
         units_formset = self.build_unit_formset(data=self.request.POST, instance=self.object, company_id=company_id)
-        
+
         # Validate formset
         if units_formset.is_valid():
             # Save formset (will skip empty forms in _save_unit_formset)
+            # #region agent log
+            debug_log('inventory/views/master_data.py:1188', 'Saving unit formset', {}, 'E')
+            # #endregion
             self._save_unit_formset(units_formset)
         else:
             # If formset is invalid, return form with errors
+            # #region agent log
+            debug_log('inventory/views/master_data.py:1192', 'Unit formset invalid after save', {'errors': units_formset.errors}, 'E')
+            # #endregion
             return self.render_to_response(
                 self.get_context_data(form=form, units_formset=units_formset)
             )
-        
-        ordered = self._get_ordered_warehouses(form)
-        self._sync_item_warehouses(self.object, ordered, self.request.user)
-        
+
+        # #region agent log
+        debug_log('inventory/views/master_data.py:1198', 'Syncing warehouses', {}, 'F')
+        # #endregion
+
+        try:
+            ordered = self._get_ordered_warehouses(form)
+            self._sync_item_warehouses(self.object, ordered, self.request.user)
+            # #region agent log
+            debug_log('inventory/views/master_data.py:1200', 'Warehouse sync completed successfully', {}, 'F')
+            # #endregion
+        except Exception as e:
+            # #region agent log
+            debug_log('inventory/views/master_data.py:1200', 'Warehouse sync failed', {'error': str(e), 'error_type': type(e).__name__}, 'F')
+            # #endregion
+            raise
+
+        # #region agent log
+        debug_log('inventory/views/master_data.py:1208', 'Item creation completed successfully', {'item_id': self.object.pk}, 'G')
+        # #endregion
+
         return HttpResponseRedirect(self.get_success_url())
     
     def get_context_data(self, **kwargs) -> Dict[str, Any]:
@@ -1227,9 +1326,17 @@ class ItemUpdateView(ItemUnitFormsetMixin, InventoryBaseView, BaseFormsetUpdateV
     
     def form_valid(self, form):
         """Save item and unit formset with custom checkbox logic."""
+        # #region agent log
+        debug_log('inventory/views/master_data.py:1307', 'ItemUpdateView.form_valid called', {'item_id': form.instance.pk if form.instance else 'None'}, 'H')
+        # #endregion
+
         # Explicitly update checkbox values BEFORE saving form
         # IntegerCheckboxField should handle this, but we ensure values are set correctly
         checkbox_fields = ['is_sellable', 'has_lot_tracking', 'requires_temporary_receipt', 'serial_in_qc', 'is_enabled']
+
+        # #region agent log
+        debug_log('inventory/views/master_data.py:1310', 'Processing checkbox fields in update', {'checkbox_fields': checkbox_fields}, 'I')
+        # #endregion
         for field_name in checkbox_fields:
             # First try to get from cleaned_data (processed by IntegerCheckboxField)
             value = form.cleaned_data.get(field_name)
@@ -1252,9 +1359,26 @@ class ItemUpdateView(ItemUnitFormsetMixin, InventoryBaseView, BaseFormsetUpdateV
                     value = 0
             # Set value directly on instance before save
             setattr(form.instance, field_name, value)
-        
+
+            # #region agent log
+            debug_log('inventory/views/master_data.py:1333', 'Update checkbox field processed', {'field_name': field_name, 'value': value}, 'I')
+            # #endregion
+
         # Save form (now with correct checkbox values)
-        self.object = form.save()
+        # #region agent log
+        debug_log('inventory/views/master_data.py:1336', 'Saving updated item form', {'form_valid': form.is_valid(), 'item_id': form.instance.pk}, 'J')
+        # #endregion
+
+        try:
+            self.object = form.save()
+            # #region agent log
+            debug_log('inventory/views/master_data.py:1338', 'Item updated successfully', {'item_id': self.object.pk, 'item_name': self.object.name}, 'J')
+            # #endregion
+        except Exception as e:
+            # #region agent log
+            debug_log('inventory/views/master_data.py:1338', 'Item update failed', {'error': str(e), 'error_type': type(e).__name__, 'item_id': form.instance.pk}, 'J')
+            # #endregion
+            raise
         
         # Build and validate formset
         import logging
@@ -1368,19 +1492,41 @@ class ItemUpdateView(ItemUnitFormsetMixin, InventoryBaseView, BaseFormsetUpdateV
         if not is_valid:
             logger.error(f"Unit formset is invalid: {units_formset.errors}")
             logger.error(f"Form errors: {[f.errors for f in units_formset.forms if f.errors]}")
+            # #region agent log
+            debug_log('inventory/views/master_data.py:1447', 'Unit formset invalid in update', {'errors': units_formset.errors, 'item_id': self.object.pk}, 'K')
+            # #endregion
             return self.render_to_response(
                 self.get_context_data(form=form, units_formset=units_formset)
             )
-        
+
         # Save formset
+        # #region agent log
+        debug_log('inventory/views/master_data.py:1455', 'Saving unit formset in update', {'item_id': self.object.pk}, 'K')
+        # #endregion
         units_formset.instance = self.object
         self._save_unit_formset(units_formset)
-        
+
         # Sync warehouses
-        ordered = self._get_ordered_warehouses(form)
-        self._sync_item_warehouses(self.object, ordered, self.request.user)
-        
+        # #region agent log
+        debug_log('inventory/views/master_data.py:1459', 'Syncing warehouses in update', {'item_id': self.object.pk}, 'L')
+        # #endregion
+
+        try:
+            ordered = self._get_ordered_warehouses(form)
+            self._sync_item_warehouses(self.object, ordered, self.request.user)
+            # #region agent log
+            debug_log('inventory/views/master_data.py:1461', 'Warehouse sync completed in update', {'item_id': self.object.pk}, 'L')
+            # #endregion
+        except Exception as e:
+            # #region agent log
+            debug_log('inventory/views/master_data.py:1461', 'Warehouse sync failed in update', {'error': str(e), 'error_type': type(e).__name__, 'item_id': self.object.pk}, 'L')
+            # #endregion
+            raise
+
         # Call parent to handle success message and redirect
+        # #region agent log
+        debug_log('inventory/views/master_data.py:1463', 'Item update completed successfully', {'item_id': self.object.pk}, 'M')
+        # #endregion
         return super().form_valid(form)
     
     def get_context_data(self, **kwargs) -> Dict[str, Any]:

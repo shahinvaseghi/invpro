@@ -515,6 +515,25 @@ class ItemForm(BaseModelForm):
 
     def __init__(self, *args, **kwargs):
         """Initialize form with company filtering."""
+        # #region agent log
+        import json
+        import time
+        try:
+            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    'id': f'log_{int(time.time()*1000)}_item_form_init',
+                    'timestamp': int(time.time()*1000),
+                    'location': 'inventory/forms/master_data.py:516',
+                    'message': 'ItemForm.__init__ called',
+                    'data': {'company_id': kwargs.get('company_id'), 'is_bound': self.is_bound if hasattr(self, 'is_bound') else None},
+                    'sessionId': 'debug-session',
+                    'runId': 'run1',
+                    'hypothesisId': 'O'
+                }) + '\n')
+        except Exception:
+            pass
+        # #endregion
+
         self.company_id = kwargs.pop('company_id', None)
         super().__init__(*args, **kwargs)
 
@@ -558,8 +577,27 @@ class ItemForm(BaseModelForm):
 
     def clean(self) -> Dict[str, Any]:
         """Validate form data."""
+        # #region agent log
+        import json
+        import time
+        try:
+            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    'id': f'log_{int(time.time()*1000)}_form_clean',
+                    'timestamp': int(time.time()*1000),
+                    'location': 'inventory/forms/master_data.py:559',
+                    'message': 'ItemForm.clean() called',
+                    'data': {'is_bound': self.is_bound, 'POST_data': dict(self.data) if hasattr(self, 'data') and self.data else None},
+                    'sessionId': 'debug-session',
+                    'runId': 'run1',
+                    'hypothesisId': 'N'
+                }) + '\n')
+        except Exception:
+            pass
+        # #endregion
+
         cleaned_data = super().clean()
-        
+
         item_type = cleaned_data.get('type')
         category = cleaned_data.get('category')
         subcategory = cleaned_data.get('subcategory')
@@ -568,21 +606,142 @@ class ItemForm(BaseModelForm):
         name = cleaned_data.get('name')
         name_en = cleaned_data.get('name_en')
 
+        # #region agent log
+        try:
+            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    'id': f'log_{int(time.time()*1000)}_validation_data',
+                    'timestamp': int(time.time()*1000),
+                    'location': 'inventory/forms/master_data.py:573',
+                    'message': 'ItemForm validation data',
+                    'data': {
+                        'item_type': str(item_type) if item_type else None,
+                        'category': str(category) if category else None,
+                        'subcategory': str(subcategory) if subcategory else None,
+                        'user_segment': user_segment,
+                        'warehouses_count': warehouses.count() if warehouses else 0,
+                        'name': name,
+                        'name_en': name_en
+                    },
+                    'sessionId': 'debug-session',
+                    'runId': 'run1',
+                    'hypothesisId': 'N'
+                }) + '\n')
+        except Exception:
+            pass
+        # #endregion
+
         if item_type and category and item_type.company_id != category.company_id:
+            # #region agent log
+            try:
+                with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({
+                        'id': f'log_{int(time.time()*1000)}_company_mismatch',
+                        'timestamp': int(time.time()*1000),
+                        'location': 'inventory/forms/master_data.py:580',
+                        'message': 'Company mismatch validation failed',
+                        'data': {'item_type_company': item_type.company_id, 'category_company': category.company_id},
+                        'sessionId': 'debug-session',
+                        'runId': 'run1',
+                        'hypothesisId': 'N'
+                    }) + '\n')
+            except Exception:
+                pass
+            # #endregion
             raise forms.ValidationError(_('نوع کالا و دسته‌بندی انتخاب‌شده مربوط به شرکت‌های متفاوت هستند.'))
 
         if category and subcategory:
             if subcategory.category_id != category.id:
+                # #region agent log
+                try:
+                    with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({
+                            'id': f'log_{int(time.time()*1000)}_subcategory_mismatch',
+                            'timestamp': int(time.time()*1000),
+                            'location': 'inventory/forms/master_data.py:584',
+                            'message': 'Subcategory mismatch validation failed',
+                            'data': {'subcategory_category': subcategory.category_id, 'category_id': category.id},
+                            'sessionId': 'debug-session',
+                            'runId': 'run1',
+                            'hypothesisId': 'N'
+                        }) + '\n')
+                except Exception:
+                    pass
+                # #endregion
                 raise forms.ValidationError(_('زیردسته انتخاب‌شده با دسته‌بندی هم‌خوانی ندارد.'))
 
         if user_segment and not user_segment.isdigit():
+            # #region agent log
+            try:
+                with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({
+                        'id': f'log_{int(time.time()*1000)}_user_segment_digits',
+                        'timestamp': int(time.time()*1000),
+                        'location': 'inventory/forms/master_data.py:588',
+                        'message': 'User segment not digits',
+                        'data': {'user_segment': user_segment},
+                        'sessionId': 'debug-session',
+                        'runId': 'run1',
+                        'hypothesisId': 'N'
+                    }) + '\n')
+            except Exception:
+                pass
+            # #endregion
             self.add_error('user_segment', _('کد کاربری باید فقط عدد باشد.'))
         elif user_segment and len(user_segment) != 2:
+            # #region agent log
+            try:
+                with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({
+                        'id': f'log_{int(time.time()*1000)}_user_segment_length',
+                        'timestamp': int(time.time()*1000),
+                        'location': 'inventory/forms/master_data.py:590',
+                        'message': 'User segment wrong length',
+                        'data': {'user_segment': user_segment, 'length': len(user_segment)},
+                        'sessionId': 'debug-session',
+                        'runId': 'run1',
+                        'hypothesisId': 'N'
+                    }) + '\n')
+            except Exception:
+                pass
+            # #endregion
             self.add_error('user_segment', _('کد کاربری باید دقیقاً دو رقم باشد.'))
 
         if not warehouses:
+            # #region agent log
+            try:
+                with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({
+                        'id': f'log_{int(time.time()*1000)}_no_warehouses',
+                        'timestamp': int(time.time()*1000),
+                        'location': 'inventory/forms/master_data.py:594',
+                        'message': 'No warehouses selected',
+                        'data': {},
+                        'sessionId': 'debug-session',
+                        'runId': 'run1',
+                        'hypothesisId': 'N'
+                    }) + '\n')
+            except Exception:
+                pass
+            # #endregion
             self.add_error('allowed_warehouses', _('حداقل یک انبار باید انتخاب شود.'))
         elif self.company_id and warehouses.filter(~Q(company_id=self.company_id)).exists():
+            # #region agent log
+            try:
+                with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({
+                        'id': f'log_{int(time.time()*1000)}_warehouses_company',
+                        'timestamp': int(time.time()*1000),
+                        'location': 'inventory/forms/master_data.py:596',
+                        'message': 'Warehouses from different company',
+                        'data': {'company_id': self.company_id},
+                        'sessionId': 'debug-session',
+                        'runId': 'run1',
+                        'hypothesisId': 'N'
+                    }) + '\n')
+            except Exception:
+                pass
+            # #endregion
             self.add_error('allowed_warehouses', _('انبارهای انتخاب شده باید متعلق به همان شرکت فعال باشند.'))
 
         # Validate unique name and name_en (exclude current instance if editing)
@@ -591,13 +750,45 @@ class ItemForm(BaseModelForm):
             if self.instance and self.instance.pk:
                 qs = qs.exclude(pk=self.instance.pk)
             if qs.exists():
+                # #region agent log
+                try:
+                    with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({
+                            'id': f'log_{int(time.time()*1000)}_duplicate_name',
+                            'timestamp': int(time.time()*1000),
+                            'location': 'inventory/forms/master_data.py:602',
+                            'message': 'Duplicate name found',
+                            'data': {'name': name, 'existing_count': qs.count(), 'instance_pk': self.instance.pk if self.instance else None},
+                            'sessionId': 'debug-session',
+                            'runId': 'run1',
+                            'hypothesisId': 'N'
+                        }) + '\n')
+                except Exception:
+                    pass
+                # #endregion
                 self.add_error('name', _('کالا با این Name از قبل موجود است.'))
-        
+
         if name_en:
             qs = Item.objects.filter(name_en=name_en)
             if self.instance and self.instance.pk:
                 qs = qs.exclude(pk=self.instance.pk)
             if qs.exists():
+                # #region agent log
+                try:
+                    with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({
+                            'id': f'log_{int(time.time()*1000)}_duplicate_name_en',
+                            'timestamp': int(time.time()*1000),
+                            'location': 'inventory/forms/master_data.py:608',
+                            'message': 'Duplicate name_en found',
+                            'data': {'name_en': name_en, 'existing_count': qs.count(), 'instance_pk': self.instance.pk if self.instance else None},
+                            'sessionId': 'debug-session',
+                            'runId': 'run1',
+                            'hypothesisId': 'N'
+                        }) + '\n')
+                except Exception:
+                    pass
+                # #endregion
                 self.add_error('name_en', _('کالا با این Name (English) از قبل موجود است.'))
 
         # IntegerCheckboxField already handles conversion to 0/1 in its clean() method
