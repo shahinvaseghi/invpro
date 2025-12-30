@@ -1,0 +1,3157 @@
+================================================================================
+STANDARDS CHECKER REPORT
+================================================================================
+
+Check Type:     MODULE
+Target:         accounting
+Date/Time:      2025-12-30 20:18:07
+Total Files:    101
+Files with Issues: 100
+Total Issues:   552
+
+================================================================================
+
+SUMMARY BY SEVERITY
+--------------------------------------------------------------------------------
+Errors:   12
+Warnings: 332
+
+================================================================================
+
+DETAILED ISSUES BY FILE
+================================================================================
+
+File: accounting/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for __init__.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/admin.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[ERROR] (1 issues)
+  1. Line 4
+     Potential N+1 query detected in loop - accessing ForeignKey attributes
+     Suggestion: Use select_related() before the loop to prefetch related objects
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for admin.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/apps.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 4
+     Class 'AccountingConfig' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for apps.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/context_processors.py
+Issues: 5
+--------------------------------------------------------------------------------
+
+[WARNING] (4 issues)
+  1. Line 7
+     View function 'active_fiscal_year' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  2. Line 7
+     View function 'active_fiscal_year' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  3. Line 7
+     Function 'active_fiscal_year' is too long (102 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  4. Line 7
+     Function 'active_fiscal_year' has high cyclomatic complexity (12, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for context_processors.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/forms.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for forms.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/forms/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for __init__.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/forms/accounts.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 13
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 72
+     Function 'clean' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for accounts.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/forms/automation.py
+Issues: 11
+--------------------------------------------------------------------------------
+
+[WARNING] (8 issues)
+  1. Line 33
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 126
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  3. Line 149
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  4. Line 198
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  5. Line 214
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  6. Line 281
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  7. Line 269
+     Function '__init__' appears to be duplicate of '__init__'
+     Suggestion: Consider extracting common code to a shared function
+
+  8. Line 281
+     Function 'save' appears to be duplicate of 'save'
+     Suggestion: Consider extracting common code to a shared function
+
+
+[INFO] (3 issues)
+  1. Line 1
+     No test file found for automation.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 146
+     Form class 'AutomationConditionForm' missing input validation
+     Suggestion: Add clean_<field>() methods or field validators for input sanitization
+
+  3. Line 211
+     Form class 'AutomationVariableForm' missing input validation
+     Suggestion: Add clean_<field>() methods or field validators for input sanitization
+
+
+================================================================================
+
+File: accounting/forms/cost_centers.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 15
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 81
+     Function 'clean' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for cost_centers.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/forms/document_attachments.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 43
+     Function 'clean' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for document_attachments.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/forms/document_steps.py
+Issues: 7
+--------------------------------------------------------------------------------
+
+[WARNING] (6 issues)
+  1. Line 16
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 105
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  3. Line 121
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  4. Line 237
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  5. Line 226
+     Function 'clean_execution_condition' appears to be duplicate of 'clean_execution_condition'
+     Suggestion: Consider extracting common code to a shared function
+
+  6. Line 178
+     Function '__init__' has high cyclomatic complexity (15, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for document_steps.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/forms/documents.py
+Issues: 9
+--------------------------------------------------------------------------------
+
+[WARNING] (7 issues)
+  1. Line 19
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 110
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  3. Line 184
+     Function 'clean' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  4. Line 52
+     Function '__init__' is too long (53 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  5. Line 139
+     Function '__init__' appears to be duplicate of '__init__'
+     Suggestion: Consider extracting common code to a shared function
+
+  6. Line 52
+     Function '__init__' has high cyclomatic complexity (13, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  7. Line 184
+     Function 'clean' has high cyclomatic complexity (15, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (2 issues)
+  1. Line 1
+     No test file found for documents.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 16
+     Form class 'AccountingDocumentForm' missing input validation
+     Suggestion: Add clean_<field>() methods or field validators for input sanitization
+
+
+================================================================================
+
+File: accounting/forms/fiscal_years.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 13
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 51
+     Function 'clean' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for fiscal_years.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/forms/gl_accounts.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 13
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 62
+     Function 'clean' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for gl_accounts.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/forms/income_expense_categories.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 13
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+[INFO] (2 issues)
+  1. Line 1
+     No test file found for income_expense_categories.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 10
+     Form class 'IncomeExpenseCategoryForm' missing input validation
+     Suggestion: Add clean_<field>() methods or field validators for input sanitization
+
+
+================================================================================
+
+File: accounting/forms/parties.py
+Issues: 6
+--------------------------------------------------------------------------------
+
+[WARNING] (3 issues)
+  1. Line 13
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 71
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  3. Line 99
+     Function '__init__' appears to be duplicate of '__init__'
+     Suggestion: Consider extracting common code to a shared function
+
+
+[INFO] (3 issues)
+  1. Line 1
+     No test file found for parties.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 10
+     Form class 'PartyForm' missing input validation
+     Suggestion: Add clean_<field>() methods or field validators for input sanitization
+
+  3. Line 68
+     Form class 'PartyAccountForm' missing input validation
+     Suggestion: Add clean_<field>() methods or field validators for input sanitization
+
+
+================================================================================
+
+File: accounting/forms/payment_requests.py
+Issues: 4
+--------------------------------------------------------------------------------
+
+[WARNING] (3 issues)
+  1. Line 20
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 56
+     Function '__init__' is too long (51 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  3. Line 108
+     Function 'clean' has high cyclomatic complexity (13, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for payment_requests.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/forms/periods.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 13
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 59
+     Function 'clean' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for periods.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/forms/sub_accounts.py
+Issues: 5
+--------------------------------------------------------------------------------
+
+[WARNING] (4 issues)
+  1. Line 21
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 107
+     Function 'clean' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  3. Line 48
+     Function '__init__' is too long (58 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  4. Line 48
+     Function '__init__' has high cyclomatic complexity (13, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for sub_accounts.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/forms/tafsili_accounts.py
+Issues: 6
+--------------------------------------------------------------------------------
+
+[WARNING] (5 issues)
+  1. Line 82
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 222
+     Function 'clean' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  3. Line 109
+     Function '__init__' is too long (112 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  4. Line 109
+     Function '__init__' has high cyclomatic complexity (25, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  5. Line 222
+     Function 'clean' has high cyclomatic complexity (12, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for tafsili_accounts.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/forms/tafsili_hierarchy.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 41
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 97
+     Function 'clean' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for tafsili_hierarchy.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/forms/tafsili_types.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 14
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 68
+     Function 'clean' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for tafsili_types.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/forms/taxpayer_system.py
+Issues: 7
+--------------------------------------------------------------------------------
+
+[ERROR] (1 issues)
+  1. Line 12
+     FileField in class 'FiscalMemoryConfigForm' missing validation
+     Suggestion: Add validators for file type, size, and content validation
+
+
+[WARNING] (4 issues)
+  1. Line 58
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 12
+     CharField in class 'FiscalMemoryConfigForm' missing max_length
+     Suggestion: Add max_length parameter to prevent buffer overflow attacks
+
+  3. Line 191
+     Function 'clean' is too long (71 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  4. Line 191
+     Function 'clean' has high cyclomatic complexity (18, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (2 issues)
+  1. Line 1
+     No test file found for taxpayer_system.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 177
+     Sensitive function 'clean_api_timeout' missing rate limiting
+     Suggestion: Add @ratelimit decorator or implement rate limiting middleware
+
+
+================================================================================
+
+File: accounting/forms/treasury_accounts.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 15
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 111
+     Function 'clean' has high cyclomatic complexity (12, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for treasury_accounts.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/forms/warehouse.py
+Issues: 5
+--------------------------------------------------------------------------------
+
+[WARNING] (3 issues)
+  1. Line 17
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 144
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  3. Line 189
+     Function 'clean' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+
+[INFO] (2 issues)
+  1. Line 1
+     No test file found for warehouse.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 14
+     Form class 'WarehouseExpenseDocumentForm' missing input validation
+     Suggestion: Add clean_<field>() methods or field validators for input sanitization
+
+
+================================================================================
+
+File: accounting/migrations/0001_initial.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/migrations/0002_accountingdocument_accountingdocumentline_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 11
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/migrations/0003_add_fiscal_year_to_documents.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/migrations/0004_add_account_relations.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/migrations/0005_add_tafsili_hierarchy.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 9
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/migrations/0006_add_document_attachments.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 9
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/migrations/0007_add_income_expense_category.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 9
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/migrations/0008_add_party_models.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 9
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/migrations/0009_add_treasury_account.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 9
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/migrations/0010_add_warehouse_transfer_issue.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/migrations/0011_warehouseincomedocument_warehouseexpensedocument_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 11
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/migrations/0012_warehouseexpensedocumentline_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/migrations/0013_remove_account_type_normal_balance_from_gl_accounts.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/migrations/0014_change_account_code_unique_constraint.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/migrations/0015_add_tafsili_type_model.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 9
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/migrations/0016_seed_initial_tafsili_types.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 47
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/migrations/0017_fiscalmemoryconfig_taxinvoicesubmission_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 9
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/migrations/0018_fiscalmemoryconfig_encryption_type_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/migrations/0019_convert_tafsili_hierarchy_to_level.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 9
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/migrations/0020_paymentrequest.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 11
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/migrations/0021_paymentrequest_purchase_invoice_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/migrations/0022_add_due_date_to_payment_request.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 6
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/migrations/0023_automation_models.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 10
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/migrations/0024_add_editable_model_to_accounts.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/migrations/0025_remove_treasuryaccount_accounting_treasury_account_tafsili_unique_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/migrations/0026_treasuryaccount_tafsili_level_and_more.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 7
+     Class 'Migration' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+================================================================================
+
+File: accounting/models.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[ERROR] (1 issues)
+  1. Line 8
+     Potential N+1 query detected in loop - accessing ForeignKey attributes
+     Suggestion: Use select_related() before the loop to prefetch related objects
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for models.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/models/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for __init__.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/models/accounts.py
+Issues: 8
+--------------------------------------------------------------------------------
+
+[WARNING] (7 issues)
+  1. Line 107
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 129
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  3. Line 176
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  4. Line 199
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  5. Line 233
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  6. Line 256
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  7. Line 256
+     Function 'save' appears to be duplicate of 'save'
+     Suggestion: Consider extracting common code to a shared function
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for accounts.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/models/attachments.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 76
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for attachments.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/models/automation.py
+Issues: 8
+--------------------------------------------------------------------------------
+
+[WARNING] (7 issues)
+  1. Line 52
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 163
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  3. Line 271
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  4. Line 341
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  5. Line 541
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  6. Line 631
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  7. Line 694
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for automation.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/models/balances.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 55
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for balances.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/models/base.py
+Issues: 5
+--------------------------------------------------------------------------------
+
+[WARNING] (4 issues)
+  1. Line 60
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 78
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  3. Line 132
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  4. Line 142
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for base.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/models/cost_centers.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 64
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for cost_centers.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/models/documents.py
+Issues: 7
+--------------------------------------------------------------------------------
+
+[WARNING] (6 issues)
+  1. Line 138
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 183
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  3. Line 250
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  4. Line 301
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  5. Line 301
+     Function 'save' appears to be duplicate of 'save'
+     Suggestion: Consider extracting common code to a shared function
+
+  6. Line 271
+     Function 'clean' has high cyclomatic complexity (11, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for documents.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/models/fiscal_years.py
+Issues: 6
+--------------------------------------------------------------------------------
+
+[WARNING] (5 issues)
+  1. Line 59
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 79
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  3. Line 119
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  4. Line 145
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  5. Line 145
+     Function 'save' appears to be duplicate of 'save'
+     Suggestion: Consider extracting common code to a shared function
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for fiscal_years.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/models/hierarchy.py
+Issues: 6
+--------------------------------------------------------------------------------
+
+[WARNING] (5 issues)
+  1. Line 41
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 68
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  3. Line 101
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  4. Line 122
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  5. Line 122
+     Function 'save' appears to be duplicate of 'save'
+     Suggestion: Consider extracting common code to a shared function
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for hierarchy.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/models/income_expense_categories.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 44
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for income_expense_categories.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/models/parties.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 77
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 144
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for parties.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/models/payment_requests.py
+Issues: 5
+--------------------------------------------------------------------------------
+
+[WARNING] (4 issues)
+  1. Line 26
+     Class 'PaymentType' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 33
+     Class 'Status' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  3. Line 144
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  4. Line 186
+     Function 'save' has high cyclomatic complexity (15, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for payment_requests.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/models/tafsili_types.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 35
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for tafsili_types.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/models/taxpayer_system.py
+Issues: 4
+--------------------------------------------------------------------------------
+
+[WARNING] (3 issues)
+  1. Line 91
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 205
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  3. Line 283
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for taxpayer_system.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/models/treasury_accounts.py
+Issues: 4
+--------------------------------------------------------------------------------
+
+[WARNING] (3 issues)
+  1. Line 111
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 158
+     Function 'save' is too long (70 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  3. Line 127
+     Function 'clean' has high cyclomatic complexity (12, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for treasury_accounts.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/models/warehouse.py
+Issues: 6
+--------------------------------------------------------------------------------
+
+[WARNING] (5 issues)
+  1. Line 71
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 83
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  3. Line 182
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  4. Line 268
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  5. Line 280
+     Function 'save' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for warehouse.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/serializers/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for __init__.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/serializers/accounts.py
+Issues: 10
+--------------------------------------------------------------------------------
+
+[WARNING] (9 issues)
+  1. Line 15
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 44
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  3. Line 82
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  4. Line 133
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  5. Line 165
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  6. Line 9
+     CharField in class 'AccountSerializer' missing max_length
+     Suggestion: Add max_length parameter to prevent buffer overflow attacks
+
+  7. Line 39
+     CharField in class 'GLAccountSerializer' missing max_length
+     Suggestion: Add max_length parameter to prevent buffer overflow attacks
+
+  8. Line 71
+     CharField in class 'SubAccountSerializer' missing max_length
+     Suggestion: Add max_length parameter to prevent buffer overflow attacks
+
+  9. Line 122
+     CharField in class 'TafsiliAccountSerializer' missing max_length
+     Suggestion: Add max_length parameter to prevent buffer overflow attacks
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for accounts.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/serializers/documents.py
+Issues: 7
+--------------------------------------------------------------------------------
+
+[WARNING] (6 issues)
+  1. Line 18
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 52
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  3. Line 110
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  4. Line 9
+     CharField in class 'AccountingDocumentLineSerializer' missing max_length
+     Suggestion: Add max_length parameter to prevent buffer overflow attacks
+
+  5. Line 44
+     CharField in class 'AccountingDocumentSerializer' missing max_length
+     Suggestion: Add max_length parameter to prevent buffer overflow attacks
+
+  6. Line 103
+     CharField in class 'DocumentAttachmentSerializer' missing max_length
+     Suggestion: Add max_length parameter to prevent buffer overflow attacks
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for documents.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/serializers/fiscal_years.py
+Issues: 5
+--------------------------------------------------------------------------------
+
+[WARNING] (4 issues)
+  1. Line 13
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 40
+     Class 'Meta' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  3. Line 8
+     CharField in class 'PeriodSerializer' missing max_length
+     Suggestion: Add max_length parameter to prevent buffer overflow attacks
+
+  4. Line 34
+     CharField in class 'FiscalYearSerializer' missing max_length
+     Suggestion: Add max_length parameter to prevent buffer overflow attacks
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for fiscal_years.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/services/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for __init__.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/services/invoice_converter.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 134
+     Function '_build_body_item' is too long (51 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for invoice_converter.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/services/moadian.py
+Issues: 7
+--------------------------------------------------------------------------------
+
+[WARNING] (6 issues)
+  1. Line 107
+     Function 'clean_dict' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  2. Line 316
+     Function '_encrypt_data' is too long (70 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  3. Line 429
+     Function '_build_packet' is too long (58 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  4. Line 488
+     Function '_make_request' is too long (63 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  5. Line 29
+     Class 'MoadianService' is too long (688 lines, max 500)
+     Suggestion: Consider breaking this class into smaller classes or using mixins
+
+  6. Line 676
+     Function 'validate_invoice_data' has high cyclomatic complexity (12, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for moadian.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/urls.py
+Issues: 8
+--------------------------------------------------------------------------------
+
+[INFO] (8 issues)
+  1. Line 1
+     No test file found for urls.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 1
+     API endpoints should be versioned
+     Suggestion: Use versioned URLs like /api/v1/endpoint/
+
+  3. Line 1
+     API endpoints should be versioned
+     Suggestion: Use versioned URLs like /api/v1/endpoint/
+
+  4. Line 1
+     API endpoints should be versioned
+     Suggestion: Use versioned URLs like /api/v1/endpoint/
+
+  5. Line 1
+     API endpoints should be versioned
+     Suggestion: Use versioned URLs like /api/v1/endpoint/
+
+  6. Line 1
+     API endpoints should be versioned
+     Suggestion: Use versioned URLs like /api/v1/endpoint/
+
+  7. Line 1
+     API views missing rate limiting configuration
+     Suggestion: Configure throttling classes in settings or view-level throttling
+
+  8. Line 1
+     API view should have proper error handling
+     Suggestion: Use try-except blocks or DRF exceptions (ValidationError, APIException)
+
+
+================================================================================
+
+File: accounting/utils.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 11
+     Function 'get_available_fiscal_years' is too long (63 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for utils.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/utils/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for __init__.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/utils/automation_registry.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for automation_registry.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/utils/document_field_groups.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for document_field_groups.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/utils/document_filters.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for document_filters.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/utils/fiscal_years.py
+Issues: 2
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 8
+     Function 'get_available_fiscal_years' is too long (63 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for fiscal_years.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/views.py
+Issues: 140
+--------------------------------------------------------------------------------
+
+[ERROR] (6 issues)
+  1. Line 218
+     Class 'TreasuryAccountCreateView' uses 'CreateView' instead of 'BaseCreateView'
+     Suggestion: Replace 'from django.views.generic import CreateView' with 'from shared.views.base import BaseCreateView'
+
+  2. Line 404
+     Class 'IncomeExpenseCategoryCreateView' uses 'CreateView' instead of 'BaseCreateView'
+     Suggestion: Replace 'from django.views.generic import CreateView' with 'from shared.views.base import BaseCreateView'
+
+  3. Line 454
+     Class 'CostCenterCreateView' uses 'CreateView' instead of 'BaseCreateView'
+     Suggestion: Replace 'from django.views.generic import CreateView' with 'from shared.views.base import BaseCreateView'
+
+  4. Line 506
+     Class 'PartyCreateView' uses 'CreateView' instead of 'BaseCreateView'
+     Suggestion: Replace 'from django.views.generic import CreateView' with 'from shared.views.base import BaseCreateView'
+
+  5. Line 557
+     Class 'PartyAccountCreateView' uses 'CreateView' instead of 'BaseCreateView'
+     Suggestion: Replace 'from django.views.generic import CreateView' with 'from shared.views.base import BaseCreateView'
+
+  6. Line 1226
+     Class 'TaxMoadianSettingsView' uses 'FormView' instead of 'BaseFormView'
+     Suggestion: Replace 'from django.views.generic import FormView' with 'from shared.views.base import BaseFormView'
+
+
+[WARNING] (97 issues)
+  1. Line 1166
+     Class 'AccountingDocumentStatusView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  2. Line 1171
+     Class 'TafsiliMovementsView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  3. Line 1176
+     Class 'TreasuryReceiveView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  4. Line 1181
+     Class 'TreasuryPayView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  5. Line 1186
+     Class 'TreasuryTransferView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  6. Line 1191
+     Class 'TreasuryCashReportView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  7. Line 1196
+     Class 'CostAllocationView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  8. Line 1201
+     Class 'IncomeReportView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  9. Line 1206
+     Class 'ExpenseReportView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  10. Line 1211
+     Class 'CostCenterReportView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  11. Line 1216
+     Class 'PartyMovementsView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  12. Line 1221
+     Class 'PartyBalanceReportView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  13. Line 1318
+     Class 'TaxDiscrepancyReportView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  14. Line 1326
+     Class 'ReportCashFlowView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  15. Line 1331
+     Class 'ReportTafsiliCostCenterView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  16. Line 1336
+     Class 'ReportChecksView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  17. Line 1341
+     Class 'ReportTreasuryView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  18. Line 1346
+     Class 'ReportMonthlyView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  19. Line 1351
+     Class 'AttachmentAttachView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  20. Line 1356
+     Class 'CloseTempAccountsView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  21. Line 1361
+     Class 'OpeningEntryView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  22. Line 1366
+     Class 'ClosingEntryView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  23. Line 1371
+     Class 'IntegrationView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  24. Line 1376
+     Class 'BackupRestoreView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  25. Line 1381
+     Class 'SettingsTreasuryView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  26. Line 1386
+     Class 'SettingsTaxView' missing docstring
+     Suggestion: Add docstring explaining class purpose
+
+  27. Line 46
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  28. Line 60
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  29. Line 73
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  30. Line 86
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  31. Line 100
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  32. Line 113
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  33. Line 127
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  34. Line 140
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  35. Line 154
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  36. Line 167
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  37. Line 180
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  38. Line 193
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  39. Line 207
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  40. Line 227
+     Function 'get_form_kwargs' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  41. Line 232
+     Function 'form_valid' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  42. Line 237
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  43. Line 257
+     Function 'get' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  44. Line 293
+     Function 'get' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  45. Line 330
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  46. Line 343
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  47. Line 356
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  48. Line 370
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  49. Line 383
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  50. Line 396
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  51. Line 446
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  52. Line 497
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  53. Line 548
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  54. Line 599
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  55. Line 613
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  56. Line 626
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  57. Line 639
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  58. Line 653
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  59. Line 666
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  60. Line 679
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  61. Line 692
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  62. Line 705
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  63. Line 718
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  64. Line 732
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  65. Line 757
+     Function 'get_breadcrumbs' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  66. Line 765
+     Function 'get_form_kwargs' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  67. Line 770
+     Function 'get_formset_kwargs' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  68. Line 973
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  69. Line 1003
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  70. Line 1258
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  71. Line 1286
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  72. Line 1399
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  73. Line 1483
+     Function 'get_breadcrumbs' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  74. Line 1490
+     Function 'get_form_kwargs' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  75. Line 1535
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  76. Line 1601
+     Function 'get_form_kwargs' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  77. Line 1636
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  78. Line 1647
+     Function 'get_breadcrumbs' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  79. Line 1833
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  80. Line 1846
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  81. Line 1859
+     Function 'get_context_data' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  82. Line 257
+     View function 'get' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  83. Line 293
+     View function 'get' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  84. Line 1017
+     View function 'get' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  85. Line 1048
+     View function 'post' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  86. Line 1699
+     View function 'get' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  87. Line 1765
+     View function 'get' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  88. Line 782
+     Function 'get_context_data' is too long (79 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  89. Line 862
+     Function 'form_valid' is too long (104 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  90. Line 1399
+     Function 'get_context_data' is too long (68 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  91. Line 1699
+     Function 'get' is too long (59 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  92. Line 1765
+     Function 'get' is too long (60 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  93. Line 463
+     Function 'get_form_kwargs' appears to be duplicate of 'get_form_kwargs'
+     Suggestion: Consider extracting common code to a shared function
+
+  94. Line 515
+     Function 'get_form_kwargs' appears to be duplicate of 'get_form_kwargs'
+     Suggestion: Consider extracting common code to a shared function
+
+  95. Line 566
+     Function 'get_form_kwargs' appears to be duplicate of 'get_form_kwargs'
+     Suggestion: Consider extracting common code to a shared function
+
+  96. Line 782
+     Function 'get_context_data' has high cyclomatic complexity (20, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+  97. Line 862
+     Function 'form_valid' has high cyclomatic complexity (15, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (37 issues)
+  1. Line 1
+     No test file found for views.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 262
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  3. Line 285
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  4. Line 298
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  5. Line 321
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  6. Line 1708
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  7. Line 1777
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  8. Line 1797
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  9. Line 1799
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  10. Line 235
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  11. Line 423
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  12. Line 473
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  13. Line 525
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  14. Line 576
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  15. Line 1046
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  16. Line 1069
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  17. Line 1102
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  18. Line 1114
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  19. Line 1118
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  20. Line 1134
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  21. Line 1138
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  22. Line 1247
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  23. Line 1252
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  24. Line 1256
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  25. Line 1757
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  26. Line 1820
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  27. Line 280
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  28. Line 316
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  29. Line 885
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  30. Line 1032
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  31. Line 1063
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  32. Line 1576
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  33. Line 1598
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  34. Line 1524
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  35. Line 1581
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  36. Line 1689
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  37. Line 1586
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+
+================================================================================
+
+File: accounting/views/__init__.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for __init__.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/views/accounts.py
+Issues: 5
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 234
+     Function 'get_context_data' is too long (53 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  2. Line 198
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+
+[INFO] (3 issues)
+  1. Line 1
+     No test file found for accounts.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 124
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+  3. Line 164
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+
+================================================================================
+
+File: accounting/views/api.py
+Issues: 20
+--------------------------------------------------------------------------------
+
+[INFO] (20 issues)
+  1. Line 1
+     No test file found for api.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 28
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  3. Line 58
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  4. Line 60
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  5. Line 79
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  6. Line 109
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  7. Line 111
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  8. Line 130
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  9. Line 160
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  10. Line 162
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  11. Line 181
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  12. Line 211
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  13. Line 213
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  14. Line 233
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  15. Line 257
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  16. Line 259
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  17. Line 55
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  18. Line 106
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  19. Line 157
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  20. Line 208
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+
+================================================================================
+
+File: accounting/views/auth.py
+Issues: 1
+--------------------------------------------------------------------------------
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for auth.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/views/automation.py
+Issues: 22
+--------------------------------------------------------------------------------
+
+[WARNING] (11 issues)
+  1. Line 236
+     Function 'get_form_kwargs' appears to be duplicate of 'get_form_kwargs'
+     Suggestion: Consider extracting common code to a shared function
+
+  2. Line 286
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  3. Line 305
+     Function 'get_base_queryset' appears to be duplicate of 'get_base_queryset'
+     Suggestion: Consider extracting common code to a shared function
+
+  4. Line 491
+     Function 'get_success_url' appears to be duplicate of 'get_success_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  5. Line 506
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  6. Line 522
+     Function 'get_process' appears to be duplicate of 'get_process'
+     Suggestion: Consider extracting common code to a shared function
+
+  7. Line 618
+     Function 'get_success_url' appears to be duplicate of 'get_success_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  8. Line 633
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  9. Line 650
+     Function 'get_process' appears to be duplicate of 'get_process'
+     Suggestion: Consider extracting common code to a shared function
+
+  10. Line 906
+     Function 'get_success_url' appears to be duplicate of 'get_success_url'
+     Suggestion: Consider extracting common code to a shared function
+
+  11. Line 923
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+
+[INFO] (11 issues)
+  1. Line 1
+     No test file found for automation.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 127
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+  3. Line 225
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+  4. Line 385
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+  5. Line 436
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+  6. Line 512
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+  7. Line 563
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+  8. Line 640
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+  9. Line 717
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+  10. Line 794
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+  11. Line 849
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+
+================================================================================
+
+File: accounting/views/automation_api.py
+Issues: 16
+--------------------------------------------------------------------------------
+
+[WARNING] (9 issues)
+  1. Line 21
+     View function 'get_document_info' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  2. Line 44
+     View function 'get_filterable_fields' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  3. Line 114
+     View function 'get_autocomplete_options' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  4. Line 21
+     View function 'get_document_info' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  5. Line 44
+     View function 'get_filterable_fields' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  6. Line 114
+     View function 'get_autocomplete_options' missing permission decorators
+     Suggestion: Add @feature_permission_required('module.feature', action='action') or @login_required
+
+  7. Line 44
+     Function 'get_filterable_fields' is too long (67 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  8. Line 114
+     Function 'get_autocomplete_options' is too long (94 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  9. Line 114
+     Function 'get_autocomplete_options' has high cyclomatic complexity (14, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (7 issues)
+  1. Line 1
+     No test file found for automation_api.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 32
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  3. Line 55
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  4. Line 126
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  5. Line 202
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  6. Line 34
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  7. Line 204
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+
+================================================================================
+
+File: accounting/views/base.py
+Issues: 3
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 27
+     Function 'filter_queryset_by_permissions' is too long (61 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+
+[INFO] (2 issues)
+  1. Line 1
+     No test file found for base.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 13
+     Manual company filter detected - consider using apply_company_filter() or CompanyScopedViewMixin
+     Suggestion: Use 'apply_company_filter' from shared.filters or 'CompanyScopedViewMixin' from shared.mixins
+
+
+================================================================================
+
+File: accounting/views/document_attachments.py
+Issues: 6
+--------------------------------------------------------------------------------
+
+[ERROR] (3 issues)
+  1. Line 23
+     Class 'DocumentAttachmentUploadView' uses 'FormView' instead of 'BaseFormView'
+     Suggestion: Replace 'from django.views.generic import FormView' with 'from shared.views.base import BaseFormView'
+
+  2. Line 199
+     Class 'DocumentAttachmentDownloadSingleView' uses 'ListView' instead of 'BaseListView'
+     Suggestion: Replace 'from django.views.generic import ListView' with 'from shared.views.base import BaseListView'
+
+  3. Line 226
+     Class 'DocumentAttachmentDownloadBulkView' uses 'ListView' instead of 'BaseListView'
+     Suggestion: Replace 'from django.views.generic import ListView' with 'from shared.views.base import BaseListView'
+
+
+[WARNING] (2 issues)
+  1. Line 37
+     Function 'form_valid' is too long (51 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  2. Line 126
+     Function 'get_queryset' has high cyclomatic complexity (11, max 10)
+     Suggestion: Consider breaking this function into smaller functions to reduce complexity
+
+
+[INFO] (1 issues)
+  1. Line 1
+     No test file found for document_attachments.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+
+================================================================================
+
+File: accounting/views/fiscal_years.py
+Issues: 5
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 166
+     Function 'get_form_kwargs' appears to be duplicate of 'get_form_kwargs'
+     Suggestion: Consider extracting common code to a shared function
+
+  2. Line 186
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+
+[INFO] (3 issues)
+  1. Line 1
+     No test file found for fiscal_years.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 115
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+  3. Line 155
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+
+================================================================================
+
+File: accounting/views/gl_accounts.py
+Issues: 5
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 173
+     Function 'get_form_kwargs' appears to be duplicate of 'get_form_kwargs'
+     Suggestion: Consider extracting common code to a shared function
+
+  2. Line 193
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+
+[INFO] (3 issues)
+  1. Line 1
+     No test file found for gl_accounts.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 117
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+  3. Line 158
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+
+================================================================================
+
+File: accounting/views/payment_request.py
+Issues: 4
+--------------------------------------------------------------------------------
+
+[WARNING] (1 issues)
+  1. Line 127
+     Function 'get_form_kwargs' appears to be duplicate of 'get_form_kwargs'
+     Suggestion: Consider extracting common code to a shared function
+
+
+[INFO] (3 issues)
+  1. Line 1
+     No test file found for payment_request.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 59
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+  3. Line 116
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+
+================================================================================
+
+File: accounting/views/sub_accounts.py
+Issues: 6
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 273
+     Function 'get_context_data' is too long (75 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  2. Line 234
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+
+[INFO] (4 issues)
+  1. Line 1
+     No test file found for sub_accounts.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 28
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+  3. Line 155
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+  4. Line 196
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+
+================================================================================
+
+File: accounting/views/tafsili_accounts.py
+Issues: 6
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 270
+     Function 'get_context_data' is too long (63 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  2. Line 234
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+
+[INFO] (4 issues)
+  1. Line 1
+     No test file found for tafsili_accounts.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 27
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+  3. Line 155
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+  4. Line 196
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+
+================================================================================
+
+File: accounting/views/tafsili_hierarchy.py
+Issues: 6
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 182
+     Function 'get_form_kwargs' appears to be duplicate of 'get_form_kwargs'
+     Suggestion: Consider extracting common code to a shared function
+
+  2. Line 202
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+
+[INFO] (4 issues)
+  1. Line 1
+     No test file found for tafsili_hierarchy.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 27
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+  3. Line 131
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+  4. Line 171
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+
+================================================================================
+
+File: accounting/views/tafsili_types.py
+Issues: 5
+--------------------------------------------------------------------------------
+
+[WARNING] (2 issues)
+  1. Line 167
+     Function 'get_form_kwargs' appears to be duplicate of 'get_form_kwargs'
+     Suggestion: Consider extracting common code to a shared function
+
+  2. Line 188
+     Function 'get_cancel_url' appears to be duplicate of 'get_cancel_url'
+     Suggestion: Consider extracting common code to a shared function
+
+
+[INFO] (3 issues)
+  1. Line 1
+     No test file found for tafsili_types.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 115
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+  3. Line 156
+     Manual field setting detected - consider using AutoSetFieldsMixin
+     Suggestion: Add 'AutoSetFieldsMixin' from shared.mixins to class bases
+
+
+================================================================================
+
+File: accounting/views/taxpayer_system_api.py
+Issues: 50
+--------------------------------------------------------------------------------
+
+[WARNING] (21 issues)
+  1. Line 49
+     Function 'dispatch' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  2. Line 93
+     Function 'dispatch' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  3. Line 152
+     Function 'dispatch' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  4. Line 269
+     Function 'dispatch' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  5. Line 335
+     Function 'dispatch' missing docstring
+     Suggestion: Add docstring explaining function purpose, args, and returns
+
+  6. Line 52
+     View function 'post' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  7. Line 96
+     View function 'post' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  8. Line 155
+     View function 'post' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  9. Line 272
+     View function 'post' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  10. Line 338
+     View function 'get' missing @login_required decorator
+     Suggestion: Add @login_required decorator or use LoginRequiredMixin
+
+  11. Line 45
+     View class 'TestConnectionAPIView' missing feature_code attribute
+     Suggestion: Add feature_code = 'module.feature.name' to enable permission checking
+
+  12. Line 89
+     View class 'ValidateDocumentAPIView' missing feature_code attribute
+     Suggestion: Add feature_code = 'module.feature.name' to enable permission checking
+
+  13. Line 148
+     View class 'SubmitInvoiceAPIView' missing feature_code attribute
+     Suggestion: Add feature_code = 'module.feature.name' to enable permission checking
+
+  14. Line 265
+     View class 'CheckStatusAPIView' missing feature_code attribute
+     Suggestion: Add feature_code = 'module.feature.name' to enable permission checking
+
+  15. Line 331
+     View class 'ViewLogsAPIView' missing feature_code attribute
+     Suggestion: Add feature_code = 'module.feature.name' to enable permission checking
+
+  16. Line 155
+     Function 'post' is too long (108 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  17. Line 272
+     Function 'post' is too long (57 lines, max 50)
+     Suggestion: Consider breaking this function into smaller functions
+
+  18. Line 93
+     Function 'dispatch' appears to be duplicate of 'dispatch'
+     Suggestion: Consider extracting common code to a shared function
+
+  19. Line 152
+     Function 'dispatch' appears to be duplicate of 'dispatch'
+     Suggestion: Consider extracting common code to a shared function
+
+  20. Line 269
+     Function 'dispatch' appears to be duplicate of 'dispatch'
+     Suggestion: Consider extracting common code to a shared function
+
+  21. Line 335
+     Function 'dispatch' appears to be duplicate of 'dispatch'
+     Suggestion: Consider extracting common code to a shared function
+
+
+[INFO] (29 issues)
+  1. Line 1
+     No test file found for taxpayer_system_api.py
+     Suggestion: Create test file (e.g., test_models.py, test_views.py) with appropriate test cases
+
+  2. Line 1
+     API views missing rate limiting configuration
+     Suggestion: Configure throttling classes in settings or view-level throttling
+
+  3. Line 36
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  4. Line 40
+     Using magic number for HTTP status code
+     Suggestion: Use named constants from rest_framework import status (e.g., status.HTTP_200_OK)
+
+  5. Line 34
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  6. Line 50
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  7. Line 94
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  8. Line 153
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  9. Line 270
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  10. Line 336
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  11. Line 58
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  12. Line 103
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  13. Line 162
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  14. Line 278
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  15. Line 344
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  16. Line 83
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  17. Line 86
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  18. Line 140
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  19. Line 142
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  20. Line 145
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  21. Line 257
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  22. Line 259
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  23. Line 262
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  24. Line 287
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  25. Line 325
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  26. Line 328
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  27. Line 377
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  28. Line 380
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+  29. Line 254
+     API response should use standard format with status, data, and message keys
+     Suggestion: Use format: {'status': 'success', 'data': {...}, 'message': '...'}
+
+
+================================================================================
+

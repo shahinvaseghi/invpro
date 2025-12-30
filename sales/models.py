@@ -162,3 +162,57 @@ class SalesSettings(SalesBaseModel):
         settings, created = cls.objects.get_or_create(company_id=company_id)
         return settings
 
+
+class IncomeReceiptLocation(SalesSortableModel):
+    """
+    Model for storing income receipt locations in sales module.
+    Represents where and how income is received (cash, POS, bank transfer, etc.).
+    """
+    
+    treasury_account = models.ForeignKey(
+        "accounting.TreasuryAccount",
+        on_delete=models.PROTECT,
+        related_name="income_receipt_locations",
+        verbose_name=_("Treasury Account"),
+        help_text=_("حساب نقدی یا بانکی برای دریافت درآمد"),
+    )
+    receipt_method = models.CharField(
+        max_length=50,
+        choices=[
+            ('pos', _('پوز')),
+            ('cash', _('نقد')),
+            ('account', _('حساب')),
+            ('check', _('چک')),
+            ('paya', _('پایا')),
+            ('satna', _('ساتنا')),
+            ('pay', _('پل')),
+            ('multiple', _('چند مورد با هم')),
+        ],
+        verbose_name=_("Receipt Method"),
+        help_text=_("روش دریافت درآمد"),
+    )
+    location_name = models.CharField(
+        max_length=200,
+        verbose_name=_("Location Name"),
+        help_text=_("نام محل دریافت درآمد"),
+    )
+    notes = models.TextField(
+        blank=True,
+        verbose_name=_("Notes"),
+        help_text=_("توضیحات و یادداشت‌ها"),
+    )
+
+    class Meta:
+        verbose_name = _("Income Receipt Location")
+        verbose_name_plural = _("Income Receipt Locations")
+        ordering = ("company", "sort_order", "location_name")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "treasury_account", "receipt_method", "location_name"),
+                name="sales_income_receipt_location_unique",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.location_name} - {self.get_receipt_method_display()}"
+

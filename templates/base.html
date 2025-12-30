@@ -370,6 +370,9 @@
                 {% if user_feature_permissions|feature_allowed:'sales.customers' or request.user.is_superuser %}
                 <a href="{% url 'sales:customers' %}" class="dropdown-item">{% trans "مشتریان" %}</a>
                 {% endif %}
+                {% if user_feature_permissions|feature_allowed:'sales.income_receipt_location' or request.user.is_superuser %}
+                <a href="{% url 'sales:income_receipt_location_list' %}" class="dropdown-item">{% trans "محل دریافت درآمد" %}</a>
+                {% endif %}
                 {% if user_feature_permissions|feature_allowed:'sales.settings' or request.user.is_superuser %}
                 <a href="{% url 'sales:settings' %}" class="dropdown-item">{% trans "تنظیمات" %}</a>
                 {% endif %}

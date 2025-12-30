@@ -609,7 +609,7 @@
   {% endif %}
 
   <!-- Sales Section -->
-  {% if user_feature_permissions|feature_allowed:'sales.dashboard' or user_feature_permissions|feature_allowed:'sales.price_card' or user_feature_permissions|feature_allowed:'sales.invoice' or user_feature_permissions|feature_allowed:'sales.customers' or user_feature_permissions|feature_allowed:'sales.settings' or request.user.is_superuser %}
+  {% if user_feature_permissions|feature_allowed:'sales.dashboard' or user_feature_permissions|feature_allowed:'sales.price_card' or user_feature_permissions|feature_allowed:'sales.invoice' or user_feature_permissions|feature_allowed:'sales.customers' or user_feature_permissions|feature_allowed:'sales.income_receipt_location' or user_feature_permissions|feature_allowed:'sales.settings' or request.user.is_superuser %}
   <div class="sidebar-section" data-section="sales">
     <button type="button" class="section-header" data-target="sales">
       <span class="section-title">{% trans "Sales" %}</span>
@@ -625,6 +625,9 @@
       {% endif %}
       {% if user_feature_permissions|feature_allowed:'sales.customers' or request.user.is_superuser %}
       <a href="{% url 'sales:customers' %}" class="nav-link">{% trans "مشتریان" %}</a>
+      {% endif %}
+      {% if user_feature_permissions|feature_allowed:'sales.income_receipt_location' or request.user.is_superuser %}
+      <a href="{% url 'sales:income_receipt_location_list' %}" class="nav-link">{% trans "محل دریافت درآمد" %}</a>
       {% endif %}
       {% if user_feature_permissions|feature_allowed:'sales.settings' or request.user.is_superuser %}
       <a href="{% url 'sales:settings' %}" class="nav-link">{% trans "تنظیمات" %}</a>

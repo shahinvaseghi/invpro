@@ -1815,6 +1815,20 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.EDIT_SAME_GROUP,
         ],
     ),
+    "sales.income_receipt_location": FeaturePermission(
+        code="sales.income_receipt_location",
+        label=_("Income Receipt Location"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
+        ],
+    ),
     # HR – Dashboard
     "hr.dashboard": FeaturePermission(
         code="hr.dashboard",

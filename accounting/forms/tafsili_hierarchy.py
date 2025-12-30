@@ -85,6 +85,13 @@ class TafsiliHierarchyForm(forms.ModelForm):
                     company_id=company_id
                 ).values_list('sub_account_id', flat=True)
                 self.initial['sub_accounts'] = list(existing_sub_accounts)
+                
+                # Load metadata fields
+                if self.instance.metadata:
+                    self.initial['is_customer'] = self.instance.metadata.get('is_customer', False)
+                    self.initial['is_supplier'] = self.instance.metadata.get('is_supplier', False)
+                    self.initial['is_contractor'] = self.instance.metadata.get('is_contractor', False)
+                    self.initial['is_connected_to_sales'] = self.instance.metadata.get('is_connected_to_sales', False)
         
         if company_id and not self.instance.pk:
             # Set company for new instances
@@ -129,6 +136,17 @@ class TafsiliHierarchyForm(forms.ModelForm):
     def save(self, commit=True):
         """Save tafsili level and create relations."""
         instance = super().save(commit=commit)
+        
+        # Save metadata fields (is_customer, is_supplier, etc.)
+        if commit:
+            if not instance.metadata:
+                instance.metadata = {}
+            
+            instance.metadata['is_customer'] = self.cleaned_data.get('is_customer', False)
+            instance.metadata['is_supplier'] = self.cleaned_data.get('is_supplier', False)
+            instance.metadata['is_contractor'] = self.cleaned_data.get('is_contractor', False)
+            instance.metadata['is_connected_to_sales'] = self.cleaned_data.get('is_connected_to_sales', False)
+            instance.save(update_fields=['metadata'])
         
         if commit and self.company_id:
             # Delete existing relations

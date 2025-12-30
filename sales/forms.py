@@ -3,14 +3,13 @@ Forms for sales module.
 """
 from decimal import Decimal
 from typing import Optional
-
 from django import forms
 from django.core.exceptions import ValidationError
 from django.forms import modelformset_factory, BaseFormSet
 from django.utils.translation import gettext_lazy as _
-
 from shared.forms.base import BaseModelForm
-
+from accounting.models import Party, TafsiliHierarchy, Account
+from accounting.forms import PartyForm
 from .models import ItemPriceCard, SalesSettings
 
 
@@ -120,30 +119,6 @@ class ItemPriceCardForm(BaseModelForm):
     
     def clean_item(self):
         """Validate that the selected item is valid and belongs to the company."""
-        # #region agent log
-        import json
-        import time
-        try:
-            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({
-                    'id': f'log_{int(time.time()*1000)}_clean_item',
-                    'timestamp': int(time.time()*1000),
-                    'location': 'sales/forms.py:clean_item',
-                    'message': 'ItemPriceCardForm.clean_item called',
-                    'data': {
-                        'item_value': str(self.cleaned_data.get('item')) if 'item' in self.cleaned_data else None,
-                        'item_type': type(self.cleaned_data.get('item')).__name__ if 'item' in self.cleaned_data and self.cleaned_data.get('item') else None,
-                        'company_id': self.company_id,
-                        'is_bound': self.is_bound
-                    },
-                    'sessionId': 'debug-session',
-                    'runId': 'run1',
-                    'hypothesisId': 'P'
-                }) + '\n')
-        except Exception:
-            pass
-        # #endregion
-
         item = self.cleaned_data.get('item')
         
         if not item:
@@ -167,129 +142,20 @@ class ItemPriceCardForm(BaseModelForm):
                 
                 # Also check if item is sellable
                 if not item_obj.is_sellable:
-                    # #region agent log
-                    try:
-                        with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
-                            f.write(json.dumps({
-                                'id': f'log_{int(time.time()*1000)}_item_not_sellable',
-                                'timestamp': int(time.time()*1000),
-                                'location': 'sales/forms.py:clean_item',
-                                'message': 'Item is not sellable',
-                                'data': {'item_id': item_obj.pk, 'item_name': item_obj.name},
-                                'sessionId': 'debug-session',
-                                'runId': 'run1',
-                                'hypothesisId': 'P'
-                            }) + '\n')
-                    except Exception:
-                        pass
-                    # #endregion
                     raise ValidationError(_('Selected item is not sellable.'))
                 
-                # #region agent log
-                try:
-                    with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
-                        f.write(json.dumps({
-                            'id': f'log_{int(time.time()*1000)}_item_valid',
-                            'timestamp': int(time.time()*1000),
-                            'location': 'sales/forms.py:clean_item',
-                            'message': 'Item validated successfully',
-                            'data': {'item_id': item_obj.pk, 'item_name': item_obj.name},
-                            'sessionId': 'debug-session',
-                            'runId': 'run1',
-                            'hypothesisId': 'P'
-                        }) + '\n')
-                except Exception:
-                    pass
-                # #endregion
                 return item_obj
             except Item.DoesNotExist:
-                # #region agent log
-                try:
-                    with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
-                        f.write(json.dumps({
-                            'id': f'log_{int(time.time()*1000)}_item_not_found',
-                            'timestamp': int(time.time()*1000),
-                            'location': 'sales/forms.py:clean_item',
-                            'message': 'Item not found or invalid',
-                            'data': {'item_id': item_id or (item.pk if hasattr(item, 'pk') else None), 'company_id': self.company_id},
-                            'sessionId': 'debug-session',
-                            'runId': 'run1',
-                            'hypothesisId': 'P'
-                        }) + '\n')
-                except Exception:
-                    pass
-                # #endregion
                 raise ValidationError(_('Please select a valid option. That option is not among the available options.'))
             except (ValueError, TypeError) as e:
-                # #region agent log
-                try:
-                    with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
-                        f.write(json.dumps({
-                            'id': f'log_{int(time.time()*1000)}_item_type_error',
-                            'timestamp': int(time.time()*1000),
-                            'location': 'sales/forms.py:clean_item',
-                            'message': 'Item type error',
-                            'data': {'error': str(e), 'item_value': str(item)},
-                            'sessionId': 'debug-session',
-                            'runId': 'run1',
-                            'hypothesisId': 'P'
-                        }) + '\n')
-                except Exception:
-                    pass
-                # #endregion
                 raise ValidationError(_('Please select a valid option. That option is not among the available options.'))
         
         return item
     
     def clean(self):
         """Validate form data."""
-        # #region agent log
-        import json
-        import time
-        try:
-            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({
-                    'id': f'log_{int(time.time()*1000)}_clean_start',
-                    'timestamp': int(time.time()*1000),
-                    'location': 'sales/forms.py:clean',
-                    'message': 'ItemPriceCardForm.clean() called',
-                    'data': {
-                        'is_bound': self.is_bound,
-                        'company_id': self.company_id,
-                        'instance_pk': self.instance.pk if self.instance and self.instance.pk else None
-                    },
-                    'sessionId': 'debug-session',
-                    'runId': 'run1',
-                    'hypothesisId': 'Q'
-                }) + '\n')
-        except Exception:
-            pass
-        # #endregion
-
         cleaned_data = super().clean()
         item = cleaned_data.get('item')
-        
-        # #region agent log
-        try:
-            with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({
-                    'id': f'log_{int(time.time()*1000)}_clean_after_super',
-                    'timestamp': int(time.time()*1000),
-                    'location': 'sales/forms.py:clean',
-                    'message': 'After super().clean()',
-                    'data': {
-                        'item': str(item) if item else None,
-                        'item_id': item.pk if item and hasattr(item, 'pk') else None,
-                        'cleaned_data_keys': list(cleaned_data.keys()),
-                        'form_errors': dict(self.errors) if hasattr(self, 'errors') else None
-                    },
-                    'sessionId': 'debug-session',
-                    'runId': 'run1',
-                    'hypothesisId': 'Q'
-                }) + '\n')
-        except Exception:
-            pass
-        # #endregion
         
         # Check if item already has a price card for this company
         if item and self.company_id:
@@ -302,22 +168,6 @@ class ItemPriceCardForm(BaseModelForm):
                 existing = existing.exclude(pk=self.instance.pk)
             
             if existing.exists():
-                # #region agent log
-                try:
-                    with open('/home/shahin/invproj/.cursor/debug.log', 'a') as f:
-                        f.write(json.dumps({
-                            'id': f'log_{int(time.time()*1000)}_duplicate_item',
-                            'timestamp': int(time.time()*1000),
-                            'location': 'sales/forms.py:clean',
-                            'message': 'Duplicate price card found',
-                            'data': {'item_id': item.pk if hasattr(item, 'pk') else None},
-                            'sessionId': 'debug-session',
-                            'runId': 'run1',
-                            'hypothesisId': 'Q'
-                        }) + '\n')
-                except Exception:
-                    pass
-                # #endregion
                 raise ValidationError({
                     'item': _('This item already has a price card. Please update the existing one instead.')
                 })
@@ -487,3 +337,104 @@ class SalesSettingsForm(BaseModelForm):
         
         return cleaned_data
 
+
+class CustomerForm(PartyForm):
+    """Form for creating/editing customers."""
+    
+    tafsili_level = forms.ModelChoiceField(
+        queryset=TafsiliHierarchy.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label=_('سطح تفصیلی'),
+        help_text=_('سطح تفصیلی برای این مشتری را انتخاب کنید'),
+        required=True,
+    )
+    
+    class Meta(PartyForm.Meta):
+        pass
+    
+    def __init__(self, *args, company_id: Optional[int] = None, **kwargs):
+        super().__init__(*args, company_id=company_id, **kwargs)
+        
+        # Set party_type to customer for new instances
+        if not self.instance.pk:
+            self.initial['party_type'] = 'customer'
+            self.fields['party_type'].widget = forms.HiddenInput()
+        
+        # Filter tafsili levels by company and is_customer flag
+        if company_id:
+            # Get tafsili levels where is_customer is True in metadata
+            tafsili_levels = TafsiliHierarchy.objects.filter(
+                company_id=company_id,
+                is_enabled=1
+            )
+            
+            # Filter by metadata is_customer
+            customer_levels = []
+            for level in tafsili_levels:
+                if level.metadata.get('is_customer', False):
+                    customer_levels.append(level.id)
+            
+            self.fields['tafsili_level'].queryset = TafsiliHierarchy.objects.filter(
+                id__in=customer_levels
+            ).order_by('sort_order', 'code')
+            
+            self.fields['tafsili_level'].empty_label = _("--- انتخاب کنید ---")
+            self.fields['tafsili_level'].label_from_instance = lambda obj: f"{obj.code} - {obj.name}"
+
+
+class IncomeReceiptLocationForm(BaseModelForm):
+    """Form for creating/editing income receipt locations."""
+    
+    class Meta:
+        from .models import IncomeReceiptLocation
+        model = IncomeReceiptLocation
+        fields = [
+            'treasury_account',
+            'receipt_method',
+            'location_name',
+            'notes',
+            'is_enabled',
+        ]
+        widgets = {
+            'treasury_account': forms.Select(attrs={'class': 'form-control'}),
+            'receipt_method': forms.Select(attrs={'class': 'form-control'}),
+            'location_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3
+            }),
+            'is_enabled': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+        labels = {
+            'treasury_account': _('حساب نقدی/بانکی'),
+            'receipt_method': _('روش دریافت'),
+            'location_name': _('نام محل دریافت درآمد'),
+            'notes': _('توضیحات'),
+            'is_enabled': _('فعال'),
+        }
+        help_texts = {
+            'treasury_account': _('حساب نقدی یا بانکی که از ماژول حسابداری خوانده می‌شود'),
+            'receipt_method': _('روش دریافت درآمد (پوز، نقد، حساب، چک، پایا، ساتنا، پل یا چند مورد با هم)'),
+            'location_name': _('نام محل دریافت درآمد'),
+            'notes': _('توضیحات و یادداشت‌ها'),
+        }
+    
+    def __init__(self, *args, company_id: Optional[int] = None, **kwargs):
+        """Initialize form with company filtering."""
+        super().__init__(*args, **kwargs)
+        self.company_id = company_id
+        
+        if company_id:
+            from accounting.models import TreasuryAccount
+            
+            # Filter treasury accounts by company and active status
+            self.fields['treasury_account'].queryset = TreasuryAccount.objects.filter(
+                company_id=company_id,
+                is_enabled=1
+            ).order_by('account_type', 'account_name')
+            
+            self.fields['treasury_account'].empty_label = _("--- انتخاب کنید ---")
+            self.fields['treasury_account'].label_from_instance = lambda obj: f"{obj.get_account_type_display()} - {obj.account_name}"
+        else:
+            from accounting.models import TreasuryAccount
+            self.fields['treasury_account'].queryset = TreasuryAccount.objects.none()

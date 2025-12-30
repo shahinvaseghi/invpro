@@ -1,0 +1,99 @@
+{% extends "shared/generic/generic_detail.html" %}
+{% load i18n jalali_tags %}
+
+{% block title %}{% trans "View Item Price Card" %} - {{ block.super }}{% endblock %}
+
+{% block info_banner_extra %}
+<div><strong>{% trans "Item Code" %}:</strong> <code>{{ price_card.item_code }}</code></div>
+<div><strong>{% trans "Status" %}:</strong>
+  {% if price_card.is_enabled %}
+    <span class="badge badge-active">{% trans "Active" %}</span>
+  {% else %}
+    <span class="badge badge-inactive">{% trans "Inactive" %}</span>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block detail_sections %}
+<div class="form-section">
+  <h3>{% trans "Item Information" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Item Code" %}</label>
+      <div class="readonly-field"><code>{{ price_card.item_code }}</code></div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Item Name" %}</label>
+      <div class="readonly-field">{{ price_card.item.name|default:"-" }}</div>
+    </div>
+    {% if price_card.item.name_en %}
+    <div class="form-field">
+      <label>{% trans "Item Name" %} (EN)</label>
+      <div class="readonly-field">{{ price_card.item.name_en }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="form-section">
+  <h3>{% trans "Price Information" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Price" %}</label>
+      <div class="readonly-field">{{ price_card.price }}</div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "Currency" %}</label>
+      <div class="readonly-field">{{ price_card.get_currency_display }}</div>
+    </div>
+    {% if price_card.effective_date %}
+    <div class="form-field">
+      <label>{% trans "Effective Date" %}</label>
+      <div class="readonly-field">{{ price_card.effective_date|jalali_date }}</div>
+    </div>
+    {% endif %}
+    {% if price_card.expiry_date %}
+    <div class="form-field">
+      <label>{% trans "Expiry Date" %}</label>
+      <div class="readonly-field">{{ price_card.expiry_date|jalali_date }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if price_card.notes %}
+<div class="form-section">
+  <h3>{% trans "Notes" %}</h3>
+  <div class="readonly-field">{{ price_card.notes|linebreaks }}</div>
+</div>
+{% endif %}
+
+<div class="form-section">
+  <h3>{% trans "Metadata" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "Created At" %}</label>
+      <div class="readonly-field">{{ price_card.created_at|jalali_date }}</div>
+    </div>
+    {% if price_card.created_by %}
+    <div class="form-field">
+      <label>{% trans "Created By" %}</label>
+      <div class="readonly-field">{{ price_card.created_by.get_full_name|default:price_card.created_by.username }}</div>
+    </div>
+    {% endif %}
+    {% if price_card.updated_at %}
+    <div class="form-field">
+      <label>{% trans "Updated At" %}</label>
+      <div class="readonly-field">{{ price_card.updated_at|jalali_date }}</div>
+    </div>
+    {% endif %}
+    {% if price_card.edited_by %}
+    <div class="form-field">
+      <label>{% trans "Edited By" %}</label>
+      <div class="readonly-field">{{ price_card.edited_by.get_full_name|default:price_card.edited_by.username }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
