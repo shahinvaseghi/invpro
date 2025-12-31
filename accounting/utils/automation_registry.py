@@ -3,6 +3,7 @@ Registry for documents that can be automated.
 This registry defines all documents that can trigger automation processes.
 """
 from django.utils.translation import gettext_lazy as _
+from .trigger_events import get_trigger_events_for_document, get_default_trigger_event
 
 
 # Registry of all automatable documents
@@ -64,8 +65,8 @@ AUTOMATABLE_DOCUMENTS = [
         'id': 'inventory_warehouse_transfer',
         'label': _('انتقال انبار'),
         'module': 'inventory',
-        'document_type': 'WarehouseTransfer',
-        'model': 'inventory.WarehouseTransfer',
+        'document_type': 'IssueWarehouseTransfer',
+        'model': 'inventory.IssueWarehouseTransfer',
         'category': _('انبار'),
     },
     
@@ -140,6 +141,11 @@ def get_document_by_id(document_id):
     """Get document configuration by ID."""
     for doc in AUTOMATABLE_DOCUMENTS:
         if doc['id'] == document_id:
+            # Add trigger events to document config
+            model = doc.get('model')
+            if model:
+                doc['trigger_events'] = get_trigger_events_for_document(model)
+                doc['default_trigger_event'] = get_default_trigger_event(model)
             return doc
     return None
 

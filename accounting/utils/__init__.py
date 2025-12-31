@@ -16,6 +16,10 @@ from .extractable_fields import (
     get_all_extractable_fields_flat,
     is_field_extractable,
 )
+from .trigger_events import (
+    get_trigger_events_for_document,
+    get_default_trigger_event,
+)
 
 __all__ = [
     'get_available_fiscal_years',
@@ -27,5 +31,7 @@ __all__ = [
     'get_extractable_fields_for_document',
     'get_all_extractable_fields_flat',
     'is_field_extractable',
+    'get_trigger_events_for_document',
+    'get_default_trigger_event',
 ]
 

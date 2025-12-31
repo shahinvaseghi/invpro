@@ -27,6 +27,10 @@ def trigger_automation_on_document_save(sender, instance, created, **kwargs):
     if not created:
         return
     
+    # Skip if instance doesn't have company attribute (not a company-scoped model)
+    if not hasattr(instance, 'company'):
+        return
+    
     # Get the model path (e.g., 'accounting.AccountingDocument')
     model_path = f"{sender._meta.app_label}.{sender._meta.model_name}"
     
