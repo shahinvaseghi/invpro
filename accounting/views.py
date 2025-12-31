@@ -34,7 +34,7 @@ from accounting.views.automation import (
     AutomationDocumentLineUpdateView,
     AutomationDocumentLineDeleteView,
 )
-from accounting.views.automation_api import get_document_info, get_filterable_fields, get_autocomplete_options
+from accounting.views.automation_api import get_document_info, get_filterable_fields, get_extractable_fields, get_autocomplete_options
 
 
 class AccountingDashboardView(FeaturePermissionRequiredMixin, TemplateView):

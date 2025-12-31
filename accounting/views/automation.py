@@ -176,6 +176,36 @@ class AutomationProcessCreateView(BaseCreateView):
                 logger = logging.getLogger(__name__)
                 logger.error(f'Error saving automation conditions: {e}')
         
+        # Save variables if provided
+        variables_data = self.request.POST.get('variables_data')
+        if variables_data:
+            import json
+            try:
+                variables = json.loads(variables_data)
+                from accounting.models.automation import AutomationVariable
+                company_id = self.request.session.get('active_company_id')
+                
+                for variable_data in variables:
+                    variable = AutomationVariable.objects.create(
+                        process=form.instance,
+                        company_id=company_id,
+                        name=variable_data.get('name'),
+                        display_name=variable_data.get('display_name', variable_data.get('name')),
+                        source_type=variable_data.get('source_type', 'field'),
+                        field_path=variable_data.get('field_path'),
+                        field_type=variable_data.get('field_type', 'header_field'),
+                        aggregation_type=variable_data.get('aggregation_type') or None,
+                        data_type=variable_data.get('data_type', 'string'),
+                        related_model=variable_data.get('related_model') or None,
+                        sort_order=variable_data.get('sort_order', 1),
+                        is_active=variable_data.get('is_active', True),
+                    )
+            except (json.JSONDecodeError, KeyError, ValueError) as e:
+                # Log error but don't fail the form submission
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f'Error saving automation variables: {e}')
+        
         return response
     
     def get_breadcrumbs(self) -> list:

@@ -11,6 +11,11 @@ from .document_field_groups import (
     get_field_groups_for_document,
     get_all_fields_for_document,
 )
+from .extractable_fields import (
+    get_extractable_fields_for_document,
+    get_all_extractable_fields_flat,
+    is_field_extractable,
+)
 
 __all__ = [
     'get_available_fiscal_years',
@@ -19,5 +24,8 @@ __all__ = [
     'get_field_info',
     'get_field_groups_for_document',
     'get_all_fields_for_document',
+    'get_extractable_fields_for_document',
+    'get_all_extractable_fields_flat',
+    'is_field_extractable',
 ]
 

@@ -280,5 +280,6 @@ urlpatterns = [
     # API endpoints
     path('automation/api/document-info/<str:document_id>/', views_module.get_document_info, name='automation_api_document_info'),
     path('automation/api/filterable-fields/<str:document_id>/', views_module.get_filterable_fields, name='automation_api_filterable_fields'),
+    path('automation/api/extractable-fields/<str:document_id>/', views_module.get_extractable_fields, name='automation_api_extractable_fields'),
     path('automation/api/autocomplete/<str:model_name>/', views_module.get_autocomplete_options, name='automation_api_autocomplete'),
 ]

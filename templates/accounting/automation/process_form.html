@@ -187,6 +187,19 @@
         </div>
       </div>
 
+      <div class="form-section" id="variables-section" style="display: none;">
+        <h3>{% trans "متغیرها" %}</h3>
+        <p class="text-muted">{% trans "فیلدهایی از سند مبدأ را انتخاب کنید که به عنوان متغیر در مراحل بعدی استفاده شوند." %}</p>
+        
+        <div id="variables-container">
+          <div id="variables-tree" class="variables-tree"></div>
+          <div id="selected-variables" class="selected-variables mt-3">
+            <h4>{% trans "متغیرهای انتخاب شده" %}</h4>
+            <div id="selected-variables-list" class="selected-variables-list"></div>
+          </div>
+        </div>
+      </div>
+
       <div class="form-section">
         <h3>{% trans "تنظیمات" %}</h3>
         <div class="form-row">
@@ -230,9 +243,15 @@ document.addEventListener('DOMContentLoaded', function() {
   const addGlobalConditionBtn = document.getElementById('add-global-condition-btn');
   const addDocumentConditionBtn = document.getElementById('add-document-condition-btn');
   const conditionsList = document.getElementById('conditions-list');
+  const variablesSection = document.getElementById('variables-section');
+  const variablesTree = document.getElementById('variables-tree');
+  const selectedVariablesList = document.getElementById('selected-variables-list');
   
   let filterableFieldsData = null;
+  let extractableFieldsData = null;
   let conditionCounter = 0;
+  let variableCounter = 0;
+  let selectedVariables = {};
   
   if (triggerDocumentSelect) {
     triggerDocumentSelect.addEventListener('change', function() {
@@ -263,6 +282,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 .catch(error => {
                   console.error('Error fetching filterable fields:', error);
                 });
+              
+              // Fetch extractable fields for variables
+              const extractableFieldsUrl = '{% url "accounting:automation_api_extractable_fields" "DOC_ID" %}'.replace('DOC_ID', selectedId);
+              fetch(extractableFieldsUrl)
+                .then(response => response.json())
+                .then(extractableData => {
+                  if (extractableData.success) {
+                    extractableFieldsData = extractableData;
+                    variablesSection.style.display = 'block';
+                    renderVariablesTree(extractableData.fields);
+                  }
+                })
+                .catch(error => {
+                  console.error('Error fetching extractable fields:', error);
+                });
             }
           })
           .catch(error => {
@@ -274,7 +308,12 @@ document.addEventListener('DOMContentLoaded', function() {
         triggerModelInput.value = '';
         conditionsSection.style.display = 'none';
         conditionsList.innerHTML = '';
+        variablesSection.style.display = 'none';
+        variablesTree.innerHTML = '';
+        selectedVariablesList.innerHTML = '';
         filterableFieldsData = null;
+        extractableFieldsData = null;
+        selectedVariables = {};
       }
     });
   }
@@ -892,10 +931,335 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         conditionsInput.value = JSON.stringify(conditions);
       }
+      
+      // Collect variables data
+      const variables = [];
+      const selectedVariableItems = document.querySelectorAll('.selected-variable-item');
+      selectedVariableItems.forEach(item => {
+        const variableFieldName = item.getAttribute('data-variable-field');
+        const variable = selectedVariables[variableFieldName];
+        if (variable) {
+          const nameInput = item.querySelector('.variable-name-input');
+          const displayNameInput = item.querySelector('.variable-display-name-input');
+          const aggregationInput = item.querySelector('.variable-aggregation-input');
+          
+          const varData = {
+            name: nameInput ? nameInput.value : variable.field_name,
+            display_name: displayNameInput ? displayNameInput.value : variable.label,
+            source_type: variable.source_type,
+            field_path: variable.field_path,
+            field_type: variable.field_type,
+            data_type: variable.data_type,
+            aggregation_type: aggregationInput ? (aggregationInput.value || null) : variable.aggregation_type,
+            related_model: variable.related_model,
+            sort_order: variables.length + 1,
+            is_active: true,
+          };
+          
+          variables.push(varData);
+        }
+      });
+      
+      // Add hidden input with variables data
+      if (variables.length > 0) {
+        let variablesInput = document.getElementById('variables_data');
+        if (!variablesInput) {
+          variablesInput = document.createElement('input');
+          variablesInput.type = 'hidden';
+          variablesInput.id = 'variables_data';
+          variablesInput.name = 'variables_data';
+          form.appendChild(variablesInput);
+        }
+        variablesInput.value = JSON.stringify(variables);
+      }
+    });
+  }
+  
+  // Render variables tree
+  function renderVariablesTree(fieldsConfig) {
+    if (!fieldsConfig) return;
+    
+    let html = '<div class="variables-tree-container">';
+    
+    // Header fields
+    if (fieldsConfig.header_fields) {
+      html += '<div class="variable-group">';
+      html += '<h5 class="variable-group-title">📄 ' + '{% trans "فیلدهای هدر سند" %}' + '</h5>';
+      html += '<div class="variable-group-items">';
+      for (const [fieldName, fieldInfo] of Object.entries(fieldsConfig.header_fields)) {
+        html += renderVariableItem(fieldName, fieldInfo, 'header_field');
+      }
+      html += '</div></div>';
+    }
+    
+    // Line fields
+    if (fieldsConfig.line_fields) {
+      html += '<div class="variable-group">';
+      html += '<h5 class="variable-group-title">📋 ' + '{% trans "فیلدهای خطوط سند" %}' + '</h5>';
+      html += '<div class="variable-group-items">';
+      for (const [fieldName, fieldInfo] of Object.entries(fieldsConfig.line_fields)) {
+        html += renderVariableItem(fieldName, fieldInfo, 'line_field');
+      }
+      html += '</div></div>';
+    }
+    
+    // Aggregated fields
+    if (fieldsConfig.aggregated_fields) {
+      html += '<div class="variable-group">';
+      html += '<h5 class="variable-group-title">📊 ' + '{% trans "فیلدهای تجمیع‌شده" %}' + '</h5>';
+      html += '<div class="variable-group-items">';
+      for (const [fieldName, fieldInfo] of Object.entries(fieldsConfig.aggregated_fields)) {
+        html += renderVariableItem(fieldName, fieldInfo, 'aggregated');
+      }
+      html += '</div></div>';
+    }
+    
+    html += '</div>';
+    variablesTree.innerHTML = html;
+    
+    // Add event listeners to checkboxes
+    variablesTree.querySelectorAll('.variable-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', function() {
+        const fieldName = this.getAttribute('data-field-name');
+        const fieldInfo = JSON.parse(this.getAttribute('data-field-info'));
+        const fieldType = this.getAttribute('data-field-type');
+        
+        if (this.checked) {
+          addVariable(fieldName, fieldInfo, fieldType);
+        } else {
+          removeVariable(fieldName);
+        }
+      });
+    });
+  }
+  
+  function renderVariableItem(fieldName, fieldInfo, fieldType) {
+    const variableId = 'var_' + variableCounter++;
+    const isSelected = selectedVariables.hasOwnProperty(fieldName);
+    const relatedFields = fieldInfo.related_fields ? Object.keys(fieldInfo.related_fields).length : 0;
+    
+    let html = '<div class="variable-item">';
+    html += '<label class="variable-label">';
+    html += '<input type="checkbox" class="variable-checkbox" data-field-name="' + fieldName + '" ';
+    html += 'data-field-info=\'' + JSON.stringify(fieldInfo) + '\' ';
+    html += 'data-field-type="' + fieldType + '" ';
+    html += (isSelected ? 'checked' : '') + '> ';
+    html += '<span class="variable-name">' + (fieldInfo.label || fieldName) + '</span>';
+    if (relatedFields > 0) {
+      html += ' <small class="text-muted">(' + relatedFields + ' {% trans "فیلد مرتبط" %})</small>';
+    }
+    html += '</label>';
+    
+    // Show related fields if available
+    if (fieldInfo.related_fields && Object.keys(fieldInfo.related_fields).length > 0) {
+      html += '<div class="related-fields" style="margin-right: 20px; margin-top: 5px;">';
+      for (const [relatedName, relatedInfo] of Object.entries(fieldInfo.related_fields)) {
+        const relatedId = 'var_' + variableCounter++;
+        html += '<label class="variable-label related-field-label">';
+        html += '<input type="checkbox" class="variable-checkbox" data-field-name="' + fieldName + '.' + relatedName + '" ';
+        html += 'data-field-info=\'' + JSON.stringify({...relatedInfo, field_path: fieldInfo.field_path + '.' + relatedName}) + '\' ';
+        html += 'data-field-type="related_field" ';
+        html += 'data-parent-field="' + fieldName + '"> ';
+        html += '<span class="variable-name">' + (relatedInfo.label || relatedName) + '</span>';
+        html += '</label>';
+      }
+      html += '</div>';
+    }
+    
+    html += '</div>';
+    return html;
+  }
+  
+  function addVariable(fieldName, fieldInfo, fieldType) {
+    const variableId = 'variable_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    
+    // Generate default variable name
+    const defaultVarName = fieldName.replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase();
+    
+    const variable = {
+      id: variableId,
+      field_name: fieldName,
+      field_path: fieldInfo.field_path || fieldName,
+      field_type: fieldType,
+      label: fieldInfo.label || fieldName,
+      data_type: fieldInfo.data_type || 'string',
+      source_type: fieldType === 'aggregated' ? 'aggregated' : (fieldType === 'related_field' ? 'related_field' : 'field'),
+      aggregation_type: fieldInfo.aggregation_type || null,
+      related_model: fieldInfo.model || null,
+    };
+    
+    selectedVariables[fieldName] = variable;
+    renderSelectedVariable(variable, defaultVarName);
+  }
+  
+  function removeVariable(fieldName) {
+    delete selectedVariables[fieldName];
+    const variableItem = document.querySelector(`[data-variable-field="${fieldName}"]`);
+    if (variableItem) {
+      variableItem.remove();
+    }
+  }
+  
+  function renderSelectedVariable(variable, defaultVarName) {
+    const variableDiv = document.createElement('div');
+    variableDiv.className = 'selected-variable-item card mb-2';
+    variableDiv.setAttribute('data-variable-field', variable.field_name);
+    
+    let html = '<div class="card-body">';
+    html += '<div class="row">';
+    html += '<div class="col-md-4">';
+    html += '<label>{% trans "نام متغیر" %} *</label>';
+    html += '<input type="text" class="form-control variable-name-input" ';
+    html += 'value="' + defaultVarName + '" ';
+    html += 'data-variable-id="' + variable.id + '" ';
+    html += 'placeholder="{% trans "نام متغیر (انگلیسی)" %}">';
+    html += '</div>';
+    html += '<div class="col-md-4">';
+    html += '<label>{% trans "نام نمایشی" %}</label>';
+    html += '<input type="text" class="form-control variable-display-name-input" ';
+    html += 'value="' + variable.label + '" ';
+    html += 'data-variable-id="' + variable.id + '" ';
+    html += 'placeholder="{% trans "نام نمایشی (فارسی)" %}">';
+    html += '</div>';
+    
+    // Aggregation type for line fields
+    if (variable.field_type === 'line_field' && variable.aggregation_type === null) {
+      html += '<div class="col-md-3">';
+      html += '<label>{% trans "نوع تجمیع" %}</label>';
+      html += '<select class="form-control variable-aggregation-input" data-variable-id="' + variable.id + '">';
+      html += '<option value="">{% trans "-- بدون تجمیع --" %}</option>';
+      html += '<option value="sum">{% trans "مجموع (Sum)" %}</option>';
+      html += '<option value="count">{% trans "تعداد (Count)" %}</option>';
+      html += '<option value="avg">{% trans "میانگین (Avg)" %}</option>';
+      html += '<option value="max">{% trans "حداکثر (Max)" %}</option>';
+      html += '<option value="min">{% trans "حداقل (Min)" %}</option>';
+      html += '</select>';
+      html += '</div>';
+    }
+    
+    html += '<div class="col-md-1">';
+    html += '<label>&nbsp;</label>';
+    html += '<button type="button" class="btn btn-sm btn-danger remove-variable-btn" ';
+    html += 'data-variable-field="' + variable.field_name + '">';
+    html += '<span>&times;</span>';
+    html += '</button>';
+    html += '</div>';
+    html += '</div>';
+    html += '<div class="row mt-2">';
+    html += '<div class="col-md-12">';
+    html += '<small class="text-muted">';
+    html += '<strong>{% trans "فیلد:" %}</strong> ' + variable.label + ' | ';
+    html += '<strong>{% trans "مسیر:" %}</strong> ' + variable.field_path + ' | ';
+    html += '<strong>{% trans "نوع:" %}</strong> ' + variable.data_type;
+    html += '</small>';
+    html += '</div>';
+    html += '</div>';
+    html += '</div>';
+    
+    variableDiv.innerHTML = html;
+    selectedVariablesList.appendChild(variableDiv);
+    
+    // Handle remove button
+    variableDiv.querySelector('.remove-variable-btn').addEventListener('click', function() {
+      const fieldName = this.getAttribute('data-variable-field');
+      // Uncheck checkbox
+      const checkbox = variablesTree.querySelector(`[data-field-name="${fieldName}"]`);
+      if (checkbox) {
+        checkbox.checked = false;
+      }
+      removeVariable(fieldName);
     });
   }
 });
 </script>
+
+<style>
+.variables-tree-container {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 15px;
+  background: #f9f9f9;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.variable-group {
+  margin-bottom: 20px;
+}
+
+.variable-group-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #333;
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 5px;
+}
+
+.variable-group-items {
+  margin-right: 20px;
+}
+
+.variable-item {
+  margin-bottom: 8px;
+  padding: 5px;
+  border-radius: 3px;
+  transition: background-color 0.2s;
+}
+
+.variable-item:hover {
+  background-color: #f0f0f0;
+}
+
+.variable-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: normal;
+  margin-bottom: 0;
+}
+
+.variable-label input[type="checkbox"] {
+  margin-left: 8px;
+  cursor: pointer;
+}
+
+.variable-name {
+  font-weight: 500;
+  color: #333;
+}
+
+.related-field-label {
+  font-size: 0.9em;
+  color: #666;
+  margin-right: 20px;
+}
+
+.related-fields {
+  border-right: 2px solid #e0e0e0;
+  padding-right: 10px;
+}
+
+.selected-variables {
+  border-top: 2px solid #007bff;
+  padding-top: 15px;
+}
+
+.selected-variables h4 {
+  font-size: 18px;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.selected-variable-item {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.selected-variable-item .card-body {
+  padding: 12px;
+}
+</style>
 
 <link rel="stylesheet" href="{% static 'css/shared.css' %}">
 <link rel="stylesheet" href="{% static 'css/jalali-datepicker/jalali-datepicker.min.css' %}">

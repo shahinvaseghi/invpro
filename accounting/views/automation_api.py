@@ -14,6 +14,9 @@ from accounting.utils.document_filters import (
 from accounting.utils.document_field_groups import (
     get_field_groups_for_document,
 )
+from accounting.utils.extractable_fields import (
+    get_extractable_fields_for_document,
+)
 from accounting.models import Account
 
 
@@ -204,5 +207,49 @@ def get_autocomplete_options(request, model_name):
     return JsonResponse({
         'success': True,
         'results': results,
+    })
+
+
+@require_http_methods(["GET"])
+def get_extractable_fields(request, document_id):
+    """
+    API endpoint to get extractable fields for a document.
+    Returns JSON with fields that can be extracted as variables.
+    """
+    doc = get_document_by_id(document_id)
+    
+    if not doc:
+        return JsonResponse({
+            'success': False,
+            'error': _('Document not found'),
+        }, status=404)
+    
+    document_model = doc['model']
+    
+    # Get extractable fields configuration
+    extractable_fields = get_extractable_fields_for_document(document_model)
+    
+    # Convert to serializable format
+    fields_data = {}
+    for group_name, group_fields in extractable_fields.items():
+        if isinstance(group_fields, dict):
+            fields_data[group_name] = {}
+            for field_name, field_info in group_fields.items():
+                fields_data[group_name][field_name] = {
+                    'field_type': field_info.get('field_type'),
+                    'label': str(field_info.get('label', field_name)),
+                    'data_type': field_info.get('data_type'),
+                    'field_path': field_info.get('field_path', field_name),
+                    'extractable': field_info.get('extractable', True),
+                    'aggregatable': field_info.get('aggregatable', False),
+                    'aggregation_type': field_info.get('aggregation_type'),
+                    'aggregation_types': field_info.get('aggregation_types', []),
+                    'model': field_info.get('model'),
+                    'related_fields': field_info.get('related_fields', {}),
+                }
+    
+    return JsonResponse({
+        'success': True,
+        'fields': fields_data,
     })
 
