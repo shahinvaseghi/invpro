@@ -24,6 +24,11 @@ from .views import (
     AccountDetailView,
     AccountUpdateView,
     AccountDeleteView,
+    AccountGroupListView,
+    AccountGroupCreateView,
+    AccountGroupDetailView,
+    AccountGroupUpdateView,
+    AccountGroupDeleteView,
     GLAccountListView,
     GLAccountCreateView,
     GLAccountDetailView,
@@ -92,6 +97,13 @@ urlpatterns = [
     path('accounts/<int:pk>/', AccountDetailView.as_view(), name='account_detail'),
     path('accounts/<int:pk>/edit/', AccountUpdateView.as_view(), name='account_edit'),
     path('accounts/<int:pk>/delete/', AccountDeleteView.as_view(), name='account_delete'),
+    
+    # Account Groups (گروه حساب‌ها)
+    path('account-groups/', AccountGroupListView.as_view(), name='account_groups'),
+    path('account-groups/create/', AccountGroupCreateView.as_view(), name='account_group_create'),
+    path('account-groups/<int:pk>/', AccountGroupDetailView.as_view(), name='account_group_detail'),
+    path('account-groups/<int:pk>/edit/', AccountGroupUpdateView.as_view(), name='account_group_edit'),
+    path('account-groups/<int:pk>/delete/', AccountGroupDeleteView.as_view(), name='account_group_delete'),
     
     # General Section (عمومی)
     path('general/ledger/', views_module.GeneralLedgerListView.as_view(), name='general_ledger'),

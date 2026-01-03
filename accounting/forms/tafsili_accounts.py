@@ -90,7 +90,7 @@ class TafsiliAccountForm(forms.ModelForm):
             'is_enabled',
         ]
         widgets = {
-            'account_code': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '20', 'readonly': True, 'placeholder': 'کد به صورت خودکار تولید می‌شود'}),
+            'account_code': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '20', 'placeholder': 'مثال: 1101 یا 1102'}),
             'account_name': forms.TextInput(attrs={'class': 'form-control'}),
             'account_name_en': forms.TextInput(attrs={'class': 'form-control'}),
             'opening_balance': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
@@ -113,18 +113,6 @@ class TafsiliAccountForm(forms.ModelForm):
         # Set account_level to 3 (تفصیلی) for Tafsili accounts
         if not self.instance.pk:
             self.instance.account_level = 3
-            # Auto-generate account_code for new tafsili accounts
-            if not self.instance.account_code and company_id:
-                from inventory.utils.codes import generate_sequential_code
-                self.instance.account_code = generate_sequential_code(
-                    Account,
-                    company_id=company_id,
-                    field='account_code',
-                    width=10,
-                    extra_filters={'account_level': 3},
-                )
-                # Set initial value for display
-                self.initial['account_code'] = self.instance.account_code
         
         # Remove account_level and account_type from form
         if 'account_level' in self.fields:
@@ -134,10 +122,9 @@ class TafsiliAccountForm(forms.ModelForm):
         if 'parent_account' in self.fields:
             del self.fields['parent_account']
         
-        # Make account_code readonly for tafsili accounts
+        # User must enter account_code manually
         if 'account_code' in self.fields:
-            self.fields['account_code'].required = False
-            self.fields['account_code'].widget.attrs['readonly'] = True
+            self.fields['account_code'].required = True
         
         # Filter tafsili types by company
         if company_id:
@@ -224,21 +211,27 @@ class TafsiliAccountForm(forms.ModelForm):
         tafsili_level = cleaned_data.get('tafsili_level')
         sub_accounts = cleaned_data.get('sub_accounts', [])
         is_floating = cleaned_data.get('is_floating', False)
+        account_code = cleaned_data.get('account_code')
         
-        # Auto-generate account_code if not set (for new instances)
-        # Check both cleaned_data and instance.account_code
-        account_code = cleaned_data.get('account_code') or getattr(self.instance, 'account_code', None)
-        if not self.instance.pk and not account_code and self.company_id:
-            from inventory.utils.codes import generate_sequential_code
-            account_code = generate_sequential_code(
-                Account,
+        # Validate account_code is provided
+        if not account_code:
+            raise forms.ValidationError({
+                'account_code': _('کد تفصیلی الزامی است.')
+            })
+        
+        # Validate account_code is unique within company and account_level
+        if account_code and self.company_id:
+            existing = Account.objects.filter(
                 company_id=self.company_id,
-                field='account_code',
-                width=10,
-                extra_filters={'account_level': 3},
+                account_code=account_code,
+                account_level=3
             )
-            cleaned_data['account_code'] = account_code
-            self.instance.account_code = account_code
+            if self.instance.pk:
+                existing = existing.exclude(pk=self.instance.pk)
+            if existing.exists():
+                raise forms.ValidationError({
+                    'account_code': _('کد تفصیلی باید یکتا باشد.')
+                })
         
         # If tafsili_level is selected, ignore sub_accounts (they will be loaded from level)
         if tafsili_level:
@@ -246,9 +239,9 @@ class TafsiliAccountForm(forms.ModelForm):
             cleaned_data['sub_accounts'] = []
         else:
             # Validate sub accounts only if tafsili_level is not selected
-            if not is_floating and not sub_accounts:
+            if not sub_accounts:
                 raise forms.ValidationError({
-                    'sub_accounts': _('برای تفصیلی غیرشناور، حداقل یک حساب معین باید انتخاب شود.')
+                    'sub_accounts': _('حداقل یک حساب معین باید انتخاب شود (یا سطح تفصیلی را انتخاب کنید).')
                 })
             
             # Check all sub accounts belong to same company

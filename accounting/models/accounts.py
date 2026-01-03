@@ -11,6 +11,43 @@ from .base import AccountingBaseModel, AccountingSortableModel, POSITIVE_DECIMAL
 from shared.models import NUMERIC_CODE_VALIDATOR, ENABLED_FLAG_CHOICES
 
 
+class AccountGroup(AccountingSortableModel):
+    """گروه حساب‌ها - سطح بالاتر از حساب کل که حساب‌های کل را دسته‌بندی می‌کند."""
+    
+    group_code = models.CharField(
+        max_length=10,
+        validators=[NUMERIC_CODE_VALIDATOR],
+        help_text=_("کد گروه حساب (مثال: '1' برای دارایی‌های جاری)"),
+    )
+    group_name = models.CharField(
+        max_length=200,
+        help_text=_("نام گروه حساب (فارسی)"),
+    )
+    group_name_en = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text=_("نام گروه حساب (انگلیسی)"),
+    )
+    description = models.TextField(
+        blank=True,
+        help_text=_("توضیحات گروه حساب"),
+    )
+    
+    class Meta:
+        verbose_name = _("گروه حساب")
+        verbose_name_plural = _("گروه‌های حساب")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "group_code"),
+                name="accounting_account_group_code_unique",
+            ),
+        ]
+        ordering = ("company", "group_code")
+    
+    def __str__(self) -> str:
+        return f"{self.group_code} - {self.group_name}"
+
+
 class Account(AccountingSortableModel):
     """Chart of Accounts - General, Subsidiary, and Detail accounts."""
     ACCOUNT_TYPE_CHOICES = [
@@ -103,6 +140,15 @@ class Account(AccountingSortableModel):
         blank=True,
         help_text=_("نوع تفصیلی (فقط برای حساب‌های تفصیلی)"),
     )
+    account_group = models.ForeignKey(
+        'AccountGroup',
+        on_delete=models.PROTECT,
+        related_name='accounts',
+        null=True,
+        blank=True,
+        limit_choices_to={'is_enabled': 1},
+        help_text=_("گروه حساب (فقط برای حساب‌های کل)"),
+    )
 
     class Meta:
         verbose_name = _("حساب")
@@ -125,22 +171,17 @@ class Account(AccountingSortableModel):
                 raise ValidationError(_("Parent account must belong to the same company."))
             if self.parent_account.account_level >= self.account_level:
                 raise ValidationError(_("Parent account level must be less than child account level."))
+        
+        # Validate account_group: only GL accounts (level 1) can have account_group
+        if self.account_group:
+            if self.account_level != 1:
+                raise ValidationError(_("گروه حساب فقط برای حساب‌های کل قابل تعریف است."))
+            if self.account_group.company_id != self.company_id:
+                raise ValidationError(_("گروه حساب باید متعلق به همان شرکت باشد."))
 
     def save(self, *args, **kwargs):
         self.clean()
-        
-        # Auto-generate account_code for Sub Accounts (level 2) and Tafsili Accounts (level 3)
-        # GL Accounts (level 1) must have account_code entered by user
-        if not self.account_code and self.company_id and self.account_level in [2, 3]:
-            from inventory.utils.codes import generate_sequential_code
-            self.account_code = generate_sequential_code(
-                self.__class__,
-                company_id=self.company_id,
-                field='account_code',
-                width=10,
-                extra_filters={'account_level': self.account_level},
-            )
-        
+        # User must enter account_code manually for all account levels
         super().save(*args, **kwargs)
 
 

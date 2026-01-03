@@ -17,6 +17,7 @@ from .fiscal_years import FiscalYear, Period
 
 # Accounts
 from .accounts import (
+    AccountGroup,
     Account,
     SubAccountGLAccountRelation,
     TafsiliSubAccountRelation,
@@ -93,6 +94,7 @@ __all__ = [
     'FiscalYear',
     'Period',
     # Accounts
+    'AccountGroup',
     'Account',
     'SubAccountGLAccountRelation',
     'TafsiliSubAccountRelation',

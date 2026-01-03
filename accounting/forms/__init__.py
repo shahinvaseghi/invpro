@@ -4,6 +4,7 @@ Forms package for accounting module.
 from .fiscal_years import FiscalYearForm
 from .periods import PeriodForm
 from .accounts import AccountForm
+from .account_groups import AccountGroupForm
 from .gl_accounts import GLAccountForm
 from .sub_accounts import SubAccountForm
 from .tafsili_accounts import TafsiliAccountForm
@@ -32,6 +33,7 @@ __all__ = [
     'FiscalYearForm',
     'PeriodForm',
     'AccountForm',
+    'AccountGroupForm',
     'GLAccountForm',
     'SubAccountForm',
     'TafsiliAccountForm',

@@ -16,6 +16,13 @@ from .accounts import (
     AccountUpdateView,
     AccountDeleteView,
 )
+from .account_groups import (
+    AccountGroupListView,
+    AccountGroupCreateView,
+    AccountGroupDetailView,
+    AccountGroupUpdateView,
+    AccountGroupDeleteView,
+)
 from .gl_accounts import (
     GLAccountListView,
     GLAccountCreateView,
@@ -109,6 +116,12 @@ __all__ = [
     'AccountDetailView',
     'AccountUpdateView',
     'AccountDeleteView',
+    # Account Groups (گروه حساب‌ها)
+    'AccountGroupListView',
+    'AccountGroupCreateView',
+    'AccountGroupDetailView',
+    'AccountGroupUpdateView',
+    'AccountGroupDeleteView',
     # GL Accounts (حساب کل)
     'GLAccountListView',
     'GLAccountCreateView',

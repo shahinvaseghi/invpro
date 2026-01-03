@@ -459,6 +459,12 @@ def get_menu_structure() -> List[MenuSection]:
                             permission="accounting.fiscal_years"
                         ),
                         MenuItem(
+                            name="گروه حساب‌ها",
+                            url_name="accounting:account_groups",
+                            icon="icon-folder",
+                            permission="accounting.accounts.groups"
+                        ),
+                        MenuItem(
                             name="چارت حساب‌ها",
                             url_name="accounting:accounts",
                             icon="icon-chart",
