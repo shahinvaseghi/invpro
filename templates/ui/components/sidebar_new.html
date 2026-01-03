@@ -2,11 +2,6 @@
 {% load access_tags %}
 
 <nav class="sidebar-nav">
-  <!-- Dashboard link (always visible) -->
-  <div class="sidebar-section" data-section="dashboard">
-    <a href="{% url 'ui:dashboard' %}" class="nav-link">{% trans "Dashboard" %}</a>
-  </div>
-  
   {% for section in menu_sections %}
     {% include "ui/components/menu_section_sidebar.html" with section=section %}
   {% endfor %}

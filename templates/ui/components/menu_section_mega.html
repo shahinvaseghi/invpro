@@ -1,0 +1,19 @@
+{% load i18n %}
+
+{% if section %}
+  <div class="mega-menu-section collapsed">
+    <button type="button" class="mega-menu-section-toggle" data-section="{{ section.name|slugify }}-section">
+      <span class="menu-icon {{ section.icon }}"></span>
+      <span>{% trans section.name %}</span>
+      <span class="mega-menu-section-arrow">▼</span>
+    </button>
+    <div class="mega-menu-section-content" id="{{ section.name|slugify }}-section">
+      <ul>
+        {% for item in section.items %}
+          {% include "ui/components/menu_item_mega.html" with item=item %}
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+{% endif %}
+

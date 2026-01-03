@@ -1,0 +1,22 @@
+{% load i18n %}
+
+{% if item %}
+  {% if item.children %}
+    <div class="nav-group">
+      <button type="button" class="nav-group-header" data-submenu="{{ item.url_name|slugify }}">
+        <span>{% trans item.name %}</span>
+        <span class="nav-group-icon">▼</span>
+      </button>
+      <div class="nav-group-content" id="{{ item.url_name|slugify }}">
+        {% for child in item.children %}
+          {% include "ui/components/menu_item_sidebar.html" with item=child %}
+        {% endfor %}
+      </div>
+    </div>
+  {% else %}
+    <a href="{% url item.url_name %}" class="nav-link" {% if item.target == '_blank' %}target="_blank"{% endif %}>
+      {% trans item.name %}
+    </a>
+  {% endif %}
+{% endif %}
+

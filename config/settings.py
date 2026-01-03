@@ -108,6 +108,7 @@ TEMPLATES = [
                 'ui.context_processors.active_module',
                 'shared.context_processors.active_company',
                 'accounting.context_processors.active_fiscal_year',
+                'ui.context_processors.menu_structure',
             ],
         },
     },

@@ -1,0 +1,16 @@
+{% load i18n %}
+
+{% if section %}
+  <div class="sidebar-section" data-section="{{ section.name|slugify }}">
+    <button type="button" class="section-header" data-target="{{ section.name|slugify }}">
+      <span class="section-title">{% trans section.name %}</span>
+      <span class="section-icon">▼</span>
+    </button>
+    <div class="section-content" id="{{ section.name|slugify }}">
+      {% for item in section.items %}
+        {% include "ui/components/menu_item_sidebar.html" with item=item %}
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}
+

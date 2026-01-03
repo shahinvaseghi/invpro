@@ -1,0 +1,26 @@
+{% load i18n %}
+
+{% if item %}
+  {% if item.children %}
+    <li class="mega-menu-submenu-item">
+      <button type="button" class="mega-menu-toggle" data-submenu="{{ item.url_name|slugify }}">
+        <span class="menu-icon {{ item.icon }}"></span>
+        <span>{% trans item.name %}</span>
+        <span class="mega-menu-arrow">▼</span>
+      </button>
+      <ul class="mega-menu-submenu" id="{{ item.url_name|slugify }}">
+        {% for child in item.children %}
+          {% include "ui/components/menu_item_mega.html" with item=child %}
+        {% endfor %}
+      </ul>
+    </li>
+  {% else %}
+    <li>
+      <a href="{% url item.url_name %}" {% if item.target == '_blank' %}target="_blank"{% endif %}>
+        <span class="menu-icon {{ item.icon }}"></span>
+        {% trans item.name %}
+      </a>
+    </li>
+  {% endif %}
+{% endif %}
+

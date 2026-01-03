@@ -2337,6 +2337,144 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
+    # Dashboard permissions
+    "inventory.dashboard": FeaturePermission(
+        code="inventory.dashboard",
+        label=_("Inventory Dashboard"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    "production.dashboard": FeaturePermission(
+        code="production.dashboard",
+        label=_("Production Dashboard"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    "qc.dashboard": FeaturePermission(
+        code="qc.dashboard",
+        label=_("Quality Control Dashboard"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    "ticketing.dashboard": FeaturePermission(
+        code="ticketing.dashboard",
+        label=_("Ticketing Dashboard"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    # QC permissions
+    "qc.serial_assignment": FeaturePermission(
+        code="qc.serial_assignment",
+        label=_("QC Serial Assignment"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.APPROVE,
+        ],
+    ),
+    "qc.batch_assignment": FeaturePermission(
+        code="qc.batch_assignment",
+        label=_("QC Batch Assignment"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.APPROVE,
+        ],
+    ),
+    # Ticketing permissions
+    "ticketing.ticket.create": FeaturePermission(
+        code="ticketing.ticket.create",
+        label=_("Create Ticket"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+        ],
+    ),
+    "ticketing.ticket.respond": FeaturePermission(
+        code="ticketing.ticket.respond",
+        label=_("Respond to Ticket"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+        ],
+    ),
+    "ticketing.auto_response": FeaturePermission(
+        code="ticketing.auto_response",
+        label=_("Auto Response"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
+        ],
+    ),
+    # Accounting - Automation
+    "accounting.automation.processes": FeaturePermission(
+        code="accounting.automation.processes",
+        label=_("Automation Processes"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.CREATE,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+            PermissionAction.DELETE_OWN,
+            PermissionAction.DELETE_SAME_GROUP,
+        ],
+    ),
+    "accounting.automation.logs": FeaturePermission(
+        code="accounting.automation.logs",
+        label=_("Automation Execution Logs"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
+    # Accounting - Tax
+    "accounting.tax.moadian_settings": FeaturePermission(
+        code="accounting.tax.moadian_settings",
+        label=_("Moadian Settings"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+            PermissionAction.EDIT_OWN,
+            PermissionAction.EDIT_SAME_GROUP,
+        ],
+    ),
 }
 
 
