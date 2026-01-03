@@ -257,3 +257,64 @@ def toggle_document_lock(request):
         return JsonResponse({'error': _('Document not found')}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def import_account_tree(request):
+    """
+    فراخوانی درختچه حساب‌ها از فایل معیار
+    
+    Returns JSON with success status and statistics.
+    """
+    from shared.mixins import FeaturePermissionRequiredMixin
+    from accounting.services.account_tree_importer import AccountTreeImporter
+    
+    company_id = request.session.get('active_company_id')
+    
+    if not company_id:
+        return JsonResponse({
+            'success': False,
+            'message': _('لطفاً ابتدا یک شرکت را انتخاب کنید')
+        }, status=400)
+    
+    # بررسی مجوز
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            'success': False,
+            'message': _('لطفاً ابتدا وارد سیستم شوید')
+        }, status=403)
+    
+    try:
+        importer = AccountTreeImporter(company_id=company_id)
+        stats = importer.import_account_tree()
+        
+        total_created = (
+            stats['groups_created'] +
+            stats['gl_accounts_created'] +
+            stats['sub_accounts_created']
+        )
+        
+        if total_created > 0:
+            message = _('درختچه حساب‌ها با موفقیت فراخوانی شد')
+        else:
+            message = _('همه حساب‌ها قبلاً ایجاد شده‌اند')
+        
+        return JsonResponse({
+            'success': True,
+            'message': str(message),
+            'stats': stats
+        })
+    
+    except FileNotFoundError as e:
+        return JsonResponse({
+            'success': False,
+            'message': _('فایل معیار یافت نشد')
+        }, status=404)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'message': _('خطا در فراخوانی درختچه حساب‌ها: {}').format(str(e))
+        }, status=500)

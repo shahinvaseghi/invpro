@@ -67,6 +67,7 @@ from .views.api import (
     filter_sub_accounts_by_gl,
     filter_tafsili_accounts_by_sub,
     toggle_document_lock,
+    import_account_tree,
 )
 from .views.taxpayer_system_api import (
     TestConnectionAPIView,
@@ -250,6 +251,7 @@ urlpatterns = [
     path('api/filter-sub-accounts-by-gl/', filter_sub_accounts_by_gl, name='api_filter_sub_by_gl'),
     path('api/filter-tafsili-accounts-by-sub/', filter_tafsili_accounts_by_sub, name='api_filter_tafsili_by_sub'),
     path('api/toggle-document-lock/', toggle_document_lock, name='api_toggle_document_lock'),
+    path('api/import-account-tree/', import_account_tree, name='import_account_tree'),
     
     # Warehouse Accounting (حسابداری انبار)
     path('warehouse/expense/', views_module.WarehouseExpenseView.as_view(), name='warehouse_expense'),

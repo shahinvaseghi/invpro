@@ -72,7 +72,7 @@ class Account(AccountingSortableModel):
     account_code = models.CharField(
         max_length=20,
         validators=[NUMERIC_CODE_VALIDATOR],
-        help_text=_("کد سلسله مراتبی حساب (مثال: '1.01.001')"),
+        help_text=_("کد حساب (مثال: '11' برای حساب کل، '1101' برای معین)"),
     )
     account_name = models.CharField(
         max_length=200,

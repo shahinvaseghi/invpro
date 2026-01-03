@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "تنظیمات حسابداری" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="section-header">
+        <h1>{% trans "تنظیمات حسابداری" %}</h1>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2>{% trans "درختچه حساب‌ها" %}</h2>
+        </div>
+        <div class="card-body">
+            <p>{% trans "با استفاده از این قابلیت می‌توانید تمام گروه‌ها، حساب‌های کل و معین‌های استاندارد را از فایل معیار فراخوانی کنید." %}</p>
+            
+            <div class="alert alert-info" style="margin-top: 1rem;">
+                <i class="fas fa-info-circle"></i>
+                <strong>{% trans "توجه:" %}</strong>
+                {% trans "این عملیات تمام گروه‌ها، حساب‌های کل و معین‌های موجود در فایل معیار را ایجاد می‌کند. در صورت وجود حساب‌های تکراری، از ایجاد مجدد آن‌ها صرف نظر می‌شود." %}
+            </div>
+
+            <div style="margin-top: 1.5rem;">
+                <button type="button" class="btn btn-primary" id="import-accounts-btn">
+                    <i class="fas fa-download"></i>
+                    {% trans "فراخوان درختچه حساب‌ها" %}
+                </button>
+            </div>
+
+            <div id="import-status" style="margin-top: 1rem; display: none;">
+                <div class="alert" id="import-message"></div>
+                <div id="import-progress" style="margin-top: 1rem;"></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const importBtn = document.getElementById('import-accounts-btn');
+    const importStatus = document.getElementById('import-status');
+    const importMessage = document.getElementById('import-message');
+    const importProgress = document.getElementById('import-progress');
+
+    importBtn.addEventListener('click', function() {
+        if (!confirm('آیا از فراخوانی درختچه حساب‌ها اطمینان دارید؟')) {
+            return;
+        }
+
+        // Disable button
+        importBtn.disabled = true;
+        importBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> در حال پردازش...';
+        
+        // Show status
+        importStatus.style.display = 'block';
+        importMessage.className = 'alert alert-info';
+        importMessage.innerHTML = '<i class="fas fa-spinner fa-spin"></i> در حال فراخوانی درختچه حساب‌ها...';
+        importProgress.innerHTML = '';
+
+        // Make API call
+        fetch('{% url "accounting:import_account_tree" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                importMessage.className = 'alert alert-success';
+                importMessage.innerHTML = '<i class="fas fa-check-circle"></i> ' + data.message;
+                
+                if (data.stats) {
+                    let statsHtml = '<ul style="margin-top: 0.5rem; padding-right: 1.5rem;">';
+                    if (data.stats.groups_created) {
+                        statsHtml += '<li>گروه‌های ایجاد شده: ' + data.stats.groups_created + '</li>';
+                    }
+                    if (data.stats.gl_accounts_created) {
+                        statsHtml += '<li>حساب‌های کل ایجاد شده: ' + data.stats.gl_accounts_created + '</li>';
+                    }
+                    if (data.stats.sub_accounts_created) {
+                        statsHtml += '<li>حساب‌های معین ایجاد شده: ' + data.stats.sub_accounts_created + '</li>';
+                    }
+                    if (data.stats.groups_skipped) {
+                        statsHtml += '<li>گروه‌های تکراری (نادیده گرفته شده): ' + data.stats.groups_skipped + '</li>';
+                    }
+                    if (data.stats.gl_accounts_skipped) {
+                        statsHtml += '<li>حساب‌های کل تکراری (نادیده گرفته شده): ' + data.stats.gl_accounts_skipped + '</li>';
+                    }
+                    if (data.stats.sub_accounts_skipped) {
+                        statsHtml += '<li>حساب‌های معین تکراری (نادیده گرفته شده): ' + data.stats.sub_accounts_skipped + '</li>';
+                    }
+                    statsHtml += '</ul>';
+                    importProgress.innerHTML = statsHtml;
+                }
+            } else {
+                importMessage.className = 'alert alert-danger';
+                importMessage.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + (data.message || 'خطا در فراخوانی درختچه حساب‌ها');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            importMessage.className = 'alert alert-danger';
+            importMessage.innerHTML = '<i class="fas fa-exclamation-circle"></i> خطا در ارتباط با سرور';
+        })
+        .finally(() => {
+            importBtn.disabled = false;
+            importBtn.innerHTML = '<i class="fas fa-download"></i> فراخوان درختچه حساب‌ها';
+        });
+    });
+});
+</script>
+{% endblock %}
+

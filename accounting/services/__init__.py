@@ -7,6 +7,7 @@ from .automation_executor import AutomationExecutor
 from .variable_extractor import VariableExtractor
 from .condition_evaluator import ConditionEvaluator
 from .document_creator import DocumentCreator
+from .account_tree_importer import AccountTreeImporter
 
 __all__ = [
     'MoadianService',
@@ -15,5 +16,6 @@ __all__ = [
     'VariableExtractor',
     'ConditionEvaluator',
     'DocumentCreator',
+    'AccountTreeImporter',
 ]
 
