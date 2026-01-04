@@ -1078,6 +1078,17 @@ class ReceiptTemporaryLineForm(ReceiptLineBaseForm):
             'line_notes': _('Notes'),
         }
 
+    def clean_item(self) -> Optional[Item]:
+        """Clean item and validate that only items requiring temporary receipt are allowed."""
+        item = self.cleaned_data.get('item')
+
+        if item and item.requires_temporary_receipt != 1:
+            raise forms.ValidationError(
+                _('این کالا نیاز به رسید موقت ندارد. لطفاً از رسید دائم استفاده کنید.')
+            )
+
+        return super().clean_item()
+
 
 # Create formsets
 ReceiptTemporaryLineFormSet = inlineformset_factory(

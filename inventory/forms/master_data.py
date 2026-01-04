@@ -816,12 +816,22 @@ class ItemForm(BaseModelForm):
 
         # Validate: if has_lot_tracking=1, requires_temporary_receipt must be 1
         has_lot_tracking = cleaned_data.get('has_lot_tracking', 0)
+        serial_in_qc = cleaned_data.get('serial_in_qc', 0)
         requires_temporary_receipt = cleaned_data.get('requires_temporary_receipt', 0)
-        
+
         if has_lot_tracking == 1 and requires_temporary_receipt != 1:
             self.add_error(
                 'has_lot_tracking',
                 _('کالاهای دارای رهگیری لات باید حتماً نیاز به رسید موقت داشته باشند. لطفاً تیک "نیاز به رسید موقت" را فعال کنید.')
+            )
+            # Also automatically set requires_temporary_receipt to 1
+            cleaned_data['requires_temporary_receipt'] = 1
+
+        # Validate: if serial_in_qc=1, requires_temporary_receipt must be 1
+        if serial_in_qc == 1 and requires_temporary_receipt != 1:
+            self.add_error(
+                'serial_in_qc',
+                _('کالاهای دارای سریال در QC باید حتماً نیاز به رسید موقت داشته باشند. لطفاً تیک "نیاز به رسید موقت" را فعال کنید.')
             )
             # Also automatically set requires_temporary_receipt to 1
             cleaned_data['requires_temporary_receipt'] = 1

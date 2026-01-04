@@ -84,8 +84,7 @@ class QCBatchAssignmentListView(BaseListView):
             is_locked=1,  # Locked after QC
             is_converted=0,  # Not yet converted to permanent
         ).filter(
-            # Has at least one line with item that requires temporary receipt
-            lines__item__requires_temporary_receipt=1,
+            # Has at least one line that is QC approved
             lines__is_enabled=1,
             lines__is_qc_approved=1
         ).distinct()
@@ -136,16 +135,16 @@ class QCBatchAssignmentListView(BaseListView):
             lines_with_complete_batches = 0
 
             for line in receipt.lines.filter(is_enabled=1, is_qc_approved=1):
-                if line.item and line.item.requires_temporary_receipt == 1:
-                    total_lines_needing_batches += 1
-                    # Check if batch exists for this line
-                    existing_batches = ItemBatch.objects.filter(
-                        receipt_temporary_line=line,
-                        company=receipt.company,
-                        is_enabled=1
-                    ).count()
-                    if existing_batches > 0:
-                        lines_with_complete_batches += 1
+                # All lines in temporary receipt need batches
+                total_lines_needing_batches += 1
+                # Check if batch exists for this line
+                existing_batches = ItemBatch.objects.filter(
+                    receipt_temporary_line=line,
+                    company=receipt.company,
+                    is_enabled=1
+                ).count()
+                if existing_batches > 0:
+                    lines_with_complete_batches += 1
 
             receipt.lines_needing_batches = total_lines_needing_batches
             receipt.lines_with_complete_batches = lines_with_complete_batches
@@ -196,19 +195,19 @@ class QCBatchAssignmentView(FeaturePermissionRequiredMixin, QCBaseView, Template
         # Get lines that need batch assignment
         lines_needing_batches = []
         for line in receipt.lines.filter(is_enabled=1, is_qc_approved=1).select_related('item', 'warehouse'):
-            if line.item and line.item.requires_temporary_receipt == 1:
-                # Get existing batch for this line
-                existing_batch = ItemBatch.objects.filter(
-                    receipt_temporary_line=line,
-                    company=receipt.company,
-                    is_enabled=1
-                ).first()
-                
-                lines_needing_batches.append({
-                    'line': line,
-                    'existing_batch': existing_batch,
-                    'has_batch': existing_batch is not None,
-                })
+            # All lines in temporary receipt need batch assignment
+            # Get existing batch for this line
+            existing_batch = ItemBatch.objects.filter(
+                receipt_temporary_line=line,
+                company=receipt.company,
+                is_enabled=1
+            ).first()
+
+            lines_needing_batches.append({
+                'line': line,
+                'existing_batch': existing_batch,
+                'has_batch': existing_batch is not None,
+            })
 
         context['receipt'] = receipt
         context['lines_needing_batches'] = lines_needing_batches
@@ -237,10 +236,8 @@ class QCBatchAssignmentLineView(FeaturePermissionRequiredMixin, QCBaseView, View
             is_enabled=1
         )
 
-        # Check if item requires temporary receipt
-        if not line.item or line.item.requires_temporary_receipt != 1:
-            messages.error(request, _('This item does not require batch assignment.'))
-            return HttpResponseRedirect(reverse('qc:batch_assignment_list'))
+        # All items in temporary receipts need batch assignment
+        # No additional validation needed since temporary receipt only accepts items that require QC
 
         # Get batch number from POST
         batch_number = request.POST.get('batch_number', '').strip()
