@@ -268,7 +268,7 @@
     </button>
     <div class="section-content" id="accounting">
       <!-- 1. تعاریف پایه (Base Definitions) -->
-      {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.fiscal_years' or user_feature_permissions|feature_allowed:'accounting.base.accounts' or user_feature_permissions|feature_allowed:'accounting.base.gl' or user_feature_permissions|feature_allowed:'accounting.base.sub' or user_feature_permissions|feature_allowed:'accounting.base.tafsili' or user_feature_permissions|feature_allowed:'accounting.base.tafsili_hierarchy' or user_feature_permissions|feature_allowed:'accounting.base.cost_centers' or user_feature_permissions|feature_allowed:'accounting.base.income_expense_categories' or user_feature_permissions|feature_allowed:'accounting.base.parties' or user_feature_permissions|feature_allowed:'accounting.base.party_accounts' or request.user.is_superuser %}
+      {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.fiscal_years' or user_feature_permissions|feature_allowed:'accounting.base.accounts' or user_feature_permissions|feature_allowed:'accounting.base.gl' or user_feature_permissions|feature_allowed:'accounting.base.sub' or user_feature_permissions|feature_allowed:'accounting.base.tafsili' or user_feature_permissions|feature_allowed:'accounting.base.cost_centers' or user_feature_permissions|feature_allowed:'accounting.base.income_expense_categories' or user_feature_permissions|feature_allowed:'accounting.base.parties' or user_feature_permissions|feature_allowed:'accounting.base.party_accounts' or request.user.is_superuser %}
         <div class="nav-group">
           <button type="button" class="nav-group-header" data-submenu="accounting-base">
             <span>{% trans "تعاریف پایه" %}</span>
@@ -289,9 +289,6 @@
             {% endif %}
             {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.tafsili' or request.user.is_superuser %}
               <a href="{% url 'accounting:tafsili_accounts' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "تعریف حساب تفصیلی" %}</a>
-            {% endif %}
-            {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.tafsili_hierarchy' or request.user.is_superuser %}
-              <a href="{% url 'accounting:tafsili_hierarchy_list' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "سطوح تفصیلی" %}</a>
             {% endif %}
             {% if user_feature_permissions|feature_allowed:'accounting.base' or user_feature_permissions|feature_allowed:'accounting.base.cost_centers' or request.user.is_superuser %}
               <a href="{% url 'accounting:cost_centers' %}" class="nav-link-sub" onclick="event.stopPropagation();">{% trans "مراکز هزینه" %}</a>

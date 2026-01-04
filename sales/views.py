@@ -19,8 +19,7 @@ from shared.views.base import (
 
 from .forms import ItemPriceCardFormSet, SalesSettingsForm, ItemPriceCardForm, CustomerForm, IncomeReceiptLocationForm
 from .models import ItemPriceCard, SalesSettings, IncomeReceiptLocation
-from accounting.models import Party, Account, TafsiliLevelSubAccountRelation, PartyAccount
-from accounting.models.accounts import TafsiliSubAccountRelation
+from accounting.models import Party, Account, PartyAccount
 
 
 class SalesDashboardView(FeaturePermissionRequiredMixin, TemplateView):
@@ -615,90 +614,14 @@ class CustomerCreateView(BaseCreateView):
         return kwargs
     
     def form_valid(self, form):
-        """Create customer and auto-create tafsili account."""
-        from django.db import transaction
-        from django.contrib import messages
-        from inventory.utils.codes import generate_sequential_code
-        
-        company_id = self.request.session.get('active_company_id')
-        if not company_id:
-            messages.error(self.request, _('لطفاً ابتدا یک شرکت را انتخاب کنید.'))
-            return self.form_invalid(form)
-        
-        with transaction.atomic():
-            # Set party_type to customer
-            form.instance.party_type = 'customer'
-            form.instance.created_by = self.request.user
-            
-            # Save customer
-            customer = form.save()
-            
-            # Get selected tafsili level
-            tafsili_level = form.cleaned_data.get('tafsili_level')
-            if not tafsili_level:
-                messages.error(self.request, _('لطفاً سطح تفصیلی را انتخاب کنید.'))
-                return self.form_invalid(form)
-            
-            # Get primary sub account from tafsili level
-            primary_sub_account_relation = TafsiliLevelSubAccountRelation.objects.filter(
-                tafsili_level=tafsili_level,
-                company_id=company_id,
-                is_primary=1
-            ).first()
-            
-            if not primary_sub_account_relation:
-                # If no primary, get first sub account
-                primary_sub_account_relation = TafsiliLevelSubAccountRelation.objects.filter(
-                    tafsili_level=tafsili_level,
-                    company_id=company_id
-                ).first()
-            
-            if not primary_sub_account_relation:
-                messages.error(self.request, _('سطح تفصیلی انتخاب شده حساب معین مرتبط ندارد.'))
-                return self.form_invalid(form)
-            
-            primary_sub_account = primary_sub_account_relation.sub_account
-            
-            # Generate account code for tafsili account
-            account_code = generate_sequential_code(
-                Account,
-                company_id=company_id,
-                field='account_code',
-                width=10,
-                extra_filters={'account_level': 3},
-            )
-            
-            # Create tafsili account
-            tafsili_account = Account.objects.create(
-                company_id=company_id,
-                account_code=account_code,
-                account_name=customer.party_name,
-                account_name_en=customer.party_name_en or '',
-                account_level=3,
-                parent_account=primary_sub_account,
-                tafsili_type=None,  # Can be set later if needed
-                is_enabled=1,
-                created_by=self.request.user,
-            )
-            
-            # Create relation between tafsili account and sub account
-            TafsiliSubAccountRelation.objects.create(
-                tafsili_account=tafsili_account,
-                sub_account=primary_sub_account,
-                company_id=company_id,
-                is_primary=1,
-                created_by=self.request.user,
-            )
-            
-            # Create PartyAccount to link customer with tafsili account
-            PartyAccount.objects.create(
-                party=customer,
-                account=tafsili_account,
-                company_id=company_id,
-                is_primary=1,
-                created_by=self.request.user,
-            )
-        
+        """Create customer."""
+        # Set party_type to customer
+        form.instance.party_type = 'customer'
+        form.instance.created_by = self.request.user
+
+        # Save customer (simplified - no auto account creation)
+        customer = form.save()
+
         return super().form_valid(form)
     
     def get_breadcrumbs(self):

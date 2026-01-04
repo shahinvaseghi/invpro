@@ -485,11 +485,6 @@
 | `accounting/views/sub_accounts.py` | `SubAccountUpdateView` | `BaseUpdateView` | `generic_form.html` | ✅ |
 | `accounting/views/sub_accounts.py` | `SubAccountDetailView` | `BaseDetailView` | `generic_detail.html` | ✅ |
 | `accounting/views/sub_accounts.py` | `SubAccountDeleteView` | `BaseDeleteView` | `generic_confirm_delete.html` | ✅ |
-| `accounting/views/tafsili_hierarchy.py` | `TafsiliHierarchyListView` | `BaseListView` | `generic_list.html` | ✅ |
-| `accounting/views/tafsili_hierarchy.py` | `TafsiliHierarchyCreateView` | `BaseCreateView` | `generic_form.html` | ✅ |
-| `accounting/views/tafsili_hierarchy.py` | `TafsiliHierarchyUpdateView` | `BaseUpdateView` | `generic_form.html` | ✅ |
-| `accounting/views/tafsili_hierarchy.py` | `TafsiliHierarchyDetailView` | `BaseDetailView` | `generic_detail.html` | ✅ |
-| `accounting/views/tafsili_hierarchy.py` | `TafsiliHierarchyDeleteView` | `BaseDeleteView` | `generic_confirm_delete.html` | ✅ |
 | `accounting/views/gl_accounts.py` | `GLAccountListView` | `BaseListView` | `generic_list.html` | ✅ |
 | `accounting/views/gl_accounts.py` | `GLAccountCreateView` | `BaseCreateView` | `generic_form.html` | ✅ |
 | `accounting/views/gl_accounts.py` | `GLAccountUpdateView` | `BaseUpdateView` | `generic_form.html` | ✅ |
@@ -506,7 +501,6 @@
 | `accounting/gl_account_detail.html` | `generic_detail.html` | ✅ |
 | `accounting/sub_account_detail.html` | `generic_detail.html` | ✅ |
 | `accounting/tafsili_account_detail.html` | `generic_detail.html` | ✅ |
-| `accounting/tafsili_hierarchy_detail.html` | `generic_detail.html` | ✅ |
 
 #### Frontend Templates - List Views
 

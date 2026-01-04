@@ -7,7 +7,7 @@ from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView, TemplateView
 
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.views.base import (
@@ -28,7 +28,7 @@ class AccountListView(BaseListView):
     List all accounts for the active company.
     """
     model = Account
-    template_name = 'shared/generic/generic_list.html'
+    template_name = 'accounting/accounts_list.html'
     context_object_name = 'object_list'
     paginate_by = 50
     feature_code = 'accounting.accounts'
@@ -118,6 +118,7 @@ class AccountListView(BaseListView):
              'true_label': _('Active'), 'false_label': _('Inactive')},
         ]
         context['print_enabled'] = True
+        context['tree_view_url'] = reverse('accounting:accounts_tree')
         return context
 
 
@@ -348,4 +349,18 @@ class AccountDeleteView(BaseDeleteView):
             {'label': _('Chart of Accounts'), 'url': reverse('accounting:accounts')},
             {'label': _('Delete'), 'url': None},
         ]
+
+
+class AccountTreeView(FeaturePermissionRequiredMixin, AccountingBaseView, TemplateView):
+    """Tree view for Chart of Accounts."""
+    template_name = 'accounting/accounts_tree.html'
+    feature_code = 'accounting.accounts'
+    required_action = 'view_all'
+    active_module = 'accounting'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = _('چارت حساب')
+        context['active_module'] = 'accounting'
+        return context
 

@@ -31,8 +31,7 @@ accounting/forms/
 ├── document_attachments.py        # DocumentAttachmentForm
 ├── gl_accounts.py                 # GLAccountForm
 ├── sub_accounts.py                # SubAccountForm
-├── tafsili_accounts.py            # TafsiliAccountForm
-└── tafsili_hierarchy.py           # TafsiliHierarchyForm
+└── tafsili_accounts.py            # TafsiliAccountForm
 ```
 
 ---

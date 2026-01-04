@@ -16,26 +16,14 @@ class TafsiliTypeForm(forms.ModelForm):
         fields = [
             'public_code',
             'name',
-            'name_en',
-            'description',
-            'sort_order',
-            'is_enabled',
         ]
         widgets = {
             'public_code': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '10'}),
             'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'name_en': forms.TextInput(attrs={'class': 'form-control'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'sort_order': forms.NumberInput(attrs={'class': 'form-control'}),
-            'is_enabled': forms.Select(attrs={'class': 'form-control'}),
         }
         labels = {
             'public_code': _('کد'),
-            'name': _('نام (فارسی)'),
-            'name_en': _('نام (انگلیسی)'),
-            'description': _('توضیحات'),
-            'sort_order': _('ترتیب نمایش'),
-            'is_enabled': _('وضعیت'),
+            'name': _('نام'),
         }
     
     def __init__(self, *args, company_id: Optional[int] = None, **kwargs):

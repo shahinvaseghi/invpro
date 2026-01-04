@@ -311,7 +311,7 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 | `accounting/views/README_FISCAL_YEARS.md` | `accounting/views/fiscal_years.py` | ✅ Updated | 2025-12-06 19:30:55 | 2025-12-09 09:54:27 | ✅ README newer | به‌روزرسانی شد - به‌روزرسانی inheritance به BaseListView/BaseCreateView/BaseUpdateView/BaseDetailView/BaseDeleteView، اضافه کردن مستندات کامل برای FiscalYearDetailView با تمام متدها و context structure، و به‌روزرسانی تمام متدهای helper |
 | `accounting/views/README_ACCOUNTS.md` | `accounting/views/accounts.py` | ✅ Updated | 2025-12-06 19:30:55 | 2025-12-09 09:54:27 | ✅ README newer | به‌روزرسانی شد - به‌روزرسانی inheritance به BaseListView/BaseCreateView/BaseUpdateView/BaseDetailView/BaseDeleteView، اضافه کردن مستندات کامل برای AccountDetailView با تمام متدها و context structure (شامل Child Accounts section)، اضافه کردن متد validate_deletion در AccountDeleteView، و به‌روزرسانی تمام متدهای helper |
 | `accounting/views/README_GL_ACCOUNTS.md` | `accounting/views/gl_accounts.py` | ✅ Updated | 2025-12-06 19:30:55 | 2025-12-09 09:54:27 | ✅ README newer | به‌روزرسانی شد - به‌روزرسانی inheritance به BaseListView/BaseCreateView/BaseUpdateView/BaseDetailView/BaseDeleteView، اضافه کردن مستندات کامل برای GLAccountDetailView با تمام متدها و context structure (شامل Child Accounts section)، اضافه کردن متد validate_deletion در GLAccountDeleteView، و به‌روزرسانی تمام متدهای helper |
-| `accounting/views/README_OTHER_VIEWS.md` | `accounting/views/{sub_accounts,tafsili_accounts,tafsili_hierarchy,document_attachments,auth}.py` | ✅ Updated | N/A | 2025-12-03 10:59:02 | ⚠️ Unknown | مستندات خلاصه برای سایر view ها با لینک به فایل‌های جداگانه |
+| `accounting/views/README_OTHER_VIEWS.md` | `accounting/views/{sub_accounts,tafsili_accounts,document_attachments,auth}.py` | ✅ Updated | N/A | 2025-12-03 10:59:02 | ⚠️ Unknown | مستندات خلاصه برای سایر view ها با لینک به فایل‌های جداگانه |
 
 ### Forms
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |
@@ -320,7 +320,7 @@ Updated /home/shahin/invproj/README_VERIFICATION_LIST.md
 | `accounting/forms/README_PARTIES.md` | `accounting/forms/parties.py` | ✅ Updated | 2025-12-02 15:22:37 | 2025-12-02 15:22:37 | ✅ Same date | مستندات کامل برای PartyForm و PartyAccountForm |
 | `accounting/forms/README_COST_CENTERS.md` | `accounting/forms/cost_centers.py` | ✅ Updated | 2025-12-02 15:22:37 | 2025-12-02 15:22:37 | ✅ Same date | مستندات کامل برای CostCenterForm |
 | `accounting/forms/README_INCOME_EXPENSE_CATEGORIES.md` | `accounting/forms/income_expense_categories.py` | ✅ Updated | 2025-12-02 15:22:37 | 2025-12-02 15:22:37 | ✅ Same date | مستندات کامل برای IncomeExpenseCategoryForm |
-| `accounting/forms/README_OTHER_FORMS.md` | `accounting/forms/{document_attachments,gl_accounts,sub_accounts,tafsili_accounts,tafsili_hierarchy}.py` | ✅ Updated | N/A | 2025-12-03 10:59:02 | ⚠️ Unknown | مستندات کامل برای 6 form class با تمام fields، methods، و validation logic |
+| `accounting/forms/README_OTHER_FORMS.md` | `accounting/forms/{document_attachments,gl_accounts,sub_accounts,tafsili_accounts}.py` | ✅ Updated | N/A | 2025-12-03 10:59:02 | ⚠️ Unknown | مستندات کامل برای 5 form class با تمام fields، methods، و validation logic |
 
 ### Other Files
 | README File | Source File | Status | Source Last Modified | README Last Modified | Git Check | Notes |

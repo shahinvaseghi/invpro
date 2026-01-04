@@ -140,6 +140,17 @@ class Account(AccountingSortableModel):
         blank=True,
         help_text=_("نوع تفصیلی (فقط برای حساب‌های تفصیلی)"),
     )
+    tafsili_level = models.PositiveSmallIntegerField(
+        choices=[(1, _('سطح 1')), (2, _('سطح 2')), (3, _('سطح 3'))],
+        null=True,
+        blank=True,
+        help_text=_("سطح تفصیلی (1 تا 3) - فقط برای حساب‌های تفصیلی"),
+    )
+    is_tafsili_enabled = models.PositiveSmallIntegerField(
+        choices=ENABLED_FLAG_CHOICES,
+        default=0,
+        help_text=_("تفصیل پذیر (فقط برای حساب‌های معین)"),
+    )
     account_group = models.ForeignKey(
         'AccountGroup',
         on_delete=models.PROTECT,
@@ -178,6 +189,21 @@ class Account(AccountingSortableModel):
                 raise ValidationError(_("گروه حساب فقط برای حساب‌های کل قابل تعریف است."))
             if self.account_group.company_id != self.company_id:
                 raise ValidationError(_("گروه حساب باید متعلق به همان شرکت باشد."))
+        
+        # Validate tafsili_level: only tafsili accounts (level 3) can have tafsili_level
+        if self.tafsili_level is not None:
+            if self.account_level != 3:
+                raise ValidationError(_("سطح تفصیلی فقط برای حساب‌های تفصیلی قابل تعریف است."))
+        
+        # Validate tafsili_type: only tafsili accounts (level 3) can have tafsili_type
+        if self.tafsili_type:
+            if self.account_level != 3:
+                raise ValidationError(_("نوع تفصیلی فقط برای حساب‌های تفصیلی قابل تعریف است."))
+            if self.tafsili_type.company_id != self.company_id:
+                raise ValidationError(_("نوع تفصیلی باید متعلق به همان شرکت باشد."))
+        
+        # Validate is_tafsili_enabled: only sub accounts (level 2) should have this flag
+        # (not enforced, but documented)
 
     def save(self, *args, **kwargs):
         self.clean()
@@ -242,6 +268,61 @@ class SubAccountGLAccountRelation(AccountingBaseModel):
         super().save(*args, **kwargs)
 
 
+class SubAccountTafsiliTypeRelation(AccountingBaseModel):
+    """
+    Many-to-many relationship between Sub Accounts (معین) and Tafsili Types (نوع تفصیلی) for each level (1-3).
+    Specifies which tafsili types can be used for each level (1, 2, 3) in a sub account.
+    """
+    sub_account = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        related_name='tafsili_type_relations',
+        limit_choices_to={'account_level': 2},
+        help_text=_("حساب معین"),
+    )
+    tafsili_type = models.ForeignKey(
+        'TafsiliType',
+        on_delete=models.CASCADE,
+        related_name='sub_account_relations',
+        help_text=_("نوع تفصیلی"),
+    )
+    level = models.PositiveSmallIntegerField(
+        choices=[(1, _('سطح 1')), (2, _('سطح 2')), (3, _('سطح 3'))],
+        help_text=_("سطح تفصیلی (1 تا 3)"),
+    )
+    notes = models.TextField(
+        blank=True,
+        help_text=_("یادداشت‌های اضافی"),
+    )
+
+    class Meta:
+        verbose_name = _("رابطه معین-نوع تفصیلی")
+        verbose_name_plural = _("روابط معین-نوع تفصیلی")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "sub_account", "tafsili_type", "level"),
+                name="accounting_sub_tafsili_type_level_unique",
+            ),
+        ]
+        ordering = ("company", "sub_account", "level", "tafsili_type")
+
+    def __str__(self) -> str:
+        return f"{self.sub_account.account_code} - سطح {self.level} - {self.tafsili_type.name}"
+
+    def clean(self):
+        """Validate relation."""
+        if self.sub_account.account_level != 2:
+            raise ValidationError(_("حساب باید سطح 2 (معین) باشد."))
+        if self.sub_account.company_id != self.tafsili_type.company_id:
+            raise ValidationError(_("حساب معین و نوع تفصیلی باید متعلق به همان شرکت باشند."))
+        if self.level not in [1, 2, 3]:
+            raise ValidationError(_("سطح باید بین 1 تا 3 باشد."))
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+
 class TafsiliSubAccountRelation(AccountingBaseModel):
     """
     Many-to-many relationship between Tafsili Accounts (تفصیلی) and Sub Accounts (معین).
@@ -250,7 +331,7 @@ class TafsiliSubAccountRelation(AccountingBaseModel):
     tafsili_account = models.ForeignKey(
         Account,
         on_delete=models.CASCADE,
-        related_name='tafsili_sub_relations',
+        related_name='sub_account_relations_as_tafsili',
         limit_choices_to={'account_level': 3},
         help_text=_("حساب تفصیلی"),
     )

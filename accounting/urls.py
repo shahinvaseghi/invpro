@@ -24,6 +24,7 @@ from .views import (
     AccountDetailView,
     AccountUpdateView,
     AccountDeleteView,
+    AccountTreeView,
     AccountGroupListView,
     AccountGroupCreateView,
     AccountGroupDetailView,
@@ -44,11 +45,6 @@ from .views import (
     TafsiliAccountDetailView,
     TafsiliAccountUpdateView,
     TafsiliAccountDeleteView,
-    TafsiliHierarchyListView,
-    TafsiliHierarchyCreateView,
-    TafsiliHierarchyDetailView,
-    TafsiliHierarchyUpdateView,
-    TafsiliHierarchyDeleteView,
     TafsiliTypeListView,
     TafsiliTypeCreateView,
     TafsiliTypeDetailView,
@@ -68,6 +64,7 @@ from .views.api import (
     filter_tafsili_accounts_by_sub,
     toggle_document_lock,
     import_account_tree,
+    get_account_tree,
 )
 from .views.taxpayer_system_api import (
     TestConnectionAPIView,
@@ -94,6 +91,7 @@ urlpatterns = [
     
     # Chart of Accounts
     path('accounts/', AccountListView.as_view(), name='accounts'),
+    path('accounts/tree/', AccountTreeView.as_view(), name='accounts_tree'),
     path('accounts/create/', AccountCreateView.as_view(), name='account_create'),
     path('accounts/<int:pk>/', AccountDetailView.as_view(), name='account_detail'),
     path('accounts/<int:pk>/edit/', AccountUpdateView.as_view(), name='account_edit'),
@@ -131,14 +129,7 @@ urlpatterns = [
     path('tafsili-accounts/<int:pk>/', TafsiliAccountDetailView.as_view(), name='tafsili_account_detail'),
     path('tafsili-accounts/<int:pk>/edit/', TafsiliAccountUpdateView.as_view(), name='tafsili_account_edit'),
     path('tafsili-accounts/<int:pk>/delete/', TafsiliAccountDeleteView.as_view(), name='tafsili_account_delete'),
-    
-    # Tafsili Hierarchy (تفصیلی چند سطحی)
-    path('tafsili-hierarchy/', TafsiliHierarchyListView.as_view(), name='tafsili_hierarchy_list'),
-    path('tafsili-hierarchy/create/', TafsiliHierarchyCreateView.as_view(), name='tafsili_hierarchy_create'),
-    path('tafsili-hierarchy/<int:pk>/', TafsiliHierarchyDetailView.as_view(), name='tafsili_hierarchy_detail'),
-    path('tafsili-hierarchy/<int:pk>/edit/', TafsiliHierarchyUpdateView.as_view(), name='tafsili_hierarchy_edit'),
-    path('tafsili-hierarchy/<int:pk>/delete/', TafsiliHierarchyDeleteView.as_view(), name='tafsili_hierarchy_delete'),
-    
+
     # Tafsili Types (نوع تفصیلی)
     path('tafsili-types/', TafsiliTypeListView.as_view(), name='tafsili_types'),
     path('tafsili-types/create/', TafsiliTypeCreateView.as_view(), name='tafsili_type_create'),
@@ -252,6 +243,7 @@ urlpatterns = [
     path('api/filter-tafsili-accounts-by-sub/', filter_tafsili_accounts_by_sub, name='api_filter_tafsili_by_sub'),
     path('api/toggle-document-lock/', toggle_document_lock, name='api_toggle_document_lock'),
     path('api/import-account-tree/', import_account_tree, name='import_account_tree'),
+    path('api/account-tree/', get_account_tree, name='api_account_tree'),
     
     # Warehouse Accounting (حسابداری انبار)
     path('warehouse/expense/', views_module.WarehouseExpenseView.as_view(), name='warehouse_expense'),

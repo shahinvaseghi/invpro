@@ -4,7 +4,7 @@ Forms for Sub Account (حساب معین) management.
 from typing import Optional
 from django import forms
 from django.utils.translation import gettext_lazy as _
-from ..models import Account, SubAccountGLAccountRelation, TafsiliHierarchy, TafsiliLevelSubAccountRelation
+from ..models import Account, SubAccountGLAccountRelation, SubAccountTafsiliTypeRelation, TafsiliType
 
 
 class SubAccountForm(forms.ModelForm):
@@ -19,11 +19,25 @@ class SubAccountForm(forms.ModelForm):
         empty_label=_('-- انتخاب کنید --'),
     )
     
-    tafsili_levels = forms.ModelMultipleChoiceField(
-        queryset=TafsiliHierarchy.objects.none(),
+    tafsili_types_level_1 = forms.ModelMultipleChoiceField(
+        queryset=TafsiliType.objects.none(),
         widget=forms.SelectMultiple(attrs={'class': 'form-control', 'size': '5'}),
-        label=_('سطوح تفصیلی'),
-        help_text=_('می‌توانید یک یا چند سطح تفصیلی را انتخاب کنید'),
+        label=_('انواع تفصیلی قابل استفاده در سطح 1'),
+        help_text=_('انواع تفصیلی که می‌توانند در سطح 1 برای این معین استفاده شوند'),
+        required=False,
+    )
+    tafsili_types_level_2 = forms.ModelMultipleChoiceField(
+        queryset=TafsiliType.objects.none(),
+        widget=forms.SelectMultiple(attrs={'class': 'form-control', 'size': '5'}),
+        label=_('انواع تفصیلی قابل استفاده در سطح 2'),
+        help_text=_('انواع تفصیلی که می‌توانند در سطح 2 برای این معین استفاده شوند'),
+        required=False,
+    )
+    tafsili_types_level_3 = forms.ModelMultipleChoiceField(
+        queryset=TafsiliType.objects.none(),
+        widget=forms.SelectMultiple(attrs={'class': 'form-control', 'size': '5'}),
+        label=_('انواع تفصیلی قابل استفاده در سطح 3'),
+        help_text=_('انواع تفصیلی که می‌توانند در سطح 3 برای این معین استفاده شوند'),
         required=False,
     )
     
@@ -35,6 +49,7 @@ class SubAccountForm(forms.ModelForm):
             'account_name_en',
             'opening_balance',
             'description',
+            'is_tafsili_enabled',
             'is_enabled',
         ]
         widgets = {
@@ -43,6 +58,7 @@ class SubAccountForm(forms.ModelForm):
             'account_name_en': forms.TextInput(attrs={'class': 'form-control'}),
             'opening_balance': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'is_tafsili_enabled': forms.Select(attrs={'class': 'form-control'}),
             'is_enabled': forms.Select(attrs={'class': 'form-control'}),
         }
         labels = {
@@ -51,6 +67,7 @@ class SubAccountForm(forms.ModelForm):
             'account_name_en': _('نام معین (انگلیسی)'),
             'opening_balance': _('مانده ابتدای دوره'),
             'description': _('شرح'),
+            'is_tafsili_enabled': _('تفصیل پذیر'),
             'is_enabled': _('وضعیت'),
         }
     
@@ -92,21 +109,25 @@ class SubAccountForm(forms.ModelForm):
                 if existing_relation:
                     self.initial['gl_account'] = existing_relation.gl_account_id
                 
-                # Load existing tafsili level relations
-                existing_tafsili_levels = TafsiliLevelSubAccountRelation.objects.filter(
-                    sub_account=self.instance,
-                    company_id=company_id
-                ).values_list('tafsili_level_id', flat=True)
-                self.initial['tafsili_levels'] = list(existing_tafsili_levels)
+                # Load existing tafsili type relations for each level
+                for level in [1, 2, 3]:
+                    existing_types = SubAccountTafsiliTypeRelation.objects.filter(
+                        sub_account=self.instance,
+                        company_id=company_id,
+                        level=level
+                    ).values_list('tafsili_type_id', flat=True)
+                    self.initial[f'tafsili_types_level_{level}'] = list(existing_types)
         
-        # Filter tafsili levels by company
+        # Filter tafsili types by company
         if company_id:
-            tafsili_levels_queryset = TafsiliHierarchy.objects.filter(
+            tafsili_type_queryset = TafsiliType.objects.filter(
                 company_id=company_id,
                 is_enabled=1
-            ).order_by('sort_order', 'code')
-            self.fields['tafsili_levels'].queryset = tafsili_levels_queryset
-        
+            ).order_by('sort_order', 'public_code')
+            self.fields['tafsili_types_level_1'].queryset = tafsili_type_queryset
+            self.fields['tafsili_types_level_2'].queryset = tafsili_type_queryset
+            self.fields['tafsili_types_level_3'].queryset = tafsili_type_queryset
+                
         if company_id and not self.instance.pk:
             # Set company for new instances
             from shared.models import Company
@@ -157,15 +178,6 @@ class SubAccountForm(forms.ModelForm):
                     'gl_account': _('انتخاب باید حساب کل (سطح 1) باشد.')
                 })
         
-        # Validate tafsili levels
-        tafsili_levels = cleaned_data.get('tafsili_levels', [])
-        if self.company_id and tafsili_levels:
-            for tafsili_level in tafsili_levels:
-                if tafsili_level.company_id != self.company_id:
-                    raise forms.ValidationError({
-                        'tafsili_levels': _('همه سطوح تفصیلی باید متعلق به همان شرکت باشند.')
-                    })
-        
         return cleaned_data
     
     def save(self, commit=True):
@@ -190,22 +202,23 @@ class SubAccountForm(forms.ModelForm):
                     created_by=self.instance.created_by if hasattr(self.instance, 'created_by') else None,
                 )
             
-            # Delete existing tafsili level relations
-            TafsiliLevelSubAccountRelation.objects.filter(
+            # Delete existing tafsili type relations
+            SubAccountTafsiliTypeRelation.objects.filter(
                 sub_account=instance,
                 company_id=self.company_id
             ).delete()
             
-            # Create tafsili level relations
-            tafsili_levels = self.cleaned_data.get('tafsili_levels', [])
-            for idx, tafsili_level in enumerate(tafsili_levels):
-                TafsiliLevelSubAccountRelation.objects.create(
-                    sub_account=instance,
-                    tafsili_level=tafsili_level,
-                    company=instance.company,
-                    is_primary=1 if idx == 0 else 0,  # First one is primary
-                    created_by=self.instance.created_by if hasattr(self.instance, 'created_by') else None,
-                )
-        
+            # Create new tafsili type relations for each level
+            for level in [1, 2, 3]:
+                tafsili_types = self.cleaned_data.get(f'tafsili_types_level_{level}', [])
+                for tafsili_type in tafsili_types:
+                    SubAccountTafsiliTypeRelation.objects.create(
+                        sub_account=instance,
+                        tafsili_type=tafsili_type,
+                        level=level,
+                        company=instance.company,
+                        created_by=self.instance.created_by if hasattr(self.instance, 'created_by') else None,
+                    )
+            
         return instance
 

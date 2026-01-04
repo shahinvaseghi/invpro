@@ -6,7 +6,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 from django.utils.translation import gettext_lazy as _
-from accounting.models.accounts import Account, TafsiliSubAccountRelation, SubAccountGLAccountRelation
+from accounting.models.accounts import Account, AccountGroup, SubAccountGLAccountRelation
 
 
 @login_required
@@ -265,10 +265,15 @@ def import_account_tree(request):
     """
     فراخوانی درختچه حساب‌ها از فایل معیار
     
+    POST params:
+        - update_existing: (optional) اگر True باشد، حساب‌های موجود را update می‌کند (default: True)
+        - skip_protected: (optional) اگر True باشد، حساب‌هایی که تفصیلی دارند را skip می‌کند (default: True)
+    
     Returns JSON with success status and statistics.
     """
     from shared.mixins import FeaturePermissionRequiredMixin
     from accounting.services.account_tree_importer import AccountTreeImporter
+    import json
     
     company_id = request.session.get('active_company_id')
     
@@ -285,8 +290,24 @@ def import_account_tree(request):
             'message': _('لطفاً ابتدا وارد سیستم شوید')
         }, status=403)
     
+    # دریافت پارامترهای اختیاری
     try:
-        importer = AccountTreeImporter(company_id=company_id)
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+        else:
+            data = request.POST
+        update_existing = data.get('update_existing', 'true').lower() == 'true'
+        skip_protected = data.get('skip_protected', 'true').lower() == 'true'
+    except:
+        update_existing = True
+        skip_protected = True
+    
+    try:
+        importer = AccountTreeImporter(
+            company_id=company_id,
+            update_existing=update_existing,
+            skip_protected=skip_protected
+        )
         stats = importer.import_account_tree()
         
         total_created = (
@@ -295,10 +316,28 @@ def import_account_tree(request):
             stats['sub_accounts_created']
         )
         
-        if total_created > 0:
+        total_updated = (
+            stats.get('groups_updated', 0) +
+            stats.get('gl_accounts_updated', 0) +
+            stats.get('sub_accounts_updated', 0)
+        )
+        
+        total_protected = (
+            stats.get('gl_accounts_protected', 0) +
+            stats.get('sub_accounts_protected', 0)
+        )
+        
+        if total_created > 0 or total_updated > 0:
             message = _('درختچه حساب‌ها با موفقیت فراخوانی شد')
+            if total_protected > 0:
+                message += f' ({total_protected} حساب محافظت شده نادیده گرفته شد)'
+        elif total_protected > 0:
+            message = _('همه حساب‌ها قبلاً ایجاد شده‌اند یا محافظت شده‌اند')
         else:
             message = _('همه حساب‌ها قبلاً ایجاد شده‌اند')
+        
+        if stats.get('errors'):
+            message += f' ({len(stats["errors"])} خطا)'
         
         return JsonResponse({
             'success': True,
@@ -317,4 +356,125 @@ def import_account_tree(request):
         return JsonResponse({
             'success': False,
             'message': _('خطا در فراخوانی درختچه حساب‌ها: {}').format(str(e))
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_account_tree(request):
+    """
+    دریافت ساختار درختی حساب‌ها برای نمایش tree view
+    
+    Returns JSON with tree structure:
+    {
+        'success': True,
+        'tree': [
+            {
+                'code': '1',
+                'name': 'دارایی های جاری',
+                'gl_accounts': [
+                    {
+                        'id': 1,
+                        'code': '11',
+                        'name': 'موجودی نقدی',
+                        'sub_accounts': [
+                            {
+                                'id': 2,
+                                'code': '1101',
+                                'name': 'صندوق',
+                                'tafsili_accounts': [...]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+    """
+    company_id = request.session.get('active_company_id')
+    
+    if not company_id:
+        return JsonResponse({
+            'success': False,
+            'message': _('لطفاً ابتدا یک شرکت را انتخاب کنید')
+        }, status=400)
+    
+    try:
+        # دریافت گروه‌ها
+        groups = AccountGroup.objects.filter(
+            company_id=company_id,
+            is_enabled=1
+        ).order_by('group_code')
+        
+        tree = []
+        
+        for group in groups:
+            # دریافت حساب‌های کل این گروه
+            gl_accounts = Account.objects.filter(
+                company_id=company_id,
+                account_level=1,
+                account_group=group,
+                is_enabled=1
+            ).order_by('account_code')
+            
+            gl_accounts_data = []
+            for gl in gl_accounts:
+                # دریافت معین‌های این حساب کل
+                sub_accounts = Account.objects.filter(
+                    company_id=company_id,
+                    account_level=2,
+                    parent_account=gl,
+                    is_enabled=1
+                ).order_by('account_code')
+                
+                sub_accounts_data = []
+                for sub in sub_accounts:
+                    # دریافت تفصیلی‌های این معین
+                    tafsili_accounts = Account.objects.filter(
+                        company_id=company_id,
+                        account_level=3,
+                        parent_account=sub,
+                        is_enabled=1
+                    ).order_by('account_code')
+                    
+                    tafsili_data = [
+                        {
+                            'id': t.id,
+                            'code': t.account_code,
+                            'name': t.account_name,
+                        }
+                        for t in tafsili_accounts
+                    ]
+                    
+                    sub_accounts_data.append({
+                        'id': sub.id,
+                        'code': sub.account_code,
+                        'name': sub.account_name,
+                        'tafsili_accounts': tafsili_data,
+                    })
+                
+                gl_accounts_data.append({
+                    'id': gl.id,
+                    'code': gl.account_code,
+                    'name': gl.account_name,
+                    'sub_accounts': sub_accounts_data,
+                })
+            
+            tree.append({
+                'code': group.group_code,
+                'name': group.group_name,
+                'gl_accounts': gl_accounts_data,
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'tree': tree
+        })
+    
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'message': _('خطا در دریافت درختچه حساب‌ها: {}').format(str(e))
         }, status=500)

@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "چارت حساب" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="section-header">
+        <h1>{% trans "چارت حساب" %}</h1>
+        <div class="page-actions">
+            <a href="{% url 'accounting:accounts' %}" class="btn btn-secondary">
+                <i class="fas fa-list"></i> {% trans "نمای لیستی" %}
+            </a>
+            <a href="{% url 'accounting:account_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> {% trans "ایجاد حساب جدید" %}
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div id="account-tree-container">
+                <div class="tree-loading" style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-spinner fa-spin"></i> {% trans "در حال بارگذاری..." %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+.account-tree {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.account-tree-item {
+    margin: 0.25rem 0;
+}
+
+.tree-node {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.tree-node:hover {
+    background-color: #f5f5f5;
+}
+
+.tree-toggle {
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-left: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    background: #fff;
+    font-size: 12px;
+    user-select: none;
+}
+
+.tree-toggle:hover {
+    background: #f0f0f0;
+}
+
+.tree-toggle.expanded::before {
+    content: '−';
+}
+
+.tree-toggle.collapsed::before {
+    content: '+';
+}
+
+.tree-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.tree-code {
+    font-family: monospace;
+    font-weight: bold;
+    min-width: 80px;
+    color: #2563eb;
+}
+
+.tree-name {
+    flex: 1;
+}
+
+.tree-level-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.tree-level-group {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+.tree-level-gl {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.tree-level-sub {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.tree-level-tafsili {
+    background: #fce7f3;
+    color: #9f1239;
+}
+
+.tree-children {
+    margin-right: 2rem;
+    margin-top: 0.25rem;
+    display: none;
+}
+
+.tree-children.expanded {
+    display: block;
+}
+
+.tree-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.tree-actions a {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    text-decoration: none;
+    border-radius: 3px;
+}
+
+.tree-actions .btn-view {
+    background: #3b82f6;
+    color: white;
+}
+
+.tree-actions .btn-edit {
+    background: #6b7280;
+    color: white;
+}
+
+.tree-actions .btn-delete {
+    background: #ef4444;
+    color: white;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('account-tree-container');
+    
+    // Load tree data
+    fetch('{% url "accounting:api_account_tree" %}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                container.innerHTML = renderTree(data.tree);
+            } else {
+                container.innerHTML = '<div class="alert alert-danger">' + data.message + '</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            container.innerHTML = '<div class="alert alert-danger">خطا در بارگذاری درختچه حساب‌ها</div>';
+        });
+    
+    function renderTree(tree) {
+        if (!tree || tree.length === 0) {
+            return '<div class="alert alert-info">هیچ حساب‌ای یافت نشد</div>';
+        }
+        
+        let html = '<ul class="account-tree">';
+        tree.forEach(group => {
+            html += renderGroup(group);
+        });
+        html += '</ul>';
+        return html;
+    }
+    
+    function renderGroup(group) {
+        const hasChildren = group.gl_accounts && group.gl_accounts.length > 0;
+        let html = '<li class="account-tree-item">';
+        html += '<div class="tree-node">';
+        
+        if (hasChildren) {
+            html += `<span class="tree-toggle collapsed" onclick="toggleNode(this)"></span>`;
+        } else {
+            html += '<span style="width: 20px; display: inline-block;"></span>';
+        }
+        
+        html += '<div class="tree-content">';
+        html += `<span class="tree-code">${group.code}</span>`;
+        html += `<span class="tree-name">${group.name}</span>`;
+        html += `<span class="tree-level-badge tree-level-group">گروه</span>`;
+        html += '</div>';
+        html += '</div>';
+        
+        if (hasChildren) {
+            html += '<ul class="tree-children" id="group-' + group.code + '-children">';
+            group.gl_accounts.forEach(gl => {
+                html += renderGLAccount(gl, group.code);
+            });
+            html += '</ul>';
+        }
+        
+        html += '</li>';
+        return html;
+    }
+    
+    function renderGLAccount(gl, groupCode) {
+        const hasChildren = gl.sub_accounts && gl.sub_accounts.length > 0;
+        let html = '<li class="account-tree-item">';
+        html += '<div class="tree-node" style="padding-right: 1.5rem;">';
+        
+        if (hasChildren) {
+            html += `<span class="tree-toggle collapsed" onclick="toggleNode(this)"></span>`;
+        } else {
+            html += '<span style="width: 20px; display: inline-block;"></span>';
+        }
+        
+        html += '<div class="tree-content">';
+        html += `<span class="tree-code">${gl.code}</span>`;
+        html += `<span class="tree-name">${gl.name}</span>`;
+        html += `<span class="tree-level-badge tree-level-gl">کل</span>`;
+        html += '</div>';
+        html += '<div class="tree-actions">';
+        html += `<a href="{% url 'accounting:account_detail' 0 %}" class="btn-view" onclick="this.href=this.href.replace('0', '${gl.id}')">مشاهده</a>`;
+        html += `<a href="{% url 'accounting:account_edit' 0 %}" class="btn-edit" onclick="this.href=this.href.replace('0', '${gl.id}')">ویرایش</a>`;
+        html += '</div>';
+        html += '</div>';
+        
+        if (hasChildren) {
+            html += '<ul class="tree-children" id="gl-' + gl.code + '-children">';
+            gl.sub_accounts.forEach(sub => {
+                html += renderSubAccount(sub, gl.code);
+            });
+            html += '</ul>';
+        }
+        
+        html += '</li>';
+        return html;
+    }
+    
+    function renderSubAccount(sub, glCode) {
+        const hasChildren = sub.tafsili_accounts && sub.tafsili_accounts.length > 0;
+        let html = '<li class="account-tree-item">';
+        html += '<div class="tree-node" style="padding-right: 3rem;">';
+        
+        if (hasChildren) {
+            html += `<span class="tree-toggle collapsed" onclick="toggleNode(this)"></span>`;
+        } else {
+            html += '<span style="width: 20px; display: inline-block;"></span>';
+        }
+        
+        html += '<div class="tree-content">';
+        html += `<span class="tree-code">${sub.code}</span>`;
+        html += `<span class="tree-name">${sub.name}</span>`;
+        html += `<span class="tree-level-badge tree-level-sub">معین</span>`;
+        html += '</div>';
+        html += '<div class="tree-actions">';
+        html += `<a href="{% url 'accounting:account_detail' 0 %}" class="btn-view" onclick="this.href=this.href.replace('0', '${sub.id}')">مشاهده</a>`;
+        html += `<a href="{% url 'accounting:account_edit' 0 %}" class="btn-edit" onclick="this.href=this.href.replace('0', '${sub.id}')">ویرایش</a>`;
+        html += '</div>';
+        html += '</div>';
+        
+        if (hasChildren) {
+            html += '<ul class="tree-children" id="sub-' + sub.code + '-children">';
+            sub.tafsili_accounts.forEach(tafsili => {
+                html += renderTafsili(tafsili, sub.code);
+            });
+            html += '</ul>';
+        }
+        
+        html += '</li>';
+        return html;
+    }
+    
+    function renderTafsili(tafsili, subCode) {
+        let html = '<li class="account-tree-item">';
+        html += '<div class="tree-node" style="padding-right: 4.5rem;">';
+        html += '<span style="width: 20px; display: inline-block;"></span>';
+        html += '<div class="tree-content">';
+        html += `<span class="tree-code">${tafsili.code}</span>`;
+        html += `<span class="tree-name">${tafsili.name}</span>`;
+        html += `<span class="tree-level-badge tree-level-tafsili">تفصیلی</span>`;
+        html += '</div>';
+        html += '<div class="tree-actions">';
+        html += `<a href="{% url 'accounting:account_detail' 0 %}" class="btn-view" onclick="this.href=this.href.replace('0', '${tafsili.id}')">مشاهده</a>`;
+        html += `<a href="{% url 'accounting:account_edit' 0 %}" class="btn-edit" onclick="this.href=this.href.replace('0', '${tafsili.id}')">ویرایش</a>`;
+        html += '</div>';
+        html += '</div>';
+        html += '</li>';
+        return html;
+    }
+    
+    window.toggleNode = function(toggle) {
+        const children = toggle.parentElement.nextElementSibling;
+        if (children && children.classList.contains('tree-children')) {
+            if (children.classList.contains('expanded')) {
+                children.classList.remove('expanded');
+                toggle.classList.remove('expanded');
+                toggle.classList.add('collapsed');
+            } else {
+                children.classList.add('expanded');
+                toggle.classList.remove('collapsed');
+                toggle.classList.add('expanded');
+            }
+        }
+    };
+});
+</script>
+{% endblock %}
+

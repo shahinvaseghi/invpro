@@ -6,7 +6,6 @@
 - `GLAccount` views (`gl_accounts.py`)
 - `SubAccount` views (`sub_accounts.py`)
 - `TafsiliAccount` views (`tafsili_accounts.py`)
-- `TafsiliHierarchy` views (`tafsili_hierarchy.py`)
 - `DocumentAttachment` views (`document_attachments.py`)
 - `Auth` views (`auth.py`)
 
@@ -19,7 +18,6 @@
 1. ✅ **GL Account Views**: `accounting/views/README_GL_ACCOUNTS.md` - کامل
 2. ⏳ **Sub Account Views**: `accounting/views/README_SUB_ACCOUNTS.md` - نیاز به تکمیل
 3. ⏳ **Tafsili Account Views**: `accounting/views/README_TAFSILI_ACCOUNTS.md` - نیاز به تکمیل
-4. ⏳ **Tafsili Hierarchy Views**: `accounting/views/README_TAFSILI_HIERARCHY.md` - نیاز به تکمیل
 5. ⏳ **Document Attachment Views**: `accounting/views/README_DOCUMENT_ATTACHMENTS.md` - نیاز به تکمیل
 6. ⏳ **Auth Views**: `accounting/views/README_AUTH.md` - نیاز به تکمیل
 
@@ -65,19 +63,6 @@
 - فیلتر بر اساس search, status, parent_id (sub account)
 - نمایش sub accounts مرتبط در لیست
 - پشتیبانی از تفصیلی شناور (floating tafsili)
-
-### Tafsili Hierarchy Views (`tafsili_hierarchy.py`)
-
-**4 کلاس view**:
-- `TafsiliHierarchyListView`: فهرست تفصیلی‌های چند سطحی (با tree structure)
-- `TafsiliHierarchyCreateView`: ایجاد تفصیلی چند سطحی جدید
-- `TafsiliHierarchyUpdateView`: ویرایش تفصیلی چند سطحی (با EditLockProtectedMixin)
-- `TafsiliHierarchyDeleteView`: حذف تفصیلی چند سطحی (با بررسی children)
-
-**ویژگی‌ها**:
-- فیلتر بر اساس search, status, level, parent_id
-- نمایش مسیر کامل (full path) در لیست
-- Tree structure support
 
 ### Document Attachment Views (`document_attachments.py`)
 
@@ -147,7 +132,6 @@
 3. **Edit Lock**: تمام UpdateView ها از `EditLockProtectedMixin` استفاده می‌کنند
 4. **Account Levels**: GL (level 1), Sub (level 2), Tafsili (level 3) به صورت صریح فیلتر می‌شوند
 5. **M2M Relations**: SubAccount و TafsiliAccount از M2M fields استفاده می‌کنند که در form.save() مدیریت می‌شوند
-6. **Tree Structure**: TafsiliHierarchy از parent/children برای ساختار درختی استفاده می‌کند
 
 ---
 

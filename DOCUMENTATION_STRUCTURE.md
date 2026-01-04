@@ -592,7 +592,7 @@ Overview کلی forms package در ماژول accounting با لینک به فا
 مستندسازی کامل IncomeExpenseCategoryForm: تمام fields، methods (__init__)، و category type handling.
 
 **`accounting/forms/README_OTHER_FORMS.md`**
-مستندسازی کامل سایر فرم‌ها: DocumentAttachmentUploadForm, DocumentAttachmentFilterForm, GLAccountForm, SubAccountForm, TafsiliAccountForm, TafsiliHierarchyForm. شامل تمام fields، methods، و validation logic.
+مستندسازی کامل سایر فرم‌ها: DocumentAttachmentUploadForm, DocumentAttachmentFilterForm, GLAccountForm, SubAccountForm, TafsiliAccountForm. شامل تمام fields، methods، و validation logic.
 
 **`accounting/views/README.md`**
 Overview کلی views package در ماژول accounting با لینک به فایل‌های README جزئی‌تر.
@@ -610,7 +610,7 @@ Overview کلی views package در ماژول accounting با لینک به فا
 مستندسازی کامل GL Account views: ListView, CreateView, UpdateView, DeleteView برای حساب‌های کل (level 1).
 
 **`accounting/views/README_OTHER_VIEWS.md`**
-مستندسازی سایر view ها: SubAccount views, TafsiliAccount views, TafsiliHierarchy views, DocumentAttachment views, Auth views.
+مستندسازی سایر view ها: SubAccount views, TafsiliAccount views, DocumentAttachment views, Auth views.
 
 **`sales/README_MODELS.md`**
 مستندسازی تمام models در ماژول sales.
@@ -652,7 +652,7 @@ Overview کلی views package در ماژول accounting با لینک به فا
 مستندسازی کامل GL Account views: ListView, CreateView, UpdateView, DeleteView برای حساب‌های کل (level 1) با تمام methods، context variables، و delete protection.
 
 **`accounting/views/README_OTHER_VIEWS.md`**
-مستندسازی سایر view ها: SubAccount views (4), TafsiliAccount views (4), TafsiliHierarchy views (4), DocumentAttachment views (4), Auth views (1). شامل خلاصه و لینک به README های جداگانه.
+مستندسازی سایر view ها: SubAccount views (4), TafsiliAccount views (4), DocumentAttachment views (4), Auth views (1). شامل خلاصه و لینک به README های جداگانه.
 
 #### Forms
 
@@ -672,7 +672,7 @@ Overview کلی forms package در ماژول accounting با ساختار و ل
 مستندسازی کامل IncomeExpenseCategoryForm: تمام fields، methods (__init__)، category type handling، و auto code generation.
 
 **`accounting/forms/README_OTHER_FORMS.md`**
-مستندسازی کامل سایر فرم‌ها: DocumentAttachmentUploadForm, DocumentAttachmentFilterForm, GLAccountForm, SubAccountForm, TafsiliAccountForm, TafsiliHierarchyForm. شامل تمام fields، methods، validation logic، و M2M relation management.
+مستندسازی کامل سایر فرم‌ها: DocumentAttachmentUploadForm, DocumentAttachmentFilterForm, GLAccountForm, SubAccountForm, TafsiliAccountForm. شامل تمام fields، methods، validation logic، و M2M relation management.
 
 #### Other Files
 

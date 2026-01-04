@@ -869,20 +869,6 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.DELETE_SAME_GROUP,
         ],
     ),
-    "accounting.accounts.tafsili_hierarchy": FeaturePermission(
-        code="accounting.accounts.tafsili_hierarchy",
-        label=_("Tafsili Hierarchy (تفصیلی چند سطحی)"),
-        actions=[
-            PermissionAction.VIEW_OWN,
-            PermissionAction.VIEW_ALL,
-            PermissionAction.VIEW_SAME_GROUP,
-            PermissionAction.CREATE,
-            PermissionAction.EDIT_OWN,
-            PermissionAction.EDIT_SAME_GROUP,
-            PermissionAction.DELETE_OWN,
-            PermissionAction.DELETE_SAME_GROUP,
-        ],
-    ),
     "accounting.attachments.upload": FeaturePermission(
         code="accounting.attachments.upload",
         label=_("Document Attachments Upload"),

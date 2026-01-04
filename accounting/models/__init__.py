@@ -20,14 +20,14 @@ from .accounts import (
     AccountGroup,
     Account,
     SubAccountGLAccountRelation,
+    SubAccountTafsiliTypeRelation,
     TafsiliSubAccountRelation,
 )
 
 # Tafsili Types
 from .tafsili_types import TafsiliType
 
-# Hierarchy
-from .hierarchy import TafsiliHierarchy, TafsiliLevelSubAccountRelation
+# Hierarchy (removed - replaced with SubAccountTafsiliTypeRelation)
 
 # Documents
 from .documents import (
@@ -97,12 +97,11 @@ __all__ = [
     'AccountGroup',
     'Account',
     'SubAccountGLAccountRelation',
+    'SubAccountTafsiliTypeRelation',
     'TafsiliSubAccountRelation',
     # Tafsili Types
     'TafsiliType',
-    # Hierarchy
-    'TafsiliHierarchy',
-    'TafsiliLevelSubAccountRelation',
+    # Hierarchy (removed)
     # Documents
     'AccountingDocument',
     'AccountingDocumentLine',

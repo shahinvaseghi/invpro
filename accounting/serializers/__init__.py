@@ -5,7 +5,6 @@ from .accounts import (
     GLAccountSerializer,
     SubAccountSerializer,
     TafsiliAccountSerializer,
-    TafsiliHierarchySerializer,
     AccountSerializer,
 )
 from .documents import (
@@ -23,7 +22,6 @@ __all__ = [
     'GLAccountSerializer',
     'SubAccountSerializer',
     'TafsiliAccountSerializer',
-    'TafsiliHierarchySerializer',
     'AccountSerializer',
     # Documents
     'AccountingDocumentSerializer',

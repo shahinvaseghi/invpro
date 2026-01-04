@@ -115,33 +115,8 @@ class SalesSettings(SalesBaseModel):
     Model for storing sales module settings.
     Stores tafsili level configuration for customers, banks, and checks.
     """
-    customer_tafsili_level = models.ForeignKey(
-        "accounting.TafsiliHierarchy",
-        on_delete=models.PROTECT,
-        related_name="sales_settings_as_customer",
-        null=True,
-        blank=True,
-        verbose_name=_("Customer Tafsili Level"),
-        help_text=_("سطح تفصیلی مشتری‌ها"),
-    )
-    bank_tafsili_level = models.ForeignKey(
-        "accounting.TafsiliHierarchy",
-        on_delete=models.PROTECT,
-        related_name="sales_settings_as_bank",
-        null=True,
-        blank=True,
-        verbose_name=_("Bank Tafsili Level"),
-        help_text=_("سطح تفصیلی بانک‌ها"),
-    )
-    check_tafsili_level = models.ForeignKey(
-        "accounting.TafsiliHierarchy",
-        on_delete=models.PROTECT,
-        related_name="sales_settings_as_check",
-        null=True,
-        blank=True,
-        verbose_name=_("Check Tafsili Level"),
-        help_text=_("سطح تفصیلی چک‌ها"),
-    )
+    # These fields were removed due to TafsiliHierarchy changes
+    # customer_tafsili_level, bank_tafsili_level, check_tafsili_level
 
     class Meta:
         verbose_name = _("Sales Settings")

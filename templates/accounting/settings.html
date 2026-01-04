@@ -19,10 +19,27 @@
             <div class="alert alert-info" style="margin-top: 1rem;">
                 <i class="fas fa-info-circle"></i>
                 <strong>{% trans "توجه:" %}</strong>
-                {% trans "این عملیات تمام گروه‌ها، حساب‌های کل و معین‌های موجود در فایل معیار را ایجاد می‌کند. در صورت وجود حساب‌های تکراری، از ایجاد مجدد آن‌ها صرف نظر می‌شود." %}
+                {% trans "این عملیات تمام گروه‌ها، حساب‌های کل و معین‌های موجود در فایل معیار را ایجاد می‌کند." %}
+                <ul style="margin-top: 0.5rem; padding-right: 1.5rem;">
+                    <li>{% trans "حساب‌هایی که تفصیلی دارند، محافظت می‌شوند و تغییر نمی‌کنند." %}</li>
+                    <li>{% trans "حساب‌هایی که تفصیلی ندارند، به‌روزرسانی می‌شوند." %}</li>
+                    <li>{% trans "حساب‌های جدید ایجاد می‌شوند." %}</li>
+                </ul>
             </div>
 
             <div style="margin-top: 1.5rem;">
+                <div class="form-check" style="margin-bottom: 1rem;">
+                    <input class="form-check-input" type="checkbox" id="update-existing" checked>
+                    <label class="form-check-label" for="update-existing">
+                        {% trans "به‌روزرسانی حساب‌های موجود (که تفصیلی ندارند)" %}
+                    </label>
+                </div>
+                <div class="form-check" style="margin-bottom: 1rem;">
+                    <input class="form-check-input" type="checkbox" id="skip-protected" checked>
+                    <label class="form-check-label" for="skip-protected">
+                        {% trans "نادیده گرفتن حساب‌های محافظت شده (که تفصیلی دارند)" %}
+                    </label>
+                </div>
                 <button type="button" class="btn btn-primary" id="import-accounts-btn">
                     <i class="fas fa-download"></i>
                     {% trans "فراخوان درختچه حساب‌ها" %}
@@ -59,6 +76,10 @@ document.addEventListener('DOMContentLoaded', function() {
         importMessage.innerHTML = '<i class="fas fa-spinner fa-spin"></i> در حال فراخوانی درختچه حساب‌ها...';
         importProgress.innerHTML = '';
 
+        // Get options
+        const updateExisting = document.getElementById('update-existing').checked;
+        const skipProtected = document.getElementById('skip-protected').checked;
+
         // Make API call
         fetch('{% url "accounting:import_account_tree" %}', {
             method: 'POST',
@@ -66,6 +87,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 'X-CSRFToken': '{{ csrf_token }}',
                 'Content-Type': 'application/json',
             },
+            body: JSON.stringify({
+                update_existing: updateExisting,
+                skip_protected: skipProtected
+            }),
         })
         .then(response => response.json())
         .then(data => {
@@ -75,15 +100,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (data.stats) {
                     let statsHtml = '<ul style="margin-top: 0.5rem; padding-right: 1.5rem;">';
+                    
+                    // Created
                     if (data.stats.groups_created) {
-                        statsHtml += '<li>گروه‌های ایجاد شده: ' + data.stats.groups_created + '</li>';
+                        statsHtml += '<li><strong>گروه‌های ایجاد شده:</strong> ' + data.stats.groups_created + '</li>';
                     }
                     if (data.stats.gl_accounts_created) {
-                        statsHtml += '<li>حساب‌های کل ایجاد شده: ' + data.stats.gl_accounts_created + '</li>';
+                        statsHtml += '<li><strong>حساب‌های کل ایجاد شده:</strong> ' + data.stats.gl_accounts_created + '</li>';
                     }
                     if (data.stats.sub_accounts_created) {
-                        statsHtml += '<li>حساب‌های معین ایجاد شده: ' + data.stats.sub_accounts_created + '</li>';
+                        statsHtml += '<li><strong>حساب‌های معین ایجاد شده:</strong> ' + data.stats.sub_accounts_created + '</li>';
                     }
+                    
+                    // Updated
+                    if (data.stats.groups_updated) {
+                        statsHtml += '<li><strong>گروه‌های به‌روزرسانی شده:</strong> ' + data.stats.groups_updated + '</li>';
+                    }
+                    if (data.stats.gl_accounts_updated) {
+                        statsHtml += '<li><strong>حساب‌های کل به‌روزرسانی شده:</strong> ' + data.stats.gl_accounts_updated + '</li>';
+                    }
+                    if (data.stats.sub_accounts_updated) {
+                        statsHtml += '<li><strong>حساب‌های معین به‌روزرسانی شده:</strong> ' + data.stats.sub_accounts_updated + '</li>';
+                    }
+                    
+                    // Protected (skipped)
+                    if (data.stats.gl_accounts_protected) {
+                        statsHtml += '<li><strong style="color: #856404;">حساب‌های کل محافظت شده (نادیده گرفته شده):</strong> ' + data.stats.gl_accounts_protected + '</li>';
+                    }
+                    if (data.stats.sub_accounts_protected) {
+                        statsHtml += '<li><strong style="color: #856404;">حساب‌های معین محافظت شده (نادیده گرفته شده):</strong> ' + data.stats.sub_accounts_protected + '</li>';
+                    }
+                    
+                    // Skipped
                     if (data.stats.groups_skipped) {
                         statsHtml += '<li>گروه‌های تکراری (نادیده گرفته شده): ' + data.stats.groups_skipped + '</li>';
                     }
@@ -93,6 +141,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (data.stats.sub_accounts_skipped) {
                         statsHtml += '<li>حساب‌های معین تکراری (نادیده گرفته شده): ' + data.stats.sub_accounts_skipped + '</li>';
                     }
+                    
+                    // Errors
+                    if (data.stats.errors && data.stats.errors.length > 0) {
+                        statsHtml += '<li><strong style="color: #dc3545;">خطاها:</strong><ul>';
+                        data.stats.errors.forEach(function(error) {
+                            statsHtml += '<li style="color: #dc3545;">' + error + '</li>';
+                        });
+                        statsHtml += '</ul></li>';
+                    }
+                    
                     statsHtml += '</ul>';
                     importProgress.innerHTML = statsHtml;
                 }

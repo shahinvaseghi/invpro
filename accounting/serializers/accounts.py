@@ -3,7 +3,7 @@ Serializers for Account models (GL, Sub, Tafsili).
 """
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
-from ..models import Account, TafsiliHierarchy, TafsiliLevelSubAccountRelation
+from ..models import Account
 
 
 class AccountSerializer(serializers.ModelSerializer):
@@ -158,45 +158,4 @@ class TafsiliAccountSerializer(serializers.ModelSerializer):
         return data
 
 
-class TafsiliHierarchySerializer(serializers.ModelSerializer):
-    """Serializer for Tafsili Level (سطح تفصیلی)."""
-    sub_accounts = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = TafsiliHierarchy
-        fields = [
-            'id',
-            'code',
-            'name',
-            'name_en',
-            'sort_order',
-            'description',
-            'is_enabled',
-            'sub_accounts',
-            'company',
-            'created_at',
-            'updated_at',
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-    
-    def get_sub_accounts(self, obj):
-        """Get related sub accounts."""
-        company_id = self.context.get('company_id')
-        if not company_id:
-            return []
-        
-        relations = TafsiliLevelSubAccountRelation.objects.filter(
-            tafsili_level=obj,
-            company_id=company_id
-        ).select_related('sub_account').order_by('-is_primary', 'sub_account__account_code')
-        
-        return [
-            {
-                'id': rel.sub_account.id,
-                'account_code': rel.sub_account.account_code,
-                'account_name': rel.sub_account.account_name,
-                'is_primary': rel.is_primary,
-            }
-            for rel in relations
-        ]
 

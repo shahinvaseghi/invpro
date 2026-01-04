@@ -5,7 +5,6 @@ from typing import Optional
 from django import forms
 from django.utils.translation import gettext_lazy as _
 from ..models import TreasuryAccount, Account
-from ..models.hierarchy import TafsiliHierarchy
 from shared.models import Company
 
 

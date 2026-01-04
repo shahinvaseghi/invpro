@@ -1,0 +1,10 @@
+{% extends "shared/generic/generic_list.html" %}
+{% load i18n %}
+
+{% block extra_actions %}
+{{ block.super }}
+<a href="{% url 'accounting:accounts_tree' %}" class="btn btn-secondary">
+  <i class="fas fa-sitemap"></i> {% trans "نمای درختی" %}
+</a>
+{% endblock %}
+

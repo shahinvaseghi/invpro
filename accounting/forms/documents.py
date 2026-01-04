@@ -9,7 +9,6 @@ from django.utils.translation import gettext_lazy as _
 
 from ..models.documents import AccountingDocument, AccountingDocumentLine
 from ..models.accounts import Account
-from ..models.hierarchy import TafsiliHierarchy
 from shared.forms.base import BaseModelForm
 
 

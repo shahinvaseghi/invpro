@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 from django.forms import modelformset_factory, BaseFormSet
 from django.utils.translation import gettext_lazy as _
 from shared.forms.base import BaseModelForm
-from accounting.models import Party, TafsiliHierarchy, Account
+from accounting.models import Party, Account
 from accounting.forms import PartyForm
 from .models import ItemPriceCard, SalesSettings
 
@@ -251,9 +251,7 @@ class SalesSettingsForm(BaseModelForm):
     class Meta:
         model = SalesSettings
         fields = [
-            'customer_tafsili_level',
-            'bank_tafsili_level',
-            'check_tafsili_level',
+            # TafsiliHierarchy fields removed
         ]
         widgets = {
             'customer_tafsili_level': forms.Select(attrs={
@@ -278,76 +276,34 @@ class SalesSettingsForm(BaseModelForm):
         }
     
     def __init__(self, *args, company_id: Optional[int] = None, **kwargs):
-        """Initialize form with company filtering."""
+        """Initialize form with tafsili level choices."""
         super().__init__(*args, **kwargs)
         self.company_id = company_id
-        
-        # Filter tafsili hierarchies by company
-        if company_id:
-            from accounting.models.hierarchy import TafsiliHierarchy
-            tafsili_qs = TafsiliHierarchy.objects.filter(
-                company_id=company_id,
-                is_enabled=1
-            ).order_by('sort_order', 'code')
-            
-            # Set queryset for all three fields
-            self.fields['customer_tafsili_level'].queryset = tafsili_qs
-            self.fields['bank_tafsili_level'].queryset = tafsili_qs
-            self.fields['check_tafsili_level'].queryset = tafsili_qs
-            
-            # Add empty option
-            self.fields['customer_tafsili_level'].empty_label = _('انتخاب کنید...')
-            self.fields['bank_tafsili_level'].empty_label = _('انتخاب کنید...')
-            self.fields['check_tafsili_level'].empty_label = _('انتخاب کنید...')
-        else:
-            from accounting.models.hierarchy import TafsiliHierarchy
-            self.fields['customer_tafsili_level'].queryset = TafsiliHierarchy.objects.none()
-            self.fields['bank_tafsili_level'].queryset = TafsiliHierarchy.objects.none()
-            self.fields['check_tafsili_level'].queryset = TafsiliHierarchy.objects.none()
+
+        # Set choices for tafsili level fields
+        tafsili_choices = [(1, _('سطح 1')), (2, _('سطح 2')), (3, _('سطح 3'))]
+
+        # Set choices for all three fields
+        self.fields['customer_tafsili_level'].choices = tafsili_choices
+        self.fields['bank_tafsili_level'].choices = tafsili_choices
+        self.fields['check_tafsili_level'].choices = tafsili_choices
+
+        # Add empty option
+        self.fields['customer_tafsili_level'].choices = [('', _('انتخاب کنید...'))] + tafsili_choices
+        self.fields['bank_tafsili_level'].choices = [('', _('انتخاب کنید...'))] + tafsili_choices
+        self.fields['check_tafsili_level'].choices = [('', _('انتخاب کنید...'))] + tafsili_choices
     
     def clean(self):
-        """Validate that selected tafsili levels belong to the same company."""
+        """Validate form data."""
         cleaned_data = super().clean()
-        company_id = self.company_id
-        
-        if company_id:
-            from accounting.models.hierarchy import TafsiliHierarchy
-            
-            customer_level = cleaned_data.get('customer_tafsili_level')
-            bank_level = cleaned_data.get('bank_tafsili_level')
-            check_level = cleaned_data.get('check_tafsili_level')
-            
-            # Validate customer level
-            if customer_level and customer_level.company_id != company_id:
-                raise ValidationError({
-                    'customer_tafsili_level': _('سطح تفصیلی انتخاب شده متعلق به شرکت فعلی نیست.')
-                })
-            
-            # Validate bank level
-            if bank_level and bank_level.company_id != company_id:
-                raise ValidationError({
-                    'bank_tafsili_level': _('سطح تفصیلی انتخاب شده متعلق به شرکت فعلی نیست.')
-                })
-            
-            # Validate check level
-            if check_level and check_level.company_id != company_id:
-                raise ValidationError({
-                    'check_tafsili_level': _('سطح تفصیلی انتخاب شده متعلق به شرکت فعلی نیست.')
-                })
-        
+
+        # No additional validation needed for simple choice fields
+
         return cleaned_data
 
 
 class CustomerForm(PartyForm):
     """Form for creating/editing customers."""
-    
-    tafsili_level = forms.ModelChoiceField(
-        queryset=TafsiliHierarchy.objects.none(),
-        widget=forms.Select(attrs={'class': 'form-control'}),
-        label=_('سطح تفصیلی'),
-        help_text=_('سطح تفصیلی برای این مشتری را انتخاب کنید'),
-        required=True,
-    )
     
     class Meta(PartyForm.Meta):
         pass
@@ -360,26 +316,7 @@ class CustomerForm(PartyForm):
             self.initial['party_type'] = 'customer'
             self.fields['party_type'].widget = forms.HiddenInput()
         
-        # Filter tafsili levels by company and is_customer flag
-        if company_id:
-            # Get tafsili levels where is_customer is True in metadata
-            tafsili_levels = TafsiliHierarchy.objects.filter(
-                company_id=company_id,
-                is_enabled=1
-            )
-            
-            # Filter by metadata is_customer
-            customer_levels = []
-            for level in tafsili_levels:
-                if level.metadata.get('is_customer', False):
-                    customer_levels.append(level.id)
-            
-            self.fields['tafsili_level'].queryset = TafsiliHierarchy.objects.filter(
-                id__in=customer_levels
-            ).order_by('sort_order', 'code')
-            
-            self.fields['tafsili_level'].empty_label = _("--- انتخاب کنید ---")
-            self.fields['tafsili_level'].label_from_instance = lambda obj: f"{obj.code} - {obj.name}"
+        # Tafsili level choices are already set as simple choice field
 
 
 class IncomeReceiptLocationForm(BaseModelForm):

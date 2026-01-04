@@ -15,6 +15,7 @@ from .accounts import (
     AccountDetailView,
     AccountUpdateView,
     AccountDeleteView,
+    AccountTreeView,
 )
 from .account_groups import (
     AccountGroupListView,
@@ -43,13 +44,6 @@ from .tafsili_accounts import (
     TafsiliAccountDetailView,
     TafsiliAccountUpdateView,
     TafsiliAccountDeleteView,
-)
-from .tafsili_hierarchy import (
-    TafsiliHierarchyListView,
-    TafsiliHierarchyCreateView,
-    TafsiliHierarchyDetailView,
-    TafsiliHierarchyUpdateView,
-    TafsiliHierarchyDeleteView,
 )
 from .tafsili_types import (
     TafsiliTypeListView,
@@ -116,6 +110,7 @@ __all__ = [
     'AccountDetailView',
     'AccountUpdateView',
     'AccountDeleteView',
+    'AccountTreeView',
     # Account Groups (گروه حساب‌ها)
     'AccountGroupListView',
     'AccountGroupCreateView',
@@ -140,12 +135,6 @@ __all__ = [
     'TafsiliAccountDetailView',
     'TafsiliAccountUpdateView',
     'TafsiliAccountDeleteView',
-    # Tafsili Hierarchy (تفصیلی چند سطحی)
-    'TafsiliHierarchyListView',
-    'TafsiliHierarchyCreateView',
-    'TafsiliHierarchyDetailView',
-    'TafsiliHierarchyUpdateView',
-    'TafsiliHierarchyDeleteView',
     # Tafsili Types (نوع تفصیلی)
     'TafsiliTypeListView',
     'TafsiliTypeCreateView',
