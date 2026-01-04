@@ -6,6 +6,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 from django.utils.translation import gettext_lazy as _
+from django.db import models
 from accounting.models.accounts import Account, AccountGroup, SubAccountGLAccountRelation
 
 
@@ -429,14 +430,18 @@ def get_account_tree(request):
                 
                 sub_accounts_data = []
                 for sub in sub_accounts:
-                    # دریافت تفصیلی‌های این معین
+                    # دریافت تفصیلی‌هایی که در سندهای این معین استفاده شده‌اند
                     tafsili_accounts = Account.objects.filter(
                         company_id=company_id,
                         account_level=3,
-                        parent_account=sub,
                         is_enabled=1
-                    ).order_by('account_code')
-                    
+                    ).filter(
+                        # تفصیلی‌هایی که در سندهای این معین استفاده شده‌اند
+                        models.Q(document_lines_as_tafsili_1__document__lines__sub_account=sub) |
+                        models.Q(document_lines_as_tafsili_2__document__lines__sub_account=sub) |
+                        models.Q(document_lines_as_tafsili_3__document__lines__sub_account=sub)
+                    ).distinct().order_by('account_code')
+
                     tafsili_data = [
                         {
                             'id': t.id,
@@ -445,7 +450,7 @@ def get_account_tree(request):
                         }
                         for t in tafsili_accounts
                     ]
-                    
+
                     sub_accounts_data.append({
                         'id': sub.id,
                         'code': sub.account_code,

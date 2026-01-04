@@ -7,10 +7,14 @@ from django.urls import reverse, reverse_lazy, NoReverseMatch
 from django.contrib import messages
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_http_methods
+from django.db import models
 from shared.mixins import FeaturePermissionRequiredMixin
 from shared.views.base import BaseCreateView, BaseFormsetCreateView, BaseListView
 from accounting.views.base import AccountingBaseView
-from accounting.models import CostCenter, IncomeExpenseCategory, Party, PartyAccount, TreasuryAccount
+from accounting.models import (
+    CostCenter, IncomeExpenseCategory, Party, PartyAccount, TreasuryAccount,
+    AccountingDocument, AccountingDocumentLine, Account
+)
 from accounting.forms import CostCenterForm, IncomeExpenseCategoryForm, PartyForm, PartyAccountForm, TreasuryAccountForm, FiscalMemoryConfigForm
 from accounting.views.automation import (
     AutomationProcessListView,
@@ -1347,6 +1351,274 @@ class ReportMonthlyView(FeaturePermissionRequiredMixin, TemplateView):
     template_name = 'accounting/reports/monthly.html'
     feature_code = 'accounting.reports.monthly'
     required_action = 'view'
+
+class AccountBrowserView(FeaturePermissionRequiredMixin, TemplateView):
+    """Account browser view for navigating account hierarchy and viewing transactions."""
+    template_name = 'accounting/reports/account_browser.html'
+    feature_code = 'accounting.reports.account_browser'
+    required_action = 'view'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'accounting'
+        context['page_title'] = 'مرور حساب‌ها'
+
+        # Get selected item from query parameters
+        selected_type = self.request.GET.get('type')
+        selected_id = self.request.GET.get('id')
+
+        if selected_type and selected_id:
+            if selected_type == 'account':
+                try:
+                    selected_account = Account.objects.get(
+                        id=selected_id,
+                        company_id=self.request.session.get('active_company_id'),
+                        is_enabled=1
+                    )
+                    context['selected_account'] = selected_account
+                    context['account_documents'] = self.get_account_documents(selected_account)
+                    context['account_balances'] = self.calculate_account_balances(selected_account)
+                except Account.DoesNotExist:
+                    pass
+            elif selected_type == 'group':
+                try:
+                    from accounting.models import AccountGroup
+                    selected_group = AccountGroup.objects.get(
+                        group_code=selected_id,
+                        company_id=self.request.session.get('active_company_id'),
+                        is_enabled=1
+                    )
+                    context['selected_group'] = selected_group
+                    context['group_documents'] = self.get_group_documents(selected_group)
+                    context['group_balances'] = self.calculate_group_balances(selected_group)
+                except AccountGroup.DoesNotExist:
+                    pass
+
+        return context
+
+    def get_account_documents(self, account):
+        """Get documents related to the selected account based on its level."""
+        company_id = self.request.session.get('active_company_id')
+
+        if account.account_level == 1:  # GL Account
+            # Get all documents where this GL account is used through sub-accounts
+            sub_accounts = Account.objects.filter(
+                company_id=company_id,
+                account_level=2,
+                parent_account=account,
+                is_enabled=1
+            )
+            related_accounts = list(sub_accounts.values_list('id', flat=True))
+            related_accounts.append(account.id)
+
+        elif account.account_level == 2:  # Sub Account
+            # Get all documents where this sub-account is used
+            related_accounts = [account.id]
+
+        elif account.account_level == 3:  # Tafsili Account
+            # Get all documents where this tafsili account is used
+            related_accounts = [account.id]
+
+        else:  # Account Group
+            # Get all documents for all accounts in this group
+            gl_accounts = Account.objects.filter(
+                company_id=company_id,
+                account_level=1,
+                account_group=account,
+                is_enabled=1
+            )
+            sub_accounts = Account.objects.filter(
+                company_id=company_id,
+                account_level=2,
+                parent_account__in=gl_accounts,
+                is_enabled=1
+            )
+            tafsili_accounts = Account.objects.filter(
+                company_id=company_id,
+                account_level=3,
+                parent_account__in=sub_accounts,
+                is_enabled=1
+            )
+            related_accounts = list(gl_accounts.values_list('id', flat=True)) + \
+                             list(sub_accounts.values_list('id', flat=True)) + \
+                             list(tafsili_accounts.values_list('id', flat=True))
+
+        # Get documents where any of these accounts appear in lines
+        documents = AccountingDocument.objects.filter(
+            company_id=company_id,
+            status__in=['POSTED', 'LOCKED'],
+            lines__sub_account__in=related_accounts
+        ).distinct().order_by('-document_date', '-id')[:100]  # Limit to last 100 documents
+
+        return documents
+
+    def calculate_account_balances(self, account):
+        """Calculate debit turnover, credit turnover, debit balance, and credit balance for the account."""
+        company_id = self.request.session.get('active_company_id')
+
+        if account.account_level == 1:  # GL Account
+            # Sum all transactions for sub-accounts under this GL
+            sub_accounts = Account.objects.filter(
+                company_id=company_id,
+                account_level=2,
+                parent_account=account,
+                is_enabled=1
+            )
+            account_ids = list(sub_accounts.values_list('id', flat=True))
+
+        elif account.account_level == 2:  # Sub Account
+            # Sum all transactions for this sub-account
+            account_ids = [account.id]
+
+        elif account.account_level == 3:  # Tafsili Account
+            # Sum all transactions for this tafsili account
+            account_ids = [account.id]
+
+        else:  # Account Group
+            # Sum all transactions for all accounts in this group
+            gl_accounts = Account.objects.filter(
+                company_id=company_id,
+                account_level=1,
+                account_group=account,
+                is_enabled=1
+            )
+            sub_accounts = Account.objects.filter(
+                company_id=company_id,
+                account_level=2,
+                parent_account__in=gl_accounts,
+                is_enabled=1
+            )
+            tafsili_accounts = Account.objects.filter(
+                company_id=company_id,
+                account_level=3,
+                parent_account__in=sub_accounts,
+                is_enabled=1
+            )
+            account_ids = list(gl_accounts.values_list('id', flat=True)) + \
+                         list(sub_accounts.values_list('id', flat=True)) + \
+                         list(tafsili_accounts.values_list('id', flat=True))
+
+        # Calculate totals from document lines
+        lines = AccountingDocumentLine.objects.filter(
+            company_id=company_id,
+            document__status__in=['POSTED', 'LOCKED'],
+            sub_account__in=account_ids
+        ).aggregate(
+            debit_turnover=models.Sum('debit'),
+            credit_turnover=models.Sum('credit')
+        )
+
+        debit_turnover = lines['debit_turnover'] or 0
+        credit_turnover = lines['credit_turnover'] or 0
+
+        # Calculate balances based on normal balance type
+        if account.normal_balance == 'DEBIT':
+            # For debit-normal accounts (assets, expenses)
+            debit_balance = debit_turnover - credit_turnover
+            credit_balance = 0
+            if debit_balance < 0:
+                credit_balance = abs(debit_balance)
+                debit_balance = 0
+        else:
+            # For credit-normal accounts (liabilities, equity, revenues)
+            credit_balance = credit_turnover - debit_turnover
+            debit_balance = 0
+            if credit_balance < 0:
+                debit_balance = abs(credit_balance)
+                credit_balance = 0
+
+        return {
+            'debit_turnover': debit_turnover,
+            'credit_turnover': credit_turnover,
+            'debit_balance': debit_balance,
+            'credit_balance': credit_balance,
+        }
+
+    def get_group_documents(self, group):
+        """Get documents related to all accounts in the selected group."""
+        company_id = self.request.session.get('active_company_id')
+
+        # Get all accounts in this group
+        gl_accounts = Account.objects.filter(
+            company_id=company_id,
+            account_level=1,
+            account_group=group,
+            is_enabled=1
+        )
+        sub_accounts = Account.objects.filter(
+            company_id=company_id,
+            account_level=2,
+            parent_account__in=gl_accounts,
+            is_enabled=1
+        )
+        tafsili_accounts = Account.objects.filter(
+            company_id=company_id,
+            account_level=3,
+            parent_account__in=sub_accounts,
+            is_enabled=1
+        )
+
+        related_accounts = list(gl_accounts.values_list('id', flat=True)) + \
+                         list(sub_accounts.values_list('id', flat=True)) + \
+                         list(tafsili_accounts.values_list('id', flat=True))
+
+        # Get documents where any of these accounts appear in lines
+        documents = AccountingDocument.objects.filter(
+            company_id=company_id,
+            status__in=['POSTED', 'LOCKED'],
+            lines__sub_account__in=related_accounts
+        ).distinct().order_by('-document_date', '-id')[:100]
+
+        return documents
+
+    def calculate_group_balances(self, group):
+        """Calculate balances for all accounts in the selected group."""
+        company_id = self.request.session.get('active_company_id')
+
+        # Get all accounts in this group
+        gl_accounts = Account.objects.filter(
+            company_id=company_id,
+            account_level=1,
+            account_group=group,
+            is_enabled=1
+        )
+        sub_accounts = Account.objects.filter(
+            company_id=company_id,
+            account_level=2,
+            parent_account__in=gl_accounts,
+            is_enabled=1
+        )
+        tafsili_accounts = Account.objects.filter(
+            company_id=company_id,
+            account_level=3,
+            parent_account__in=sub_accounts,
+            is_enabled=1
+        )
+
+        account_ids = list(gl_accounts.values_list('id', flat=True)) + \
+                     list(sub_accounts.values_list('id', flat=True)) + \
+                     list(tafsili_accounts.values_list('id', flat=True))
+
+        # Calculate totals from document lines
+        lines = AccountingDocumentLine.objects.filter(
+            company_id=company_id,
+            document__status__in=['POSTED', 'LOCKED'],
+            sub_account__in=account_ids
+        ).aggregate(
+            debit_turnover=models.Sum('debit'),
+            credit_turnover=models.Sum('credit')
+        )
+
+        debit_turnover = lines['debit_turnover'] or 0
+        credit_turnover = lines['credit_turnover'] or 0
+
+        # For groups, we don't have normal balance concept, so just show total turnover
+        return {
+            'debit_turnover': debit_turnover,
+            'credit_turnover': credit_turnover,
+            'debit_balance': debit_turnover - credit_turnover,
+            'credit_balance': credit_turnover - debit_turnover if credit_turnover > debit_turnover else 0,
+        }
 
 class AttachmentAttachView(FeaturePermissionRequiredMixin, TemplateView):
     template_name = 'accounting/attachments/attach.html'

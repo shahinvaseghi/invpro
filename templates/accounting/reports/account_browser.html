@@ -1,0 +1,453 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "مرور حساب‌ها" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="section-header">
+        <h1>{% trans "مرور حساب‌ها" %}</h1>
+    </div>
+
+    <div class="row">
+        <!-- Account Tree -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>{% trans "درخت حساب‌ها" %}</h5>
+                </div>
+                <div class="card-body">
+                    <div id="account-tree-container">
+                        <div class="tree-loading" style="text-align: center; padding: 2rem;">
+                            <i class="fas fa-spinner fa-spin"></i> {% trans "در حال بارگذاری..." %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Details -->
+        <div class="col-md-8">
+            {% if selected_account or selected_group %}
+            <div class="card">
+                <div class="card-header">
+                    {% if selected_account %}
+                        <h5>{% trans "اطلاعات حساب" %}: {{ selected_account.account_name }}</h5>
+                    {% elif selected_group %}
+                        <h5>{% trans "اطلاعات گروه" %}: {{ selected_group.group_name }}</h5>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>{% trans "گردش بدهکار" %}</h6>
+                                {% if selected_account %}
+                                    <p class="h4 text-danger">{{ account_balances.debit_turnover|floatformat:0 }}</p>
+                                {% elif selected_group %}
+                                    <p class="h4 text-danger">{{ group_balances.debit_turnover|floatformat:0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>{% trans "گردش بستانکار" %}</h6>
+                                {% if selected_account %}
+                                    <p class="h4 text-success">{{ account_balances.credit_turnover|floatformat:0 }}</p>
+                                {% elif selected_group %}
+                                    <p class="h4 text-success">{{ group_balances.credit_turnover|floatformat:0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>{% trans "مانده بدهکار" %}</h6>
+                                {% if selected_account %}
+                                    <p class="h4 text-primary">{{ account_balances.debit_balance|floatformat:0 }}</p>
+                                {% elif selected_group %}
+                                    <p class="h4 text-primary">{{ group_balances.debit_balance|floatformat:0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>{% trans "مانده بستانکار" %}</h6>
+                                {% if selected_account %}
+                                    <p class="h4 text-warning">{{ account_balances.credit_balance|floatformat:0 }}</p>
+                                {% elif selected_group %}
+                                    <p class="h4 text-warning">{{ group_balances.credit_balance|floatformat:0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if selected_account or selected_group %}
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5>{% trans "اسناد حسابداری" %}</h5>
+                </div>
+                <div class="card-body">
+                    {% if account_documents or group_documents %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>{% trans "شماره سند" %}</th>
+                                    <th>{% trans "تاریخ" %}</th>
+                                    <th>{% trans "شرح" %}</th>
+                                    <th>{% trans "گردش بدهکار" %}</th>
+                                    <th>{% trans "گردش بستانکار" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for document in account_documents|default:group_documents %}
+                                <tr>
+                                    <td><a href="{% url 'accounting:document_detail' document.id %}">{{ document.document_number }}</a></td>
+                                    <td>{{ document.document_date|date:"Y/m/d" }}</td>
+                                    <td>{{ document.description|truncatechars:50 }}</td>
+                                    <td class="text-danger">
+                                        {% if selected_account %}
+                                            {% for line in document.lines.all %}
+                                                {% if line.sub_account_id == selected_account.id and line.debit %}
+                                                    {{ line.debit|floatformat:0 }}
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% elif selected_group %}
+                                            {% for line in document.lines.all %}
+                                                {% if line.debit %}
+                                                    {{ line.debit|floatformat:0 }}
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-success">
+                                        {% if selected_account %}
+                                            {% for line in document.lines.all %}
+                                                {% if line.sub_account_id == selected_account.id and line.credit %}
+                                                    {{ line.credit|floatformat:0 }}
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% elif selected_group %}
+                                            {% for line in document.lines.all %}
+                                                {% if line.credit %}
+                                                    {{ line.credit|floatformat:0 }}
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted">{% trans "هیچ سندی یافت نشد" %}</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if not selected_account and not selected_group %}
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-info-circle fa-3x text-muted mb-3"></i>
+                    <h5>{% trans "لطفاً یک حساب از درخت سمت راست انتخاب کنید" %}</h5>
+                </div>
+            </div>
+            {% else %}
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-info-circle fa-3x text-muted mb-3"></i>
+                    <h5>{% trans "لطفاً یک حساب از درخت سمت راست انتخاب کنید" %}</h5>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<style>
+.account-tree {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.account-tree-item {
+    margin: 0.25rem 0;
+}
+
+.tree-node {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    cursor: pointer;
+}
+
+.tree-node:hover {
+    background-color: #f5f5f5;
+}
+
+.tree-toggle {
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-left: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    background: #fff;
+    font-size: 12px;
+    user-select: none;
+}
+
+.tree-toggle:hover {
+    background: #f0f0f0;
+}
+
+.tree-toggle.expanded::before {
+    content: '−';
+}
+
+.tree-toggle.collapsed::before {
+    content: '+';
+}
+
+.tree-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.tree-code {
+    font-family: monospace;
+    font-weight: bold;
+    min-width: 80px;
+    color: #2563eb;
+}
+
+.tree-name {
+    flex: 1;
+}
+
+.tree-level-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.tree-level-group {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+.tree-level-gl {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.tree-level-sub {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.tree-level-tafsili {
+    background: #fce7f3;
+    color: #9f1239;
+}
+
+.tree-children {
+    margin-right: 2rem;
+    margin-top: 0.25rem;
+    display: none;
+}
+
+.tree-children.expanded {
+    display: block;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('account-tree-container');
+
+    // Load tree data
+    fetch('{% url "accounting:api_account_tree" %}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                container.innerHTML = renderTree(data.tree);
+            } else {
+                container.innerHTML = '<div class="alert alert-danger">' + data.message + '</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            container.innerHTML = '<div class="alert alert-danger">خطا در بارگذاری درختچه حساب‌ها</div>';
+        });
+
+    function renderTree(tree) {
+        if (!tree || tree.length === 0) {
+            return '<div class="alert alert-info">هیچ حساب‌ای یافت نشد</div>';
+        }
+
+        let html = '<ul class="account-tree">';
+        tree.forEach(group => {
+            html += renderGroup(group);
+        });
+        html += '</ul>';
+        return html;
+    }
+
+    function renderGroup(group) {
+        const hasChildren = group.gl_accounts && group.gl_accounts.length > 0;
+        let html = '<li class="account-tree-item">';
+        html += '<div class="tree-node">';
+        if (hasChildren) {
+            html += `<span class="tree-toggle collapsed" onclick="event.stopPropagation(); toggleGroupChildren('${group.code}')"></span>`;
+        } else {
+            html += '<span style="width: 20px; display: inline-block;"></span>';
+        }
+        html += '<div class="tree-content" onclick="selectAccount(\'group\', \'' + group.code + '\')">';
+        html += `<span class="tree-code">${group.code}</span>`;
+        html += `<span class="tree-name">${group.name}</span>`;
+        html += `<span class="tree-level-badge tree-level-group">گروه</span>`;
+        html += '</div>';
+        html += '</div>';
+
+        if (hasChildren) {
+            html += '<ul class="tree-children" id="group-' + group.code + '-children" style="display: none;">';
+            group.gl_accounts.forEach(gl => {
+                html += renderGLAccount(gl, group.code);
+            });
+            html += '</ul>';
+        }
+
+        html += '</li>';
+        return html;
+    }
+
+    function renderGLAccount(gl, groupCode) {
+        const hasChildren = gl.sub_accounts && gl.sub_accounts.length > 0;
+        let html = '<li class="account-tree-item">';
+        html += '<div class="tree-node" onclick="selectAccount(\'account\', ' + gl.id + ')">';
+
+        if (hasChildren) {
+            html += `<span class="tree-toggle collapsed" onclick="event.stopPropagation(); toggleNode(this)"></span>`;
+        } else {
+            html += '<span style="width: 20px; display: inline-block;"></span>';
+        }
+
+        html += '<div class="tree-content">';
+        html += `<span class="tree-code">${gl.code}</span>`;
+        html += `<span class="tree-name">${gl.name}</span>`;
+        html += `<span class="tree-level-badge tree-level-gl">کل</span>`;
+        html += '</div>';
+        html += '</div>';
+
+        if (hasChildren) {
+            html += '<ul class="tree-children" id="gl-' + gl.code + '-children" style="display: none;">';
+            gl.sub_accounts.forEach(sub => {
+                html += renderSubAccount(sub, gl.code);
+            });
+            html += '</ul>';
+        }
+
+        html += '</li>';
+        return html;
+    }
+
+    function renderSubAccount(sub, glCode) {
+        const hasChildren = sub.tafsili_accounts && sub.tafsili_accounts.length > 0;
+        let html = '<li class="account-tree-item">';
+        html += '<div class="tree-node" onclick="selectAccount(\'account\', ' + sub.id + ')">';
+
+        if (hasChildren) {
+            html += `<span class="tree-toggle collapsed" onclick="event.stopPropagation(); toggleNode(this)"></span>`;
+        } else {
+            html += '<span style="width: 20px; display: inline-block;"></span>';
+        }
+
+        html += '<div class="tree-content">';
+        html += `<span class="tree-code">${sub.code}</span>`;
+        html += `<span class="tree-name">${sub.name}</span>`;
+        html += `<span class="tree-level-badge tree-level-sub">معین</span>`;
+        html += '</div>';
+        html += '</div>';
+
+        if (hasChildren) {
+            html += '<ul class="tree-children" id="sub-' + sub.code + '-children" style="display: none;">';
+            sub.tafsili_accounts.forEach(tafsili => {
+                html += renderTafsili(tafsili, sub.code);
+            });
+            html += '</ul>';
+        }
+
+        html += '</li>';
+        return html;
+    }
+
+    function renderTafsili(tafsili, subCode) {
+        let html = '<li class="account-tree-item">';
+        html += '<div class="tree-node" onclick="selectAccount(\'account\', ' + tafsili.id + ')">';
+        html += '<span style="width: 20px; display: inline-block;"></span>';
+        html += '<div class="tree-content">';
+        html += `<span class="tree-code">${tafsili.code}</span>`;
+        html += `<span class="tree-name">${tafsili.name}</span>`;
+        html += `<span class="tree-level-badge tree-level-tafsili">تفصیلی</span>`;
+        html += '</div>';
+        html += '</div>';
+        html += '</li>';
+        return html;
+    }
+
+    window.toggleNode = function(toggle) {
+        const children = toggle.parentElement.nextElementSibling;
+        if (children && children.classList.contains('tree-children')) {
+            if (children.style.display === 'block') {
+                children.style.display = 'none';
+                toggle.classList.remove('expanded');
+                toggle.classList.add('collapsed');
+            } else {
+                children.style.display = 'block';
+                toggle.classList.remove('collapsed');
+                toggle.classList.add('expanded');
+            }
+        }
+    };
+
+    window.toggleGroupChildren = function(groupCode) {
+        const children = document.getElementById('group-' + groupCode + '-children');
+        const toggle = event.target;
+        if (children) {
+            if (children.style.display === 'block') {
+                children.style.display = 'none';
+                toggle.classList.remove('expanded');
+                toggle.classList.add('collapsed');
+            } else {
+                children.style.display = 'block';
+                toggle.classList.remove('collapsed');
+                toggle.classList.add('expanded');
+            }
+        }
+    };
+
+    window.selectAccount = function(accountType, accountId) {
+        const url = new URL(window.location);
+        url.searchParams.set('type', accountType === 'group' ? 'group' : 'account');
+        url.searchParams.set('id', accountId);
+        window.location.href = url.toString();
+    };
+});
+</script>
+{% endblock %}

@@ -842,6 +842,12 @@ def get_menu_structure() -> List[MenuSection]:
                             icon="icon-chart",
                             permission="accounting.reports.monthly"
                         ),
+                        MenuItem(
+                            name="مرور حساب‌ها",
+                            url_name="accounting:report_account_browser",
+                            icon="icon-search",
+                            permission="accounting.reports.account_browser"
+                        ),
                     ]
                 ),
                 MenuItem(

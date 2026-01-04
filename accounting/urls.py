@@ -212,7 +212,8 @@ urlpatterns = [
     path('reports/party-statement/', views_module.ReportPartyStatementView.as_view(), name='report_party_statement'),
     path('reports/vat/', views_module.ReportVATView.as_view(), name='report_vat'),
     path('reports/monthly/', views_module.ReportMonthlyView.as_view(), name='report_monthly'),
-    
+    path('reports/account-browser/', views_module.AccountBrowserView.as_view(), name='report_account_browser'),
+
     # Settings (تنظیمات)
     path('settings/', views_module.SettingsView.as_view(), name='settings'),
     path('settings/treasury/', views_module.SettingsTreasuryView.as_view(), name='settings_treasury'),

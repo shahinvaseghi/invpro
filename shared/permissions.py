@@ -1315,6 +1315,15 @@ FEATURE_PERMISSION_MAP: Dict[str, FeaturePermission] = {
             PermissionAction.VIEW_SAME_GROUP,
         ],
     ),
+    "accounting.reports.account_browser": FeaturePermission(
+        code="accounting.reports.account_browser",
+        label=_("Account Browser"),
+        actions=[
+            PermissionAction.VIEW_OWN,
+            PermissionAction.VIEW_ALL,
+            PermissionAction.VIEW_SAME_GROUP,
+        ],
+    ),
     # Accounting – Settings
     "accounting.settings": FeaturePermission(
         code="accounting.settings",

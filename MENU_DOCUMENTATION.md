@@ -133,6 +133,7 @@
   - **گزارش طرف حساب**: `accounting:report_party_statement` - گزارش طرف حساب
   - **گزارش VAT**: `accounting:report_vat` - گزارش VAT
   - **گزارش عملیات ماهانه**: `accounting:report_monthly` - گزارش ماهانه
+  - **مرور حساب‌ها**: `accounting:report_account_browser` - مرور حساب‌ها
 - **اسناد و فایل‌ها** (زیرمنو):
   - **بارگذاری اسناد**: `accounting:attachment_upload` - بارگذاری
   - **مدیریت اسناد پیوست**: `accounting:attachment_list` - مدیریت پیوست
@@ -641,6 +642,8 @@
   - **مسیر**: `/accounting/reports/party-statement/`
 - `accounting:report_monthly` - گزارش عملیات ماهانه
   - **مسیر**: `/accounting/reports/monthly/`
+- `accounting:report_account_browser` - مرور حساب‌ها
+  - **مسیر**: `/accounting/reports/account-browser/`
 - `accounting:attachment_upload` - بارگذاری اسناد
   - **مسیر**: `/accounting/attachments/upload/`
 - `accounting:attachment_list` - مدیریت اسناد پیوست
