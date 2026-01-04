@@ -252,10 +252,13 @@ class SalesSettingsForm(BaseModelForm):
         model = SalesSettings
         fields = [
             'customer_tafsili_level_1',
+            'customer_tafsili_level_1_account_level',
             'customer_tafsili_level_1_description',
             'customer_tafsili_level_2',
+            'customer_tafsili_level_2_account_level',
             'customer_tafsili_level_2_description',
             'customer_tafsili_level_3',
+            'customer_tafsili_level_3_account_level',
             'customer_tafsili_level_3_description',
         ]
         widgets = {
@@ -265,39 +268,54 @@ class SalesSettingsForm(BaseModelForm):
             'customer_tafsili_level_1_description': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
-                'placeholder': 'توضیحات اضافی برای سطح ۱...',
+                'placeholder': 'توضیحات اضافی برای مشتری ۱...',
+            }),
+            'customer_tafsili_level_1_account_level': forms.Select(attrs={
+                'class': 'form-control',
             }),
             'customer_tafsili_level_2': forms.Select(attrs={
+                'class': 'form-control',
+            }),
+            'customer_tafsili_level_2_account_level': forms.Select(attrs={
                 'class': 'form-control',
             }),
             'customer_tafsili_level_2_description': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
-                'placeholder': 'توضیحات اضافی برای سطح ۲...',
+                'placeholder': 'توضیحات اضافی برای مشتری ۲...',
             }),
             'customer_tafsili_level_3': forms.Select(attrs={
+                'class': 'form-control',
+            }),
+            'customer_tafsili_level_3_account_level': forms.Select(attrs={
                 'class': 'form-control',
             }),
             'customer_tafsili_level_3_description': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
-                'placeholder': 'توضیحات اضافی برای سطح ۳...',
+                'placeholder': 'توضیحات اضافی برای مشتری ۳...',
             }),
         }
         labels = {
             'customer_tafsili_level_1': _('نوع تفصیلی مشتری ۱'),
-            'customer_tafsili_level_1_description': _('توضیحات سطح ۱'),
+            'customer_tafsili_level_1_account_level': _('سطح حساب ۱'),
+            'customer_tafsili_level_1_description': _('توضیحات مشتری ۱'),
             'customer_tafsili_level_2': _('نوع تفصیلی مشتری ۲'),
-            'customer_tafsili_level_2_description': _('توضیحات سطح ۲'),
+            'customer_tafsili_level_2_account_level': _('سطح حساب ۲'),
+            'customer_tafsili_level_2_description': _('توضیحات مشتری ۲'),
             'customer_tafsili_level_3': _('نوع تفصیلی مشتری ۳'),
-            'customer_tafsili_level_3_description': _('توضیحات سطح ۳'),
+            'customer_tafsili_level_3_account_level': _('سطح حساب ۳'),
+            'customer_tafsili_level_3_description': _('توضیحات مشتری ۳'),
         }
         help_texts = {
             'customer_tafsili_level_1': _('نوع تفصیلی سطح ۱ برای مشتریان'),
+            'customer_tafsili_level_1_account_level': _('سطح حساب تفصیلی برای نوع تفصیلی سطح ۱'),
             'customer_tafsili_level_1_description': _('توضیحات اضافی برای نوع تفصیلی سطح ۱ مشتریان'),
             'customer_tafsili_level_2': _('نوع تفصیلی سطح ۲ برای مشتریان'),
+            'customer_tafsili_level_2_account_level': _('سطح حساب تفصیلی برای نوع تفصیلی سطح ۲'),
             'customer_tafsili_level_2_description': _('توضیحات اضافی برای نوع تفصیلی سطح ۲ مشتریان'),
             'customer_tafsili_level_3': _('نوع تفصیلی سطح ۳ برای مشتریان'),
+            'customer_tafsili_level_3_account_level': _('سطح حساب تفصیلی برای نوع تفصیلی سطح ۳'),
             'customer_tafsili_level_3_description': _('توضیحات اضافی برای نوع تفصیلی سطح ۳ مشتریان'),
         }
 
@@ -325,6 +343,12 @@ class SalesSettingsForm(BaseModelForm):
             for field_name in ['customer_tafsili_level_1', 'customer_tafsili_level_2', 'customer_tafsili_level_3']:
                 self.fields[field_name].queryset = TafsiliType.objects.none()
 
+        # Configure account level fields
+        for field_name in ['customer_tafsili_level_1_account_level', 'customer_tafsili_level_2_account_level', 'customer_tafsili_level_3_account_level']:
+            if field_name in self.fields:
+                self.fields[field_name].empty_label = _("--- انتخاب کنید ---")
+                self.fields[field_name].required = False
+
     def clean(self):
         """Validate form data."""
         cleaned_data = super().clean()
@@ -342,19 +366,38 @@ class SalesSettingsForm(BaseModelForm):
 
 class CustomerForm(PartyForm):
     """Form for creating/editing customers."""
-    
+
     class Meta(PartyForm.Meta):
-        pass
+        # Ensure customer_tafsili_level is included for customers
+        fields = [
+            'party_type',
+            'party_name',
+            'party_name_en',
+            'national_id',
+            'tax_id',
+            'address',
+            'phone',
+            'email',
+            'contact_person',
+            'customer_tafsili_level',
+            'notes',
+            'is_enabled',
+        ]
     
     def __init__(self, *args, company_id: Optional[int] = None, **kwargs):
         super().__init__(*args, company_id=company_id, **kwargs)
-        
+
         # Set party_type to customer for new instances
         if not self.instance.pk:
             self.initial['party_type'] = 'customer'
             self.fields['party_type'].widget = forms.HiddenInput()
-        
-        # Tafsili level choices are already set as simple choice field
+
+        # Show customer_tafsili_level field only for customers
+        # For new instances, party_type is set to 'customer' above
+        # For existing instances, check if it's a customer
+        is_customer = (not self.instance.pk) or (self.instance.party_type == 'customer')
+        if not is_customer and 'customer_tafsili_level' in self.fields:
+            del self.fields['customer_tafsili_level']
 
 
 class IncomeReceiptLocationForm(BaseModelForm):

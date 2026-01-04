@@ -73,7 +73,18 @@ class Party(AccountingSortableModel):
         blank=True,
         help_text=_("Additional notes"),
     )
-    
+    customer_tafsili_level = models.PositiveSmallIntegerField(
+        choices=[
+            (1, _('سطح ۱')),
+            (2, _('سطح ۲')),
+            (3, _('سطح ۳')),
+        ],
+        null=True,
+        blank=True,
+        help_text=_("سطح تفصیلی مشتری (فقط برای مشتریان)"),
+        verbose_name=_("سطح تفصیلی مشتری"),
+    )
+
     class Meta:
         verbose_name = _("طرف حساب")
         verbose_name_plural = _("طرف حساب‌ها")

@@ -157,6 +157,39 @@ class SalesSettings(SalesBaseModel):
         verbose_name=_('توضیحات سطح ۳'),
         help_text=_('توضیحات اضافی برای نوع تفصیلی سطح ۳ مشتریان'),
     )
+    customer_tafsili_level_1_account_level = models.PositiveSmallIntegerField(
+        choices=[
+            (1, _('سطح ۱')),
+            (2, _('سطح ۲')),
+            (3, _('سطح ۳')),
+        ],
+        null=True,
+        blank=True,
+        verbose_name=_('سطح حساب ۱'),
+        help_text=_('سطح حساب تفصیلی برای نوع تفصیلی سطح ۱'),
+    )
+    customer_tafsili_level_2_account_level = models.PositiveSmallIntegerField(
+        choices=[
+            (1, _('سطح ۱')),
+            (2, _('سطح ۲')),
+            (3, _('سطح ۳')),
+        ],
+        null=True,
+        blank=True,
+        verbose_name=_('سطح حساب ۲'),
+        help_text=_('سطح حساب تفصیلی برای نوع تفصیلی سطح ۲'),
+    )
+    customer_tafsili_level_3_account_level = models.PositiveSmallIntegerField(
+        choices=[
+            (1, _('سطح ۱')),
+            (2, _('سطح ۲')),
+            (3, _('سطح ۳')),
+        ],
+        null=True,
+        blank=True,
+        verbose_name=_('سطح حساب ۳'),
+        help_text=_('سطح حساب تفصیلی برای نوع تفصیلی سطح ۳'),
+    )
 
     class Meta:
         verbose_name = _("Sales Settings")

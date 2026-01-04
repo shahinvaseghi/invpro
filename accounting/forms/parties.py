@@ -9,7 +9,7 @@ from ..models import Party, PartyAccount
 
 class PartyForm(forms.ModelForm):
     """Form for creating/editing parties."""
-    
+
     class Meta:
         model = Party
         fields = [
@@ -22,6 +22,7 @@ class PartyForm(forms.ModelForm):
             'phone',
             'email',
             'contact_person',
+            'customer_tafsili_level',
             'notes',
             'is_enabled',
         ]
@@ -35,6 +36,7 @@ class PartyForm(forms.ModelForm):
             'phone': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'contact_person': forms.TextInput(attrs={'class': 'form-control'}),
+            'customer_tafsili_level': forms.Select(attrs={'class': 'form-control'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
             'is_enabled': forms.Select(attrs={'class': 'form-control'}),
         }
@@ -48,14 +50,15 @@ class PartyForm(forms.ModelForm):
             'phone': _('تلفن'),
             'email': _('ایمیل'),
             'contact_person': _('شخص رابط'),
+            'customer_tafsili_level': _('سطح تفصیلی مشتری'),
             'notes': _('توضیحات'),
             'is_enabled': _('وضعیت'),
         }
-    
+
     def __init__(self, *args, company_id: Optional[int] = None, **kwargs):
         super().__init__(*args, **kwargs)
         self.company_id = company_id
-        
+
         if company_id:
             # Set company for new instances
             from shared.models import Company
@@ -63,6 +66,11 @@ class PartyForm(forms.ModelForm):
                 self.instance.company = Company.objects.get(pk=company_id)
             except Company.DoesNotExist:
                 pass
+
+        # Configure customer_tafsili_level field
+        if 'customer_tafsili_level' in self.fields:
+            self.fields['customer_tafsili_level'].empty_label = _("--- انتخاب کنید ---")
+            # This field should only be visible for customers, but we'll handle visibility in template/JavaScript
 
 
 class PartyAccountForm(forms.ModelForm):

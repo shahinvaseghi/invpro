@@ -27,7 +27,7 @@ class QCBatchAssignmentListView(BaseListView):
     template_name = 'shared/generic/generic_list.html'
     context_object_name = 'object_list'
     paginate_by = 50
-    feature_code = 'qc.batches'
+    feature_code = 'qc.batch_assignment'
     required_action = 'view_own'
     active_module = 'qc'
     default_status_filter = False
@@ -174,7 +174,7 @@ class QCBatchAssignmentListView(BaseListView):
 class QCBatchAssignmentView(FeaturePermissionRequiredMixin, QCBaseView, TemplateView):
     """View to assign batches to all lines of a QC-approved temporary receipt."""
     template_name = 'qc/batch_assignment.html'
-    feature_code = 'qc.batches'
+    feature_code = 'qc.batch_assignment'
     required_action = 'approve'
 
     def get_receipt(self):
@@ -218,7 +218,7 @@ class QCBatchAssignmentView(FeaturePermissionRequiredMixin, QCBaseView, Template
 
 class QCBatchAssignmentLineView(FeaturePermissionRequiredMixin, QCBaseView, View):
     """View to assign batch number to a specific line of a QC-approved temporary receipt."""
-    feature_code = 'qc.batches'
+    feature_code = 'qc.batch_assignment'
     required_action = 'approve'
 
     def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseRedirect:
