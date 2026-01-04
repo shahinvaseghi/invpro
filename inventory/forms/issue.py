@@ -930,7 +930,7 @@ class IssueLineBaseForm(forms.ModelForm):
 
 class IssuePermanentLineForm(IssueLineBaseForm):
     """Form for permanent issue line items."""
-    
+
     destination_type = forms.ModelChoiceField(
         queryset=CompanyUnit.objects.none(),
         required=False,
@@ -938,7 +938,7 @@ class IssuePermanentLineForm(IssueLineBaseForm):
         widget=forms.Select(attrs={'class': 'form-control'}),
         help_text=_('واحد کاری که این حواله را دریافت می‌کند.'),
     )
-    
+
     class Meta:
         model = IssuePermanentLine
         fields = [
@@ -958,11 +958,12 @@ class IssuePermanentLineForm(IssueLineBaseForm):
             'reason_code': forms.TextInput(attrs={'class': 'form-control'}),
             'line_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
-    
+
     def __init__(self, *args, company_id: Optional[int] = None, **kwargs):
         """Initialize form with company filtering."""
         super().__init__(*args, company_id=company_id, **kwargs)
         self._update_destination_type_queryset()
+        self._update_batch_queryset()
     
     def _update_destination_type_queryset(self) -> None:
         """Update destination_type (CompanyUnit) queryset after company_id is set."""
@@ -995,7 +996,59 @@ class IssuePermanentLineForm(IssueLineBaseForm):
                         self.initial['destination_type'] = company_unit.id
                     except CompanyUnit.DoesNotExist:
                         pass
-    
+
+    def _update_batch_queryset(self) -> None:
+        """Update batch queryset after company_id is set."""
+        if self.company_id and 'batch' in self.fields:
+            # Import here to avoid circular import
+            from qc.models import ItemBatch
+
+            # Get warehouse to filter batches by available inventory
+            warehouse = None
+            if hasattr(self.instance, 'warehouse_id') and self.instance.warehouse_id:
+                warehouse = self.instance.warehouse
+            elif self.data and 'warehouse' in self.data:
+                try:
+                    warehouse_id = int(self.data.get('warehouse'))
+                    warehouse = Warehouse.objects.filter(
+                        company_id=self.company_id,
+                        id=warehouse_id
+                    ).first()
+                except (ValueError, TypeError):
+                    pass
+
+            if warehouse:
+                # Filter batches that have inventory in this warehouse
+                from inventory.models import BatchWarehouse
+                batch_ids_with_inventory = BatchWarehouse.objects.filter(
+                    company_id=self.company_id,
+                    warehouse=warehouse,
+                    quantity__gt=0
+                ).values_list('batch_id', flat=True)
+
+                self.fields['batch'].queryset = ItemBatch.objects.filter(
+                    company_id=self.company_id,
+                    id__in=batch_ids_with_inventory,
+                    is_enabled=1
+                ).order_by('batch_number')
+            else:
+                # Fallback: show all enabled batches for this company
+                self.fields['batch'].queryset = ItemBatch.objects.filter(
+                    company_id=self.company_id,
+                    is_enabled=1
+                ).order_by('batch_number')
+
+            self.fields['batch'].label_from_instance = lambda obj: f"{obj.batch_number} - {obj.item.name}"
+            self.fields['batch'].empty_label = _("--- انتخاب batch ---")
+            self.fields['batch'].required = False  # Batch is optional unless item requires it
+
+    def clean(self) -> Dict[str, Any]:
+        """Validate form data."""
+        cleaned_data = super().clean()
+        item = cleaned_data.get('item')
+
+        return cleaned_data
+
     def clean_destination_type(self) -> Optional[CompanyUnit]:
         """Validate destination_type (CompanyUnit)."""
         company_unit = self.cleaned_data.get('destination_type')
@@ -1145,7 +1198,7 @@ class IssueConsumptionLineForm(IssueLineBaseForm):
             # If production module is not installed, hide destination_work_line field
             self.fields['destination_work_line'].widget = forms.HiddenInput()
             self.fields['destination_work_line'].required = False
-        
+
         # If editing, set initial values based on consumption_type
         if not self.is_bound and getattr(self.instance, 'pk', None):
             dest_type = getattr(self.instance, 'consumption_type', None)
@@ -1190,7 +1243,7 @@ class IssueConsumptionLineForm(IssueLineBaseForm):
                 self.add_error('destination_type_choice', _('Work line option is not available. Production module is not installed.'))
             elif not dest_work_line:
                 self.add_error('destination_work_line', _('Please select a work line.'))
-        
+
         return cleaned_data
     
     def save(self, commit: bool = True):
@@ -1263,12 +1316,13 @@ class IssueConsignmentLineForm(IssueLineBaseForm):
             'reason_code': forms.TextInput(attrs={'class': 'form-control'}),
             'line_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
-    
+
     def __init__(self, *args, company_id: Optional[int] = None, **kwargs):
         """Initialize form with company filtering."""
         super().__init__(*args, company_id=company_id, **kwargs)
         self._update_destination_type_queryset()
-    
+        self._update_batch_queryset()
+
     def _update_destination_type_queryset(self) -> None:
         """Update destination_type (CompanyUnit) queryset after company_id is set."""
         if self.company_id:
@@ -1307,6 +1361,19 @@ class IssueConsignmentLineForm(IssueLineBaseForm):
                         except CompanyUnit.DoesNotExist:
                             pass
     
+    def clean(self) -> Dict[str, Any]:
+        """Validate form data."""
+        cleaned_data = super().clean()
+        item = cleaned_data.get('item')
+
+        # Batch allocation validation will be handled at formset level
+        # when processing the inline batch allocations
+        if item and item.requires_temporary_receipt == 1:
+            # Validation will be done in the view/formset
+            pass
+
+        return cleaned_data
+
     def clean_destination_type(self) -> Optional[CompanyUnit]:
         """Validate destination_type (CompanyUnit)."""
         company_unit = self.cleaned_data.get('destination_type')
@@ -1674,7 +1741,10 @@ class IssueWarehouseTransferLineForm(IssueLineBaseForm):
                         self.initial['destination_warehouse'] = instance_dest_wh_id
                         self._ensure_warehouse_instance('destination_warehouse', instance_dest_wh_id)
                 self.fields['destination_warehouse'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
-    
+
+        # Update batch queryset
+        self._update_batch_queryset()
+
     def _update_querysets_after_company_id(self) -> None:
         """Update warehouse querysets after company_id is set by formset."""
         # This method is called by BaseLineFormSet after company_id is set
@@ -1903,7 +1973,7 @@ class IssueWarehouseTransferLineForm(IssueLineBaseForm):
                     self.add_error('destination_warehouse', _('انبار مقصد انتخاب شده برای این کالا مجاز نیست. لطفاً یکی از انبارهای مجاز را انتخاب کنید.'))
             else:
                 self.add_error('destination_warehouse', _('این کالا هیچ انبار مجازی ندارد. لطفاً ابتدا در تعریف کالا، حداقل یک انبار مجاز را انتخاب کنید.'))
-        
+
         # Validate inventory balance for source warehouse
         if source_warehouse and item and self.company_id:
             quantity = cleaned_data.get('quantity')

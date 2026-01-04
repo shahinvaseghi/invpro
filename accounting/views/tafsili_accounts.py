@@ -62,8 +62,8 @@ class TafsiliAccountListView(BaseListView):
                 # Filter by sub account relation
                 from accounting.models import TafsiliSubAccountRelation
                 queryset = queryset.filter(
-                    tafsili_sub_relations__sub_account_id=int(parent_id),
-                    tafsili_sub_relations__company_id=self.request.session.get('active_company_id')
+                    sub_account_relations_as_tafsili__sub_account_id=int(parent_id),
+                    sub_account_relations_as_tafsili__company_id=self.request.session.get('active_company_id')
                 ).distinct()
             except ValueError:
                 pass
@@ -260,7 +260,7 @@ class TafsiliAccountDetailView(BaseDetailView):
             'parent_account',
             'created_by',
             'edited_by',
-        ).prefetch_related('tafsili_sub_relations__sub_account')
+        ).prefetch_related('sub_account_relations_as_tafsili__sub_account')
         return queryset
     
     def get_page_title(self) -> str:

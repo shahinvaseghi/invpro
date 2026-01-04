@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
+from django.db.models import Sum
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -1372,13 +1373,144 @@ class ItemSerialHistory(InventoryBaseModel):
         super().save(*args, **kwargs)
 
 
+class BatchWarehouse(InventoryBaseModel):
+    """موجودی هر batch در هر warehouse - ردیابی warehouse-specific batch inventory"""
+
+    batch = models.ForeignKey(
+        "qc.ItemBatch",  # از QC module
+        on_delete=models.CASCADE,
+        related_name="warehouse_inventory",
+        verbose_name=_("Batch"),
+        help_text=_("Batch reference from QC module")
+    )
+    batch_number = models.CharField(
+        max_length=30,
+        verbose_name=_("Batch Number"),
+        help_text=_("Cached batch number")
+    )
+    warehouse = models.ForeignKey(
+        Warehouse,
+        on_delete=models.CASCADE,
+        related_name="batch_inventory",
+        verbose_name=_("Warehouse")
+    )
+    warehouse_code = models.CharField(
+        max_length=5,
+        validators=[NUMERIC_CODE_VALIDATOR],
+        verbose_name=_("Warehouse Code"),
+        help_text=_("Cached warehouse code")
+    )
+    quantity = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        default=Decimal("0"),
+        validators=[POSITIVE_DECIMAL],
+        verbose_name=_("Quantity"),
+        help_text=_("Current quantity of this batch in this warehouse")
+    )
+    unit = models.CharField(
+        max_length=30,
+        verbose_name=_("Unit"),
+        help_text=_("Unit of measure")
+    )
+
+    class Meta:
+        verbose_name = _("Batch Warehouse Inventory")
+        verbose_name_plural = _("Batch Warehouse Inventories")
+        ordering = ("company", "batch", "warehouse")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "batch", "warehouse"),
+                name="inventory_batch_warehouse_unique",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=("company", "batch"), name="inv_batch_wh_batch_idx"),
+            models.Index(fields=("company", "warehouse"), name="inv_batch_wh_wh_idx"),
+            models.Index(fields=("company", "batch_number"), name="inv_batch_wh_batch_num_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.batch_number} - {self.warehouse.name} - {self.quantity} {self.unit}"
+
+    def save(self, *args, **kwargs):
+        """Auto-populate cached fields."""
+        if self.batch and not self.batch_number:
+            self.batch_number = self.batch.batch_number
+
+        if self.warehouse and not self.warehouse_code:
+            self.warehouse_code = self.warehouse.public_code
+
+        super().save(*args, **kwargs)
+
+
+class IssueBatchAllocation(InventoryBaseModel):
+    """تخصیص چند batch به یک issue line - امکان استفاده از چند batch در یک حواله"""
+
+    # Generic relation to any issue line model
+    issue_line_type = models.CharField(
+        max_length=50,
+        verbose_name=_("Issue Line Type")
+    )
+    issue_line_id = models.BigIntegerField(
+        verbose_name=_("Issue Line ID")
+    )
+    batch = models.ForeignKey(
+        "qc.ItemBatch",
+        on_delete=models.PROTECT,
+        related_name="issue_allocations",
+        verbose_name=_("Batch")
+    )
+    batch_number = models.CharField(
+        max_length=30,
+        verbose_name=_("Batch Number"),
+        help_text=_("Cached batch number")
+    )
+    allocated_quantity = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        validators=[POSITIVE_DECIMAL],
+        verbose_name=_("Allocated Quantity"),
+        help_text=_("Quantity allocated from this batch to the issue line")
+    )
+    unit = models.CharField(
+        max_length=30,
+        verbose_name=_("Unit"),
+        help_text=_("Unit of measure")
+    )
+
+    class Meta:
+        verbose_name = _("Issue Batch Allocation")
+        verbose_name_plural = _("Issue Batch Allocations")
+        ordering = ("company", "issue_line_type", "issue_line_id", "batch")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "issue_line_type", "issue_line_id", "batch"),
+                name="inventory_issue_batch_allocation_unique",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=("company", "issue_line_id"), name="inv_batch_alloc_line_idx"),
+            models.Index(fields=("company", "batch"), name="inv_batch_alloc_batch_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.issue_line_type}:{self.issue_line_id} - {self.batch_number} - {self.allocated_quantity} {self.unit}"
+
+    def save(self, *args, **kwargs):
+        """Auto-populate cached fields."""
+        if self.batch and not self.batch_number:
+            self.batch_number = self.batch.batch_number
+        super().save(*args, **kwargs)
+
+
 # ============================================================================
 # Issue and Receipt Line Models (Multi-line support)
 # ============================================================================
 
 class IssueLineBase(InventoryBaseModel, SortableModel):
     """Base model for issue line items."""
-    
+
     item = models.ForeignKey(
         Item,
         on_delete=models.PROTECT,
@@ -1405,18 +1537,32 @@ class IssueLineBase(InventoryBaseModel, SortableModel):
         blank=True,
         validators=[POSITIVE_DECIMAL],
     )
+    # Batch tracking is now handled via IssueBatchAllocation model
+    # allowing multiple batches per issue line
     line_notes = models.TextField(blank=True)
     
     class Meta:
         abstract = True
         ordering = ("sort_order", "id")
-    
+
     def save(self, *args, **kwargs):
         if self.item and not self.item_code:
             self.item_code = self.item.item_code
         if self.warehouse and not self.warehouse_code:
             self.warehouse_code = self.warehouse.public_code
         super().save(*args, **kwargs)
+
+    @property
+    def total_allocated_quantity(self):
+        """مجموع کمیت تخصیص یافته از تمام batchها"""
+        return self.batch_allocations.aggregate(
+            total=Sum('allocated_quantity')
+        )['total'] or Decimal('0')
+
+    @property
+    def is_fully_allocated(self):
+        """آیا تمام quantity تخصیص یافته یا نه"""
+        return self.total_allocated_quantity >= self.quantity
 
 
 class IssuePermanentLine(IssueLineBase):
