@@ -240,6 +240,12 @@ def get_menu_structure() -> List[MenuSection]:
                             permission="inventory.issues.warehouse_transfer",
                             requires_superuser=True
                         ),
+                        MenuItem(
+                            name="تخصیص بچ حواله‌های انتقال",
+                            url_name="inventory:issue_warehouse_transfer_batch_assignment_list",
+                            icon="icon-tag",
+                            permission="inventory.issues.warehouse_transfer"
+                        ),
                     ]
                 ),
                 MenuItem(

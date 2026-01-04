@@ -2136,3 +2136,289 @@ class IssueWarehouseTransferRejectView(InventoryBaseView, View):
         warehouse_transfer.save(update_fields=['approver', 'edited_by'])
         messages.success(request, _('حواله انتقال بین انبار رد شد. تاییدکننده حذف شد و می‌توانید تاییدکننده جدیدی انتخاب کنید.'))
         return HttpResponseRedirect(reverse('inventory:issue_warehouse_transfer_detail', kwargs={'pk': warehouse_transfer.pk}))
+
+
+# ============================================================================
+# Batch Allocation Views for Issues
+# ============================================================================
+
+class IssueWarehouseTransferBatchAssignmentListView(InventoryBaseView, BaseDocumentListView):
+    """List warehouse transfer issues that need batch assignment."""
+
+    model = models.IssueWarehouseTransfer
+    template_name = 'inventory/issue_warehouse_transfer_batch_assignment_list.html'
+    feature_code = 'inventory.issues.warehouse_transfer'
+    permission_field = 'created_by'
+    search_fields = ['document_code']
+    default_status_filter = False
+    default_order_by = ['-id']
+    paginate_by = 50
+    stats_enabled = True
+
+    def get_select_related(self):
+        """Select related objects."""
+        return ['created_by', 'production_transfer']
+
+    def get_prefetch_related(self):
+        """Prefetch lines with related objects."""
+        return ['lines__item', 'lines__source_warehouse', 'lines__destination_warehouse']
+
+    def apply_custom_filters(self, queryset):
+        """Apply posted status and search filters."""
+        queryset = super().apply_custom_filters(queryset)
+
+        # Only show approved warehouse transfers that are not fully allocated
+        queryset = queryset.filter(
+            status=models.IssueWarehouseTransfer.Status.APPROVED,
+            is_locked=1,  # Must be locked (approved)
+        ).exclude(
+            # Exclude fully allocated transfers (all lines have complete batch allocation)
+            lines__isnull=False
+        ).annotate(
+            # This will be filtered in get_queryset to show only those needing batch assignment
+        ).distinct()
+
+        # Search in lines (item name and code)
+        search_query = self.request.GET.get('search', '').strip()
+        if search_query:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(document_code__icontains=search_query) |
+                Q(lines__item__name__icontains=search_query) |
+                Q(lines__item__item_code__icontains=search_query)
+            )
+
+        return queryset.distinct()
+
+    def get_queryset(self):
+        """Get queryset with additional filtering for batch assignment needs."""
+        queryset = super().get_queryset()
+
+        # Filter to show only transfers that have lines needing batch allocation
+        # A line needs batch allocation if:
+        # 1. Item requires batch tracking
+        # 2. Line is not fully allocated (total_allocated_quantity < quantity)
+        from django.db.models import Q, Sum, Case, When, IntegerField
+        from django.db.models.functions import Coalesce
+
+        # Annotate each transfer with batch allocation status
+        transfers_needing_batches = []
+        for transfer in queryset.prefetch_related('lines__batch_allocations'):
+            needs_batch_assignment = False
+            for line in transfer.lines.all():
+                if line.item and line.item.has_batch_tracking == 1:
+                    total_allocated = line.batch_allocations.filter(is_enabled=1).aggregate(
+                        total=Coalesce(Sum('allocated_quantity'), 0)
+                    )['total']
+                    if total_allocated < line.quantity:
+                        needs_batch_assignment = True
+                        break
+
+            if needs_batch_assignment:
+                transfers_needing_batches.append(transfer.pk)
+
+        return queryset.filter(pk__in=transfers_needing_batches)
+
+    def get_page_title(self) -> str:
+        """Return page title."""
+        return _('Warehouse Transfers - Batch Assignment Required')
+
+    def get_breadcrumbs(self):
+        """Return breadcrumbs."""
+        return [
+            {'label': _('Inventory'), 'url': None},
+            {'label': _('Issues'), 'url': None},
+            {'label': _('Warehouse Transfer Batch Assignment'), 'url': None},
+        ]
+
+    def get_create_url(self):
+        """No create URL for this list."""
+        return None
+
+
+class IssueWarehouseTransferBatchAssignmentView(LineFormsetMixin, InventoryBaseView, FormView):
+    """View to assign batches to all lines of a warehouse transfer issue."""
+
+    template_name = 'inventory/issue_warehouse_transfer_batch_assignment.html'
+    form_class = None  # Will use formset
+    feature_code = 'inventory.issues.warehouse_transfer'
+    success_message = _('Batch assignments saved successfully.')
+
+    def dispatch(self, request, *args, **kwargs):
+        """Check if warehouse transfer needs batch assignment."""
+        self.warehouse_transfer = self.get_warehouse_transfer()
+        if not self.needs_batch_assignment():
+            messages.info(request, _('This warehouse transfer does not need batch assignment.'))
+            return HttpResponseRedirect(reverse('inventory:issue_warehouse_transfer_detail', kwargs={'pk': self.warehouse_transfer.pk}))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_warehouse_transfer(self):
+        """Get warehouse transfer object."""
+        return get_object_or_404(
+            models.IssueWarehouseTransfer,
+            pk=self.kwargs.get('pk'),
+            company_id=self.request.session.get('active_company_id'),
+            status=models.IssueWarehouseTransfer.Status.APPROVED,
+            is_locked=1
+        )
+
+    def needs_batch_assignment(self):
+        """Check if warehouse transfer needs batch assignment."""
+        for line in self.warehouse_transfer.lines.filter(is_enabled=1).select_related('item'):
+            if line.item and line.item.has_batch_tracking == 1:
+                total_allocated = line.batch_allocations.filter(is_enabled=1).aggregate(
+                    total=Sum('allocated_quantity')
+                )['total'] or 0
+                if total_allocated < line.quantity:
+                    return True
+        return False
+
+    def get_formset_prefix(self):
+        """No formset prefix needed."""
+        return None
+
+    def get_formset_kwargs(self):
+        """No formset kwargs needed."""
+        return {}
+
+    def get_context_data(self, **kwargs):
+        """Get context with lines needing batch assignment."""
+        context = super().get_context_data(**kwargs)
+        context['warehouse_transfer'] = self.warehouse_transfer
+
+        # Get lines that need batch assignment
+        lines_needing_batches = []
+        for line in self.warehouse_transfer.lines.filter(is_enabled=1).select_related('item', 'source_warehouse'):
+            if line.item and line.item.has_batch_tracking == 1:
+                total_allocated = line.batch_allocations.filter(is_enabled=1).aggregate(
+                    total=Coalesce(Sum('allocated_quantity'), 0)
+                )['total']
+
+                if total_allocated < line.quantity:
+                    lines_needing_batches.append({
+                        'line': line,
+                        'total_allocated': total_allocated,
+                        'remaining_quantity': line.quantity - total_allocated,
+                        'batch_allocations': line.batch_allocations.filter(is_enabled=1).select_related('batch'),
+                    })
+
+        context['lines_needing_batches'] = lines_needing_batches
+        context['page_title'] = _('Batch Assignment - %(doc)s') % {'doc': self.warehouse_transfer.document_code}
+        return context
+
+    def get_success_url(self):
+        """Return success URL."""
+        if self.needs_batch_assignment():
+            # Still needs assignment, stay on this page
+            return reverse('inventory:issue_warehouse_transfer_batch_assignment', kwargs={'pk': self.warehouse_transfer.pk})
+        else:
+            # Assignment complete, go to detail view
+            return reverse('inventory:issue_warehouse_transfer_detail', kwargs={'pk': self.warehouse_transfer.pk})
+
+
+class IssueWarehouseTransferBatchAssignmentLineView(InventoryBaseView, View):
+    """View to assign batches to a specific line of a warehouse transfer issue."""
+
+    feature_code = 'inventory.issues.warehouse_transfer'
+
+    def post(self, request, *args, **kwargs):
+        """Handle batch allocation for a specific line."""
+        warehouse_transfer = get_object_or_404(
+            models.IssueWarehouseTransfer,
+            pk=kwargs.get('pk'),
+            company_id=request.session.get('active_company_id'),
+            status=models.IssueWarehouseTransfer.Status.APPROVED,
+            is_locked=1
+        )
+
+        line = get_object_or_404(
+            models.IssueWarehouseTransferLine,
+            pk=kwargs.get('line_id'),
+            document=warehouse_transfer,
+            is_enabled=1
+        )
+
+        # Check if line needs batch assignment
+        if not line.item or line.item.has_batch_tracking != 1:
+            messages.info(request, _('This item does not require batch tracking.'))
+            return HttpResponseRedirect(reverse('inventory:issue_warehouse_transfer_batch_assignment', kwargs={'pk': warehouse_transfer.pk}))
+
+        # Get formset for batch allocations
+        formset_class = forms.get_issue_batch_allocation_formset(line, extra=1)
+        formset = formset_class(request.POST, line=line)
+
+        if formset.is_valid():
+            with transaction.atomic():
+                # Save the formset
+                instances = formset.save(commit=False)
+
+                # Set common fields for new instances
+                for instance in instances:
+                    if not instance.pk:  # New allocation
+                        instance.company = warehouse_transfer.company
+                        instance.issue_line_type = line.__class__.__name__
+                        instance.issue_line_id = line.pk
+                        instance.batch_number = instance.batch.batch_number
+                        instance.unit = line.unit
+                        instance.created_by = request.user
+                    instance.edited_by = request.user
+                    instance.save()
+
+                # Delete removed allocations
+                for obj in formset.deleted_objects:
+                    obj.is_enabled = 0
+                    obj.disabled_by = request.user
+                    obj.save(update_fields=['is_enabled', 'disabled_by'])
+
+                # Update BatchWarehouse quantities
+                self.update_batch_warehouse_quantities(line, formset)
+
+            messages.success(request, _('Batch allocations saved successfully for %(item)s.') % {
+                'item': line.item.name
+            })
+        else:
+            # Show formset errors
+            for form in formset:
+                if form.errors:
+                    for field, errors in form.errors.items():
+                        for error in errors:
+                            messages.error(request, f'{form.fields[field].label}: {error}')
+            if formset.non_form_errors():
+                for error in formset.non_form_errors():
+                    messages.error(request, str(error))
+
+        return HttpResponseRedirect(reverse('inventory:issue_warehouse_transfer_batch_assignment', kwargs={'pk': warehouse_transfer.pk}))
+
+    def update_batch_warehouse_quantities(self, line, formset):
+        """Update BatchWarehouse quantities based on allocations."""
+        from inventory.models import BatchWarehouse
+
+        # Get source warehouse
+        source_warehouse = getattr(line, 'source_warehouse', None)
+        if not source_warehouse:
+            return
+
+        # Group allocations by batch
+        batch_allocations = {}
+        for form in formset:
+            if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
+                batch = form.cleaned_data.get('batch')
+                quantity = form.cleaned_data.get('allocated_quantity', 0)
+                if batch:
+                    if batch not in batch_allocations:
+                        batch_allocations[batch] = 0
+                    batch_allocations[batch] += quantity
+
+        # Update BatchWarehouse for each batch
+        for batch, total_allocated in batch_allocations.items():
+            batch_warehouse, created = BatchWarehouse.objects.get_or_create(
+                company=line.company,
+                batch=batch,
+                warehouse=source_warehouse,
+                defaults={'quantity': 0, 'unit': line.unit}
+            )
+
+            # For warehouse transfers, we don't reduce quantity here
+            # Quantity reduction happens when the transfer is actually executed
+            # This is just for tracking allocations
+            pass

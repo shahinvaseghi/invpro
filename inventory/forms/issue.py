@@ -33,6 +33,7 @@ from inventory.models import (
     IssueConsumptionLine,
     IssueConsignmentLine,
     IssueWarehouseTransferLine,
+    IssueBatchAllocation,
     ReceiptConsignment,
 )
 from inventory.services import serials as serial_service
@@ -2053,4 +2054,194 @@ IssueWarehouseTransferLineFormSet = inlineformset_factory(
     min_num=1,
     validate_min=True,
 )
+
+
+# ============================================================================
+# Batch Allocation Forms for Issues
+# ============================================================================
+
+class IssueBatchAllocationForm(forms.ModelForm):
+    """Form for allocating batches to issue lines."""
+
+    batch = forms.ModelChoiceField(
+        queryset=None,
+        required=True,
+        label=_('Batch'),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        help_text=_('Select a batch that has available quantity in the source warehouse.')
+    )
+
+    allocated_quantity = forms.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        min_value=Decimal('0.000001'),
+        required=True,
+        label=_('Allocated Quantity'),
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.000001'}),
+        help_text=_('Quantity to allocate from this batch.')
+    )
+
+    class Meta:
+        model = IssueBatchAllocation
+        fields = ['batch', 'allocated_quantity']
+        widgets = {
+            'batch': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, line, *args, **kwargs):
+        """Initialize form with available batches for the issue line."""
+        super().__init__(*args, **kwargs)
+        self.line = line
+        self.company_id = line.company_id
+
+        # Get available batches for this item in the source warehouse
+        from qc.models import ItemBatch
+        from inventory.models import BatchWarehouse
+
+        if hasattr(line, 'source_warehouse') and line.source_warehouse:
+            source_warehouse = line.source_warehouse
+        else:
+            # For non-warehouse transfer issues, use the warehouse field
+            source_warehouse = getattr(line, 'warehouse', None)
+
+        if source_warehouse and line.item:
+            # Get batches that have available quantity in this warehouse
+            available_batches = BatchWarehouse.objects.filter(
+                company_id=self.company_id,
+                batch__item=line.item,
+                warehouse=source_warehouse,
+                quantity__gt=0,  # Must have positive quantity
+                batch__is_enabled=1,
+                batch__status=ItemBatch.Status.AVAILABLE
+            ).select_related('batch').order_by('batch__batch_number')
+
+            # Get unique batches
+            batch_ids = available_batches.values_list('batch_id', flat=True).distinct()
+            self.fields['batch'].queryset = ItemBatch.objects.filter(
+                id__in=batch_ids
+            ).order_by('batch_number')
+
+            # Set help text
+            self.fields['batch'].help_text = _('Available batches in %(warehouse)s') % {
+                'warehouse': source_warehouse.name
+            }
+
+            # Set max quantity for validation
+            if self.instance and self.instance.pk:
+                # For existing allocation, max is current + available
+                current_allocation = self.instance.allocated_quantity
+                batch_warehouse = available_batches.filter(batch=self.instance.batch).first()
+                if batch_warehouse:
+                    max_quantity = batch_warehouse.quantity + current_allocation
+                    self.fields['allocated_quantity'].validators.append(
+                        forms.MaxValueValidator(max_quantity)
+                    )
+                    self.fields['allocated_quantity'].help_text = _(
+                        'Maximum available: %(max)s %(unit)s'
+                    ) % {'max': max_quantity, 'unit': line.unit}
+            else:
+                # For new allocation, show max available for each batch
+                self.fields['allocated_quantity'].help_text = _(
+                    'Select a batch to see available quantity'
+                )
+
+        # Set required quantity for the line
+        if hasattr(line, 'quantity'):
+            self.fields['allocated_quantity'].validators.append(
+                forms.MaxValueValidator(line.quantity)
+            )
+
+    def clean_allocated_quantity(self):
+        """Validate allocated quantity."""
+        allocated_quantity = self.cleaned_data.get('allocated_quantity')
+        batch = self.cleaned_data.get('batch')
+
+        if allocated_quantity and batch:
+            from inventory.models import BatchWarehouse
+
+            # Check if batch has enough available quantity
+            batch_warehouse = BatchWarehouse.objects.filter(
+                company_id=self.company_id,
+                batch=batch,
+                warehouse=getattr(self.line, 'source_warehouse', getattr(self.line, 'warehouse', None)),
+                quantity__gte=allocated_quantity
+            ).first()
+
+            if not batch_warehouse:
+                # For existing allocation, check if we have enough including current allocation
+                if self.instance and self.instance.pk and self.instance.batch == batch:
+                    current_allocation = self.instance.allocated_quantity
+                    batch_warehouse = BatchWarehouse.objects.filter(
+                        company_id=self.company_id,
+                        batch=batch,
+                        warehouse=getattr(self.line, 'source_warehouse', getattr(self.line, 'warehouse', None)),
+                        quantity__gte=(allocated_quantity - current_allocation)
+                    ).first()
+
+                if not batch_warehouse:
+                    available = BatchWarehouse.objects.filter(
+                        company_id=self.company_id,
+                        batch=batch,
+                        warehouse=getattr(self.line, 'source_warehouse', getattr(self.line, 'warehouse', None))
+                    ).first()
+                    available_qty = available.quantity if available else 0
+                    raise forms.ValidationError(
+                        _('Batch %(batch)s has only %(available)s %(unit)s available.') % {
+                            'batch': batch.batch_number,
+                            'available': available_qty,
+                            'unit': self.line.unit
+                        }
+                    )
+
+        return allocated_quantity
+
+
+class IssueBatchAllocationFormSet(forms.BaseModelFormSet):
+    """Formset for batch allocations to a single issue line."""
+
+    def __init__(self, line, *args, **kwargs):
+        """Initialize formset with issue line."""
+        self.line = line
+        super().__init__(*args, **kwargs)
+
+    def get_form_kwargs(self, index):
+        """Pass line to each form."""
+        kwargs = super().get_form_kwargs(index)
+        kwargs['line'] = self.line
+        return kwargs
+
+    def clean(self):
+        """Validate total allocated quantity equals line quantity."""
+        super().clean()
+
+        if not self.forms:
+            return
+
+        total_allocated = sum(
+            form.cleaned_data.get('allocated_quantity', 0)
+            for form in self.forms
+            if form.cleaned_data and not form.cleaned_data.get('DELETE', False)
+        )
+
+        line_quantity = getattr(self.line, 'quantity', 0)
+
+        if abs(total_allocated - line_quantity) > Decimal('0.000001'):
+            raise forms.ValidationError(
+                _('Total allocated quantity (%(total)s) must equal line quantity (%(required)s).') % {
+                    'total': total_allocated,
+                    'required': line_quantity
+                }
+            )
+
+
+def get_issue_batch_allocation_formset(line, extra=1):
+    """Factory function to create batch allocation formset for an issue line."""
+    return forms.modelformset_factory(
+        IssueBatchAllocation,
+        form=IssueBatchAllocationForm,
+        formset=IssueBatchAllocationFormSet,
+        extra=extra,
+        can_delete=True,
+        min_num=0,
+    )(line=line)
 

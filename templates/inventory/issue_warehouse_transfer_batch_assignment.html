@@ -1,0 +1,210 @@
+{% extends "inventory/base.html" %}
+{% load i18n %}
+
+{% block page_title %}{% trans "Warehouse Transfer Batch Assignment" %}{% endblock %}
+
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span><a href="{% url 'inventory:issue_warehouse_transfer_batch_assignment_list' %}">{% trans "Batch Assignment" %}</a></span>
+<span class="separator">/</span>
+<span>{{ warehouse_transfer.document_code }}</span>
+{% endblock %}
+
+{% block inventory_content %}
+<div class="form-container">
+  <div class="warehouse-transfer-info" style="margin-bottom: 2rem; padding: 1.5rem; background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;">
+    <h3 style="margin-top: 0;">{% trans "Warehouse Transfer Information" %}</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+      <div>
+        <strong>{% trans "Document Code" %}:</strong><br>
+        <code>{{ warehouse_transfer.document_code }}</code>
+      </div>
+      <div>
+        <strong>{% trans "Document Date" %}:</strong><br>
+        {{ warehouse_transfer.document_date|date:"Y/m/d" }}
+      </div>
+      {% if warehouse_transfer.production_transfer %}
+      <div>
+        <strong>{% trans "Production Transfer" %}:</strong><br>
+        <code>{{ warehouse_transfer.production_transfer.transfer_code }}</code>
+      </div>
+      {% endif %}
+      <div>
+        <strong>{% trans "Status" %}:</strong><br>
+        <span class="badge badge-success">{% trans "Approved" %}</span>
+      </div>
+    </div>
+  </div>
+
+  {% if lines_needing_batches %}
+  <div class="batch-assignment-section">
+    <h3>{% trans "Batch Assignment Required" %}</h3>
+    <p class="form-text">{% trans "Assign batch numbers to items that require batch tracking before the warehouse transfer can be executed." %}</p>
+
+    {% for line_info in lines_needing_batches %}
+    <div class="line-batch-card" style="margin-bottom: 2rem; padding: 1.5rem; border: 1px solid #e5e7eb; border-radius: 8px;">
+      <div class="line-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div>
+          <h4 style="margin: 0;">{{ line_info.line.item.name }}</h4>
+          <small class="text-muted">{{ line_info.line.item.item_code }} | {{ line_info.line.source_warehouse.name }} → {{ line_info.line.destination_warehouse.name }}</small>
+        </div>
+        <div class="quantity-info">
+          <strong>{{ line_info.remaining_quantity|floatformat:2 }} {{ line_info.line.unit }}</strong>
+          <small class="text-muted">{% trans "remaining" %}</small>
+        </div>
+      </div>
+
+      {% if line_info.batch_allocations %}
+      <div class="current-allocations" style="margin-bottom: 1rem;">
+        <h5>{% trans "Current Allocations" %}</h5>
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>{% trans "Batch" %}</th>
+                <th>{% trans "Allocated Quantity" %}</th>
+                <th>{% trans "Actions" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for allocation in line_info.batch_allocations %}
+              <tr>
+                <td><code>{{ allocation.batch_number }}</code></td>
+                <td>{{ allocation.allocated_quantity|floatformat:2 }} {{ allocation.unit }}</td>
+                <td>
+                  <button type="button" class="btn btn-sm btn-outline-danger"
+                          onclick="deleteAllocation({{ allocation.id }}, '{{ allocation.batch_number }}')">
+                    <i class="icon-trash"></i>
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+
+      <form method="post" action="{% url 'inventory:issue_warehouse_transfer_line_batch_assignment' pk=warehouse_transfer.pk line_id=line_info.line.pk %}">
+        {% csrf_token %}
+        <div class="form-row">
+          <div class="col-md-6">
+            <label for="id_batch_{{ line_info.line.pk }}">{% trans "Select Batch" %}</label>
+            <select name="batch" id="id_batch_{{ line_info.line.pk }}" class="form-control" required>
+              <option value="">-- {% trans "Choose batch" %} --</option>
+              <!-- Batch options will be populated by JavaScript -->
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label for="id_quantity_{{ line_info.line.pk }}">{% trans "Quantity" %}</label>
+            <input type="number" name="allocated_quantity" id="id_quantity_{{ line_info.line.pk }}"
+                   class="form-control" step="0.000001" min="0.000001"
+                   max="{{ line_info.remaining_quantity|floatformat:6 }}" required>
+          </div>
+          <div class="col-md-2">
+            <label>&nbsp;</label>
+            <button type="submit" class="btn btn-primary btn-block">
+              <i class="icon-plus"></i> {% trans "Add" %}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+    {% endfor %}
+
+  </div>
+
+  {% else %}
+  <div class="empty-state">
+    <h3>{% trans "All batch assignments complete" %}</h3>
+    <p>{% trans "This warehouse transfer has complete batch assignments for all items requiring batch tracking." %}</p>
+    <div class="action-buttons">
+      <a href="{% url 'inventory:issue_warehouse_transfer_detail' pk=warehouse_transfer.pk %}" class="btn btn-primary">
+        <i class="icon-eye"></i> {% trans "View Transfer Details" %}
+      </a>
+      <a href="{% url 'inventory:issue_warehouse_transfer_batch_assignment_list' %}" class="btn btn-secondary">
+        <i class="icon-arrow-left"></i> {% trans "Back to List" %}
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+// Batch data for each line
+const batchData = {
+  {% for line_info in lines_needing_batches %}
+  {{ line_info.line.pk }}: [
+    {% for batch in line_info.line.available_batches %}
+    {
+      id: {{ batch.id }},
+      number: '{{ batch.batch_number }}',
+      available: {{ batch.available_quantity|floatformat:6 }},
+      unit: '{{ batch.unit }}'
+    },
+    {% empty %}
+    // No batches available
+    {% endfor %}
+  ]{% if not forloop.last %},{% endif %}
+  {% endfor %}
+};
+
+// Function to update batch options when line is selected
+function updateBatchOptions(lineId) {
+  const batchSelect = document.getElementById(`id_batch_${lineId}`);
+  const quantityInput = document.getElementById(`id_quantity_${lineId}`);
+
+  batchSelect.innerHTML = '<option value="">-- Choose batch --</option>';
+
+  if (batchData[lineId]) {
+    batchData[lineId].forEach(batch => {
+      const option = document.createElement('option');
+      option.value = batch.id;
+      option.textContent = `${batch.number} (${batch.available} ${batch.unit} available)`;
+      batchSelect.appendChild(option);
+    });
+  }
+}
+
+// Function to update quantity max when batch is selected
+function updateQuantityMax(lineId) {
+  const batchSelect = document.getElementById(`id_batch_${lineId}`);
+  const quantityInput = document.getElementById(`id_quantity_${lineId}`);
+  const selectedBatchId = batchSelect.value;
+
+  if (selectedBatchId && batchData[lineId]) {
+    const selectedBatch = batchData[lineId].find(b => b.id == selectedBatchId);
+    if (selectedBatch) {
+      quantityInput.max = selectedBatch.available;
+      quantityInput.placeholder = `Max: ${selectedBatch.available} ${selectedBatch.unit}`;
+    }
+  }
+}
+
+// Initialize batch options for all lines
+document.addEventListener('DOMContentLoaded', function() {
+  {% for line_info in lines_needing_batches %}
+  updateBatchOptions({{ line_info.line.pk }});
+
+  // Add event listeners
+  const batchSelect{{ line_info.line.pk }} = document.getElementById(`id_batch_{{ line_info.line.pk }}`);
+  if (batchSelect{{ line_info.line.pk }}) {
+    batchSelect{{ line_info.line.pk }}.addEventListener('change', function() {
+      updateQuantityMax({{ line_info.line.pk }});
+    });
+  }
+  {% endfor %}
+});
+
+// Function to delete allocation
+function deleteAllocation(allocationId, batchNumber) {
+  if (confirm(`Are you sure you want to remove allocation for batch ${batchNumber}?`)) {
+    // This would need a separate endpoint for deletion
+    // For now, we'll reload the page
+    location.reload();
+  }
+}
+</script>
+
+{% endblock %}

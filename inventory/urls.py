@@ -2,7 +2,15 @@
 URL configuration for the inventory module.
 """
 from django.urls import path
+# Import views directly from issues module to avoid circular imports
+from .views.issues import (
+    IssueWarehouseTransferBatchAssignmentListView,
+    IssueWarehouseTransferBatchAssignmentView,
+    IssueWarehouseTransferBatchAssignmentLineView,
+)
+# Import other views
 from . import views
+
 # Import API endpoints from refactored module (with Type Hints)
 from .views import api as views_api
 
@@ -147,6 +155,9 @@ urlpatterns = [
     path('issues/warehouse-transfer/<int:pk>/unlock/', views.IssueWarehouseTransferUnlockView.as_view(), name='issue_warehouse_transfer_unlock'),
     path('issues/warehouse-transfer/<int:pk>/approve/', views.IssueWarehouseTransferApproveView.as_view(), name='issue_warehouse_transfer_approve'),
     path('issues/warehouse-transfer/<int:pk>/reject/', views.IssueWarehouseTransferRejectView.as_view(), name='issue_warehouse_transfer_reject'),
+    path('issues/warehouse-transfer/batch-assignment/', IssueWarehouseTransferBatchAssignmentListView.as_view(), name='issue_warehouse_transfer_batch_assignment_list'),
+    path('issues/warehouse-transfer/<int:pk>/batch-assignment/', IssueWarehouseTransferBatchAssignmentView.as_view(), name='issue_warehouse_transfer_batch_assignment'),
+    path('issues/warehouse-transfer/<int:pk>/line/<int:line_id>/batch-assignment/', IssueWarehouseTransferBatchAssignmentLineView.as_view(), name='issue_warehouse_transfer_line_batch_assignment'),
     
     # Stocktaking
     path('stocktaking/deficit/', views.StocktakingDeficitListView.as_view(), name='stocktaking_deficit'),

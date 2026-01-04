@@ -1,0 +1,85 @@
+{% extends "inventory/base.html" %}
+{% load i18n %}
+
+{% block page_title %}{% trans "Warehouse Transfer Batch Assignment" %}{% endblock %}
+
+{% block breadcrumb_extra %}
+<span class="separator">/</span>
+<span>{% trans "Issues" %}</span>
+<span class="separator">/</span>
+<span>{% trans "Warehouse Transfer Batch Assignment" %}</span>
+{% endblock %}
+
+{% block inventory_content %}
+<div class="form-container">
+  <div class="page-header">
+    <h1>{% trans "Warehouse Transfers Requiring Batch Assignment" %}</h1>
+    <p class="form-text">{% trans "List of approved warehouse transfers that have items requiring batch assignment." %}</p>
+  </div>
+
+  {% if object_list %}
+  <div class="table-responsive">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>{% trans "Document Code" %}</th>
+          <th>{% trans "Date" %}</th>
+          <th>{% trans "Production Transfer" %}</th>
+          <th>{% trans "Lines Needing Batches" %}</th>
+          <th>{% trans "Batch Status" %}</th>
+          <th>{% trans "Actions" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for transfer in object_list %}
+        <tr>
+          <td><code>{{ transfer.document_code }}</code></td>
+          <td>{{ transfer.document_date|date:"Y/m/d" }}</td>
+          <td>
+            {% if transfer.production_transfer %}
+            <code>{{ transfer.production_transfer.transfer_code }}</code>
+            {% else %}
+            -
+            {% endif %}
+          </td>
+          <td>
+            {% with lines_needing_batches=transfer.lines_needing_batches %}
+            {{ lines_needing_batches }} line(s)
+            {% endwith %}
+          </td>
+          <td>
+            {% with completed_lines=transfer.lines_with_complete_batches total_lines=transfer.lines_needing_batches %}
+            {% if completed_lines == total_lines %}
+            <span class="badge badge-success">{% trans "Complete" %}</span>
+            {% else %}
+            <span class="badge badge-warning">{{ completed_lines }}/{{ total_lines }} {% trans "complete" %}</span>
+            {% endif %}
+            {% endwith %}
+          </td>
+          <td>
+            <a href="{% url 'inventory:issue_warehouse_transfer_batch_assignment' pk=transfer.pk %}" class="btn btn-primary btn-sm">
+              <i class="icon-tag"></i> {% trans "Assign Batches" %}
+            </a>
+            <a href="{% url 'inventory:issue_warehouse_transfer_detail' pk=transfer.pk %}" class="btn btn-secondary btn-sm">
+              <i class="icon-eye"></i> {% trans "View" %}
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% include "shared/generic/pagination.html" %}
+
+  {% else %}
+  <div class="empty-state">
+    <h3>{% trans "No warehouse transfers need batch assignment" %}</h3>
+    <p>{% trans "All approved warehouse transfers have complete batch assignments or don't require batch tracking." %}</p>
+    <a href="{% url 'inventory:issue_warehouse_transfer' %}" class="btn btn-primary">
+      {% trans "View All Warehouse Transfers" %}
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
