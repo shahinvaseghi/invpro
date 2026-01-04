@@ -58,13 +58,15 @@ from .views.document_attachments import (
     DocumentAttachmentDownloadBulkView,
 )
 from .views.api import (
-    filter_sub_accounts_by_tafsili, 
+    filter_sub_accounts_by_tafsili,
     filter_gl_accounts_by_sub,
     filter_sub_accounts_by_gl,
     filter_tafsili_accounts_by_sub,
     toggle_document_lock,
     import_account_tree,
     get_account_tree,
+    get_allowed_tafsili_accounts,
+    get_gl_account_info,
 )
 from .views.taxpayer_system_api import (
     TestConnectionAPIView,
@@ -129,7 +131,7 @@ urlpatterns = [
     path('tafsili-accounts/<int:pk>/', TafsiliAccountDetailView.as_view(), name='tafsili_account_detail'),
     path('tafsili-accounts/<int:pk>/edit/', TafsiliAccountUpdateView.as_view(), name='tafsili_account_edit'),
     path('tafsili-accounts/<int:pk>/delete/', TafsiliAccountDeleteView.as_view(), name='tafsili_account_delete'),
-
+    
     # Tafsili Types (نوع تفصیلی)
     path('tafsili-types/', TafsiliTypeListView.as_view(), name='tafsili_types'),
     path('tafsili-types/create/', TafsiliTypeCreateView.as_view(), name='tafsili_type_create'),
@@ -241,6 +243,8 @@ urlpatterns = [
     path('api/filter-gl-accounts-by-sub/', filter_gl_accounts_by_sub, name='api_filter_gl_by_sub'),
     path('api/filter-sub-accounts-by-gl/', filter_sub_accounts_by_gl, name='api_filter_sub_by_gl'),
     path('api/filter-tafsili-accounts-by-sub/', filter_tafsili_accounts_by_sub, name='api_filter_tafsili_by_sub'),
+    path('api/get-allowed-tafsili-accounts/', get_allowed_tafsili_accounts, name='api_get_allowed_tafsili_accounts'),
+    path('api/get-gl-account-info/', get_gl_account_info, name='api_get_gl_account_info'),
     path('api/toggle-document-lock/', toggle_document_lock, name='api_toggle_document_lock'),
     path('api/import-account-tree/', import_account_tree, name='import_account_tree'),
     path('api/account-tree/', get_account_tree, name='api_account_tree'),

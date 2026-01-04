@@ -12,15 +12,56 @@
           "sub_accounts": [
             {
               "code": "1101",
-              "name": "صندوق"
+              "name": "صندوق",
+              "tafsili_levels": []
             },
             {
               "code": "1102",
-              "name": "بانکها"
+              "name": "بانکها",
+              "tafsili_levels": [
+                {
+                  "level": 1,
+                  "types": [
+                    {
+                      "type_name": "نام بانک",
+                      "accounts": [
+                        {"code": "110201", "name": "بانک ملت"},
+                        {"code": "110202", "name": "بانک صادرات"},
+                        {"code": "110203", "name": "بانک پاسارگاد"}
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "level": 2,
+                  "types": [
+                    {
+                      "type_name": "نوع حساب",
+                      "accounts": [
+                        {"code": "110204", "name": "حساب جاری"},
+                        {"code": "110205", "name": "حساب پس‌انداز"}
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "level": 3,
+                  "types": [
+                    {
+                      "type_name": "شعبه",
+                      "accounts": [
+                        {"code": "110206", "name": "شعبه مرکزی"},
+                        {"code": "110207", "name": "شعبه شمالی"}
+                      ]
+                    }
+                  ]
+                }
+              ]
             },
             {
               "code": "1103",
-              "name": "تنخواه"
+              "name": "تنخواه",
+              "tafsili_levels": []
             }
           ]
         },

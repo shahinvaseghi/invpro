@@ -397,14 +397,17 @@ document.addEventListener('DOMContentLoaded', function() {
         // Clear options
         select.innerHTML = '<option value="">انتخاب تفصیلی</option>';
 
-        // Add options without optgroups
+        // Add optgroups
         types.forEach(type => {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = type.type_name;
             type.accounts.forEach(account => {
                 const option = document.createElement('option');
                 option.value = account.id;
                 option.textContent = `${account.code} · ${account.name}`;
-                select.appendChild(option);
+                optgroup.appendChild(option);
             });
+            select.appendChild(optgroup);
         });
 
         // Reinitialize Select2
@@ -781,34 +784,537 @@ if (typeof jQuery !== 'undefined' && jQuery.fn.select2) {
     calculateTotals();
 });
 </script>
+            
+            // Store current values
+            const currentSubValue = subSelectInRow.val();
+            const currentGLValue = glSelectInRow.val();
+            
+            if (tafsiliId) {
+                // Fetch sub accounts for this tafsili
+                fetch('{% url "accounting:api_filter_sub_by_tafsili" %}?tafsili_id=' + tafsiliId)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('API request failed with status ' + response.status);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.sub_accounts && data.sub_accounts.length > 0) {
+                            // Destroy Select2 first to prevent conflicts
+                            if (subSelectInRow.hasClass('select2-hidden-accessible')) {
+                                subSelectInRow.select2('destroy');
+                            }
+                            
+                            // Clear existing options
+                            subSelectInRow.empty();
+                            subSelectInRow.append('<option value="">{% trans "انتخاب معین" %}</option>');
+                            
+                            // Add filtered options
+                            data.sub_accounts.forEach(function(sub) {
+                                subSelectInRow.append(
+                                    $('<option></option>')
+                                        .attr('value', sub.id)
+                                        .text(sub.code + ' - ' + sub.name)
+                                );
+                            });
+                            
+                            // Reinitialize Select2 with new options
+                            subSelectInRow.select2({
+                                theme: 'bootstrap-5',
+                                language: 'fa',
+                                dir: 'rtl',
+                                placeholder: '{% trans "انتخاب معین" %}',
+                                allowClear: true,
+                                width: '100%'
+                            });
+                            
+                            // Restore value if it exists in new options
+                            if (currentSubValue && subSelectInRow.find('option[value="' + currentSubValue + '"]').length > 0) {
+                                subSelectInRow.val(currentSubValue).trigger('change.select2');
+                            }
+                            
+                            // Clear flag after update
+                            row.data('updating-from-tafsili', false);
+                            
+                            // Reattach event listener for sub account change
+                            setTimeout(function() {
+                                attachSubAccountChangeListener(subSelectInRow);
+                            }, 100);
+                        } else {
+                            // Clear flag
+                            row.data('updating-from-tafsili', false);
+                            console.log('No sub accounts found for tafsili account:', tafsiliId);
+                        }
+                    })
+                    .catch(error => {
+                        row.data('updating-from-tafsili', false);
+                        console.error('Error fetching sub accounts:', error);
+                    });
+            } else {
+                // Reset to all sub accounts - reload from original options
+                const originalSubOptions = subSelectInRow.data('original-options');
+                if (originalSubOptions && subSelectInRow.length) {
+                    // Destroy Select2 if initialized
+                    if (subSelectInRow.hasClass('select2-hidden-accessible')) {
+                        subSelectInRow.select2('destroy');
+                    }
+                    subSelectInRow.empty();
+                    subSelectInRow.append(originalSubOptions);
+                    // Reinitialize Select2
+                    subSelectInRow.select2({
+                        theme: 'bootstrap-5',
+                        language: 'fa',
+                        dir: 'rtl',
+                        placeholder: '{% trans "انتخاب معین" %}',
+                        allowClear: true,
+                        width: '100%'
+                    });
+                    // Restore value if it exists
+                    if (currentSubValue && subSelectInRow.find('option[value="' + currentSubValue + '"]').length > 0) {
+                        subSelectInRow.val(currentSubValue).trigger('change.select2');
+                    }
+                    // Reattach event listener
+                    attachSubAccountChangeListener(subSelectInRow);
+                }
+                row.data('updating-from-tafsili', false);
+            }
+        });
+    }
+    
+    // Attach event listener for sub account change
+    function attachSubAccountChangeListener(subSelectElement) {
+        $(subSelectElement).off('change.sub-handler').on('change.sub-handler', function() {
+            const subId = $(this).val();
+            const glSelectInRow = $(this).closest('tr').find('.line-gl-account');
+            const tafsiliSelectInRow = $(this).closest('tr').find('.line-tafsili-account');
+            const row = $(this).closest('tr');
+            
+            // Set flag to prevent infinite loop
+            if (row.data('updating-from-sub')) {
+                return;
+            }
+            row.data('updating-from-sub', true);
+            
+            // Store current values
+            const currentGLValue = glSelectInRow.val();
+            const currentTafsiliValue = tafsiliSelectInRow.val();
+            
+            if (subId) {
+                // Fetch GL accounts for this sub (upward direction)
+                fetch('{% url "accounting:api_filter_gl_by_sub" %}?sub_id=' + subId)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.gl_accounts && data.gl_accounts.length > 0) {
+                            if (glSelectInRow.hasClass('select2-hidden-accessible')) {
+                                glSelectInRow.select2('destroy');
+                            }
+                            
+                            glSelectInRow.empty();
+                            glSelectInRow.append('<option value="">{% trans "انتخاب سند کل" %}</option>');
+                            
+                            data.gl_accounts.forEach(function(gl) {
+                                glSelectInRow.append(
+                                    $('<option></option>')
+                                        .attr('value', gl.id)
+                                        .text(gl.code + ' - ' + gl.name)
+                                );
+                            });
+                            
+                            glSelectInRow.select2({
+                                theme: 'bootstrap-5',
+                                language: 'fa',
+                                dir: 'rtl',
+                                placeholder: '{% trans "انتخاب سند کل" %}',
+                                allowClear: true,
+                                width: '100%'
+                            });
+                            
+                            // Restore value if it exists in new options
+                            if (currentGLValue && glSelectInRow.find('option[value="' + currentGLValue + '"]').length > 0) {
+                                glSelectInRow.val(currentGLValue).trigger('change.select2');
+                            }
+                            
+                            setTimeout(function() {
+                                attachGLAccountChangeListener(glSelectInRow);
+                            }, 100);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching GL accounts:', error);
+                    });
+                
+                // Fetch tafsili accounts for this sub (downward direction)
+                fetch('{% url "accounting:api_filter_tafsili_by_sub" %}?sub_id=' + subId)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.tafsili_accounts && data.tafsili_accounts.length > 0) {
+                            if (tafsiliSelectInRow.hasClass('select2-hidden-accessible')) {
+                                tafsiliSelectInRow.select2('destroy');
+                            }
+                            
+                            tafsiliSelectInRow.empty();
+                            tafsiliSelectInRow.append('<option value="">{% trans "انتخاب تفصیلی" %}</option>');
+                            
+                            data.tafsili_accounts.forEach(function(tafsili) {
+                                tafsiliSelectInRow.append(
+                                    $('<option></option>')
+                                        .attr('value', tafsili.id)
+                                        .text(tafsili.code + ' - ' + tafsili.name)
+                                );
+                            });
+                            
+                            tafsiliSelectInRow.select2({
+                                theme: 'bootstrap-5',
+                                language: 'fa',
+                                dir: 'rtl',
+                                placeholder: '{% trans "انتخاب تفصیلی" %}',
+                                allowClear: true,
+                                width: '100%'
+                            });
+                            
+                            // Restore value if it exists in new options
+                            if (currentTafsiliValue && tafsiliSelectInRow.find('option[value="' + currentTafsiliValue + '"]').length > 0) {
+                                tafsiliSelectInRow.val(currentTafsiliValue).trigger('change.select2');
+                            }
+                            
+                            setTimeout(function() {
+                                attachTafsiliAccountChangeListener(tafsiliSelectInRow);
+                            }, 100);
+                        }
+                        
+                        row.data('updating-from-sub', false);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching tafsili accounts:', error);
+                        row.data('updating-from-sub', false);
+                    });
+            } else {
+                // Reset to original options
+                const originalGLOptions = glSelectInRow.data('original-options');
+                const originalTafsiliOptions = tafsiliSelectInRow.data('original-options');
+                
+                if (originalGLOptions) {
+                    if (glSelectInRow.hasClass('select2-hidden-accessible')) {
+                        glSelectInRow.select2('destroy');
+                    }
+                    glSelectInRow.empty();
+                    glSelectInRow.append(originalGLOptions);
+                    glSelectInRow.select2({
+                        theme: 'bootstrap-5',
+                        language: 'fa',
+                        dir: 'rtl',
+                        placeholder: '{% trans "انتخاب سند کل" %}',
+                        allowClear: true,
+                        width: '100%'
+                    });
+                    // Restore value if it exists
+                    if (currentGLValue && glSelectInRow.find('option[value="' + currentGLValue + '"]').length > 0) {
+                        glSelectInRow.val(currentGLValue).trigger('change.select2');
+                    }
+                    attachGLAccountChangeListener(glSelectInRow);
+                }
+                
+                if (originalTafsiliOptions) {
+                    if (tafsiliSelectInRow.hasClass('select2-hidden-accessible')) {
+                        tafsiliSelectInRow.select2('destroy');
+                    }
+                    tafsiliSelectInRow.empty();
+                    tafsiliSelectInRow.append(originalTafsiliOptions);
+                    tafsiliSelectInRow.select2({
+                        theme: 'bootstrap-5',
+                        language: 'fa',
+                        dir: 'rtl',
+                        placeholder: '{% trans "انتخاب تفصیلی" %}',
+                        allowClear: true,
+                        width: '100%'
+                    });
+                    // Restore value if it exists
+                    if (currentTafsiliValue && tafsiliSelectInRow.find('option[value="' + currentTafsiliValue + '"]').length > 0) {
+                        tafsiliSelectInRow.val(currentTafsiliValue).trigger('change.select2');
+                    }
+                    attachTafsiliAccountChangeListener(tafsiliSelectInRow);
+                }
+                
+                row.data('updating-from-sub', false);
+            }
+        });
+    }
+    
+    // Attach event listener for GL account change
+    function attachGLAccountChangeListener(glSelectElement) {
+        $(glSelectElement).off('change.gl-handler').on('change.gl-handler', function() {
+            const glId = $(this).val();
+            const subSelectInRow = $(this).closest('tr').find('.line-sub-account');
+            const tafsiliSelectInRow = $(this).closest('tr').find('.line-tafsili-account');
+            const row = $(this).closest('tr');
+            
+            // Set flag to prevent infinite loop
+            if (row.data('updating-from-gl')) {
+                return;
+            }
+            row.data('updating-from-gl', true);
+            
+            // Store current values
+            const currentSubValue = subSelectInRow.val();
+            const currentTafsiliValue = tafsiliSelectInRow.val();
+            
+            if (glId) {
+                // Fetch sub accounts for this GL (downward direction)
+                fetch('{% url "accounting:api_filter_sub_by_gl" %}?gl_id=' + glId)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.sub_accounts && data.sub_accounts.length > 0) {
+                            if (subSelectInRow.hasClass('select2-hidden-accessible')) {
+                                subSelectInRow.select2('destroy');
+                            }
+                            
+                            subSelectInRow.empty();
+                            subSelectInRow.append('<option value="">{% trans "انتخاب معین" %}</option>');
+                            
+                            data.sub_accounts.forEach(function(sub) {
+                                subSelectInRow.append(
+                                    $('<option></option>')
+                                        .attr('value', sub.id)
+                                        .text(sub.code + ' - ' + sub.name)
+                                );
+                            });
+                            
+                            subSelectInRow.select2({
+                                theme: 'bootstrap-5',
+                                language: 'fa',
+                                dir: 'rtl',
+                                placeholder: '{% trans "انتخاب معین" %}',
+                                allowClear: true,
+                                width: '100%'
+                            });
+                            
+                            // Restore value if it exists in new options
+                            if (currentSubValue && subSelectInRow.find('option[value="' + currentSubValue + '"]').length > 0) {
+                                subSelectInRow.val(currentSubValue).trigger('change.select2');
+                            }
+                            
+                            setTimeout(function() {
+                                attachSubAccountChangeListener(subSelectInRow);
+                            }, 100);
+                        }
+                        
+                        row.data('updating-from-gl', false);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching sub accounts:', error);
+                        row.data('updating-from-gl', false);
+                    });
+            } else {
+                // Reset to original options
+                const originalSubOptions = subSelectInRow.data('original-options');
+                const originalTafsiliOptions = tafsiliSelectInRow.data('original-options');
+                
+                if (originalSubOptions) {
+                    if (subSelectInRow.hasClass('select2-hidden-accessible')) {
+                        subSelectInRow.select2('destroy');
+                    }
+                    subSelectInRow.empty();
+                    subSelectInRow.append(originalSubOptions);
+                    subSelectInRow.select2({
+                        theme: 'bootstrap-5',
+                        language: 'fa',
+                        dir: 'rtl',
+                        placeholder: '{% trans "انتخاب معین" %}',
+                        allowClear: true,
+                        width: '100%'
+                    });
+                    // Restore value if it exists
+                    if (currentSubValue && subSelectInRow.find('option[value="' + currentSubValue + '"]').length > 0) {
+                        subSelectInRow.val(currentSubValue).trigger('change.select2');
+                    }
+                    attachSubAccountChangeListener(subSelectInRow);
+                }
+                
+                if (originalTafsiliOptions) {
+                    if (tafsiliSelectInRow.hasClass('select2-hidden-accessible')) {
+                        tafsiliSelectInRow.select2('destroy');
+                    }
+                    tafsiliSelectInRow.empty();
+                    tafsiliSelectInRow.append(originalTafsiliOptions);
+                    tafsiliSelectInRow.select2({
+                        theme: 'bootstrap-5',
+                        language: 'fa',
+                        dir: 'rtl',
+                        placeholder: '{% trans "انتخاب تفصیلی" %}',
+                        allowClear: true,
+                        width: '100%'
+                    });
+                    // Restore value if it exists
+                    if (currentTafsiliValue && tafsiliSelectInRow.find('option[value="' + currentTafsiliValue + '"]').length > 0) {
+                        tafsiliSelectInRow.val(currentTafsiliValue).trigger('change.select2');
+                    }
+                    attachTafsiliAccountChangeListener(tafsiliSelectInRow);
+                }
+                
+                row.data('updating-from-gl', false);
+            }
+        });
+    }
+    
+    // Initialize Select2 for account dropdowns
+    function initializeSelect2(row) {
+        const glSelect = row.querySelector('.line-gl-account');
+        const subSelect = row.querySelector('.line-sub-account');
+        const tafsiliSelect = row.querySelector('.line-tafsili-account');
+        
+        if (glSelect && !$(glSelect).hasClass('select2-hidden-accessible')) {
+            $(glSelect).select2({
+                theme: 'bootstrap-5',
+                language: 'fa',
+                dir: 'rtl',
+                placeholder: '{% trans "انتخاب سند کل" %}',
+                allowClear: true,
+                width: '100%'
+            });
+            
+            // Store original options for reset
+            if (!glSelect.hasAttribute('data-original-stored')) {
+                glSelect.setAttribute('data-original-stored', 'true');
+                $(glSelect).data('original-options', $(glSelect).html());
+            }
+            
+            // Attach event listener for GL account change
+            attachGLAccountChangeListener(glSelect);
+        }
+        
+        if (subSelect) {
+            // Store original options for reset
+            if (!subSelect.hasAttribute('data-original-stored')) {
+                subSelect.setAttribute('data-original-stored', 'true');
+                $(subSelect).data('original-options', $(subSelect).html());
+            }
+            
+            // Destroy Select2 if already initialized to avoid conflicts
+            if ($(subSelect).hasClass('select2-hidden-accessible')) {
+                $(subSelect).select2('destroy');
+            }
+            
+            $(subSelect).select2({
+                theme: 'bootstrap-5',
+                language: 'fa',
+                dir: 'rtl',
+                placeholder: '{% trans "انتخاب معین" %}',
+                allowClear: true,
+                width: '100%'
+            });
+            
+            // Listen to select2:select event to ensure value is set
+            $(subSelect).off('select2:select').on('select2:select', function(e) {
+                const data = e.params.data;
+                const selectElement = this;selectElement.value = data.id;
+                $(selectElement).val(data.id);
+            });
+            
+            // Attach event listener for sub account change
+            attachSubAccountChangeListener(subSelect);
+        }
+        
+        if (tafsiliSelect) {
+            // Store original options for reset
+            if (!tafsiliSelect.hasAttribute('data-original-stored')) {
+                tafsiliSelect.setAttribute('data-original-stored', 'true');
+                $(tafsiliSelect).data('original-options', $(tafsiliSelect).html());
+            }
+            
+            // Destroy Select2 if already initialized to avoid conflicts
+            if ($(tafsiliSelect).hasClass('select2-hidden-accessible')) {
+                $(tafsiliSelect).select2('destroy');
+            }
+            
+            // Initialize Select2
+            $(tafsiliSelect).select2({
+                theme: 'bootstrap-5',
+                language: 'fa',
+                dir: 'rtl',
+                placeholder: '{% trans "انتخاب تفصیلی" %}',
+                allowClear: true,
+                width: '100%'
+            });
+            
+            // Attach event listener for tafsili account change
+            attachTafsiliAccountChangeListener(tafsiliSelect);
+        }
+    }
+    
+    // Initialize Select2 for existing rows
+    document.querySelectorAll('.line-row').forEach(function(row) {
+        initializeSelect2ForRow(row);
+    });
+
+});
+</script>
+
 <style>
 .line-row input, .line-row select {
     width: 100%;
     min-width: 100px;
-}
-
-.line-row .form-control {
     padding: 0.5rem;
     border: 1px solid #d1d5db;
     border-radius: 4px;
     font-size: 0.875rem;
 }
 
-.line-row .form-control:focus {
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+
+.form-control:focus {
     outline: none;
     border-color: #3b82f6;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
+.error {
+    color: #ef4444;
+    font-size: 0.75rem;
+    display: block;
+    margin-top: 0.25rem;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th, .table td {
+    padding: 0.75rem;
+    text-align: right;
+    border: 1px solid #e5e7eb;
+}
+
+.table thead th {
+    background: #f9fafb;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
 .btn {
-    display: inline-block;
     padding: 0.5rem 1rem;
     border-radius: 4px;
-    text-decoration: none;
-    font-weight: 500;
-    transition: all 0.2s;
-    cursor: pointer;
     border: none;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background-color 0.2s;
 }
 
 .btn-primary {
@@ -849,3 +1355,4 @@ if (typeof jQuery !== 'undefined' && jQuery.fn.select2) {
 }
 </style>
 {% endblock %}
+

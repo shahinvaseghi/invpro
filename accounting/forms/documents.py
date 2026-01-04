@@ -104,33 +104,36 @@ class AccountingDocumentForm(BaseModelForm):
 
 
 class AccountingDocumentLineForm(forms.ModelForm):
-    """Form for Accounting Document Line items - simplified version."""
-    
+    """Form for Accounting Document Line items with multi-level tafsili support."""
+
     class Meta:
         model = AccountingDocumentLine
         fields = [
             'description',
-            'gl_account',
             'sub_account',
-            'tafsili_account',
+            'tafsili_level_1',
+            'tafsili_level_2',
+            'tafsili_level_3',
             'debit',
             'credit',
             'sort_order',
         ]
         widgets = {
             'description': forms.TextInput(attrs={'class': 'form-control line-description', 'placeholder': _('عنوان')}),
-            'gl_account': forms.Select(attrs={'class': 'form-control line-gl-account', 'style': 'width: 100%;'}),
             'sub_account': forms.Select(attrs={'class': 'form-control line-sub-account', 'style': 'width: 100%;'}),
-            'tafsili_account': forms.Select(attrs={'class': 'form-control line-tafsili-account', 'style': 'width: 100%;'}),
+            'tafsili_level_1': forms.Select(attrs={'class': 'form-control line-tafsili-level-1', 'style': 'width: 100%;'}),
+            'tafsili_level_2': forms.Select(attrs={'class': 'form-control line-tafsili-level-2', 'style': 'width: 100%;'}),
+            'tafsili_level_3': forms.Select(attrs={'class': 'form-control line-tafsili-level-3', 'style': 'width: 100%;'}),
             'debit': forms.NumberInput(attrs={'class': 'form-control line-debit', 'step': '0.01', 'placeholder': '0.00'}),
             'credit': forms.NumberInput(attrs={'class': 'form-control line-credit', 'step': '0.01', 'placeholder': '0.00'}),
             'sort_order': forms.HiddenInput(),
         }
         labels = {
             'description': _('عنوان'),
-            'gl_account': _('سند کل'),
             'sub_account': _('معین'),
-            'tafsili_account': _('تفصیلی'),
+            'tafsili_level_1': _('تفصیلی سطح ۱'),
+            'tafsili_level_2': _('تفصیلی سطح ۲'),
+            'tafsili_level_3': _('تفصیلی سطح ۳'),
             'debit': _('بدهکار'),
             'credit': _('بستانکار'),
         }
@@ -138,83 +141,82 @@ class AccountingDocumentLineForm(forms.ModelForm):
     def __init__(self, *args, company_id: Optional[int] = None, **kwargs):
         super().__init__(*args, **kwargs)
         self.company_id = company_id
-        
+
         # Make account fields optional
-        self.fields['gl_account'].required = False
         self.fields['sub_account'].required = False
-        self.fields['tafsili_account'].required = False
-        
+        self.fields['tafsili_level_1'].required = False
+        self.fields['tafsili_level_2'].required = False
+        self.fields['tafsili_level_3'].required = False
+
         # Make debit/credit optional - validation is done in clean()
         self.fields['debit'].required = False
         self.fields['credit'].required = False
-        
+
         # Set querysets for account fields based on company_id
         if company_id:
-            # GL Accounts (level 1)
-            gl_queryset = Account.objects.filter(
-                company_id=company_id,
-                account_level=1,
-                is_enabled=1
-            ).order_by('account_code')
-            self.fields['gl_account'].queryset = gl_queryset
-            
-            # Sub Accounts (level 2) - initially empty, will be filtered by JS based on selected GL
+            # Sub Accounts (level 2) - will be filtered by JS based on business logic
             self.fields['sub_account'].queryset = Account.objects.filter(
                 company_id=company_id,
                 account_level=2,
                 is_enabled=1
             ).order_by('account_code')
-            
-            # Tafsili Accounts (level 3) - initially empty, will be filtered by JS based on selected Sub
-            self.fields['tafsili_account'].queryset = Account.objects.filter(
+
+            # Tafsili Accounts (level 3) - initially all, will be filtered by JS based on selected sub_account
+            tafsili_queryset = Account.objects.filter(
                 company_id=company_id,
                 account_level=3,
                 is_enabled=1
             ).order_by('account_code')
+
+            self.fields['tafsili_level_1'].queryset = tafsili_queryset
+            self.fields['tafsili_level_2'].queryset = tafsili_queryset
+            self.fields['tafsili_level_3'].queryset = tafsili_queryset
         else:
-            self.fields['gl_account'].queryset = Account.objects.none()
             self.fields['sub_account'].queryset = Account.objects.none()
-            self.fields['tafsili_account'].queryset = Account.objects.none()
-        
+            self.fields['tafsili_level_1'].queryset = Account.objects.none()
+            self.fields['tafsili_level_2'].queryset = Account.objects.none()
+            self.fields['tafsili_level_3'].queryset = Account.objects.none()
+
         # Set initial sort_order
         if not self.instance.pk:
             self.fields['sort_order'].initial = 0
     
     def clean(self):
         cleaned_data = super().clean()
-        
+
         # Get debit/credit values, handle None
         debit = cleaned_data.get('debit')
         credit = cleaned_data.get('credit')
-        
+
         # Convert None or empty to 0.00
         if debit is None or debit == '':
             debit = Decimal('0.00')
         if credit is None or credit == '':
             credit = Decimal('0.00')
-        
-        gl_account = cleaned_data.get('gl_account')
+
         sub_account = cleaned_data.get('sub_account')
-        tafsili_account = cleaned_data.get('tafsili_account')
-        
+        tafsili_level_1 = cleaned_data.get('tafsili_level_1')
+        tafsili_level_2 = cleaned_data.get('tafsili_level_2')
+        tafsili_level_3 = cleaned_data.get('tafsili_level_3')
+
         # Validate that at least one account is set
-        if not gl_account and not sub_account and not tafsili_account:
-            raise forms.ValidationError(_('لطفاً حداقل یک حساب (سند کل، معین یا تفصیلی) را انتخاب کنید.'))
-        
-        # Validate account hierarchy
-        if tafsili_account and not sub_account:
-            raise forms.ValidationError(_('برای انتخاب حساب تفصیلی، ابتدا باید حساب معین را انتخاب کنید.'))
-        
-        if sub_account and not gl_account:
-            raise forms.ValidationError(_('برای انتخاب حساب معین، ابتدا باید حساب کل را انتخاب کنید.'))
-        
+        if not sub_account and not tafsili_level_1 and not tafsili_level_2 and not tafsili_level_3:
+            raise forms.ValidationError(_('لطفاً حداقل یک حساب (معین یا تفصیلی) را انتخاب کنید.'))
+
+        # Validate tafsili hierarchy - level 2 requires level 1, level 3 requires level 2
+        if tafsili_level_2 and not tafsili_level_1:
+            raise forms.ValidationError(_('برای انتخاب تفصیلی سطح ۲، ابتدا سطح ۱ را انتخاب کنید.'))
+
+        if tafsili_level_3 and not tafsili_level_2:
+            raise forms.ValidationError(_('برای انتخاب تفصیلی سطح ۳، ابتدا سطح ۲ را انتخاب کنید.'))
+
         # Validate debit/credit
         if debit > Decimal('0.00') and credit > Decimal('0.00'):
             raise forms.ValidationError(_('هر ردیف باید یا بدهکار باشد یا بستانکار، نه هر دو.'))
-        
+
         if debit == Decimal('0.00') and credit == Decimal('0.00'):
             raise forms.ValidationError(_('هر ردیف باید حداقل یک مبلغ بدهکار یا بستانکار داشته باشد.'))
-        
+
         return cleaned_data
 
 

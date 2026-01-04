@@ -196,15 +196,6 @@ class AccountingDocumentLine(AccountingBaseModel):
     line_number = models.PositiveSmallIntegerField(
         help_text=_("Sequential line number within document"),
     )
-    gl_account = models.ForeignKey(
-        Account,
-        on_delete=models.PROTECT,
-        related_name="document_lines_as_gl",
-        limit_choices_to={'account_level': 1},
-        null=True,
-        blank=True,
-        help_text=_("GL Account (کل)"),
-    )
     sub_account = models.ForeignKey(
         Account,
         on_delete=models.PROTECT,
@@ -212,16 +203,34 @@ class AccountingDocumentLine(AccountingBaseModel):
         limit_choices_to={'account_level': 2},
         null=True,
         blank=True,
-        help_text=_("Sub Account (معین) - Optional"),
+        help_text=_("Sub Account (معین)"),
     )
-    tafsili_account = models.ForeignKey(
+    tafsili_level_1 = models.ForeignKey(
         Account,
         on_delete=models.PROTECT,
-        related_name="document_lines_as_tafsili",
+        related_name="document_lines_as_tafsili_1",
         limit_choices_to={'account_level': 3},
         null=True,
         blank=True,
-        help_text=_("Tafsili Account (تفصیلی) - Optional"),
+        help_text=_("Tafsili Level 1 (تفصیلی سطح ۱)"),
+    )
+    tafsili_level_2 = models.ForeignKey(
+        Account,
+        on_delete=models.PROTECT,
+        related_name="document_lines_as_tafsili_2",
+        limit_choices_to={'account_level': 3},
+        null=True,
+        blank=True,
+        help_text=_("Tafsili Level 2 (تفصیلی سطح ۲)"),
+    )
+    tafsili_level_3 = models.ForeignKey(
+        Account,
+        on_delete=models.PROTECT,
+        related_name="document_lines_as_tafsili_3",
+        limit_choices_to={'account_level': 3},
+        null=True,
+        blank=True,
+        help_text=_("Tafsili Level 3 (تفصیلی سطح ۳)"),
     )
     description = models.CharField(
         max_length=255,
@@ -247,6 +256,13 @@ class AccountingDocumentLine(AccountingBaseModel):
         help_text=_("Sort order for display"),
     )
 
+    @property
+    def gl_account(self):
+        """Auto-populate GL account from selected sub_account."""
+        if self.sub_account:
+            return self.sub_account.gl_account_relations.first().gl_account if self.sub_account.gl_account_relations.exists() else None
+        return None
+
     class Meta:
         verbose_name = _("Accounting Document Line")
         verbose_name_plural = _("Accounting Document Lines")
@@ -269,34 +285,28 @@ class AccountingDocumentLine(AccountingBaseModel):
         return f"{self.document.document_number} - Line {self.line_number}"
 
     def clean(self):
-        """Validate line amounts."""
+        """Validate line amounts and account selections."""
         # Handle None values (from blank fields)
         debit = self.debit if self.debit is not None else Decimal('0.00')
         credit = self.credit if self.credit is not None else Decimal('0.00')
-        
+
         if debit > 0 and credit > 0:
             raise ValidationError(_("Line must be either debit or credit, not both."))
         if debit == 0 and credit == 0:
             raise ValidationError(_("Line must have either debit or credit amount."))
-        
-        # Validate account hierarchy
-        if self.sub_account:
-            # Check if sub_account is related to gl_account
-            if not self.sub_account.gl_account_relations.filter(gl_account=self.gl_account).exists():
-                raise ValidationError(_("Selected sub account is not related to the selected GL account."))
-        
-        if self.tafsili_account:
-            # Check if tafsili_account is related to sub_account (if provided) or any sub_account of gl_account
-            if self.sub_account:
-                if not self.tafsili_account.tafsili_sub_relations.filter(sub_account=self.sub_account).exists():
-                    raise ValidationError(_("Selected tafsili account is not related to the selected sub account."))
-            else:
-                # If no sub_account, check if tafsili is related to any sub_account of gl_account
-                sub_accounts = Account.objects.filter(
-                    gl_account_relations__gl_account=self.gl_account
-                )
-                if not self.tafsili_account.tafsili_sub_relations.filter(sub_account__in=sub_accounts).exists():
-                    raise ValidationError(_("Selected tafsili account is not related to any sub account of the selected GL account."))
+
+        # Validate account selections
+        has_any_account = (
+            self.sub_account or
+            self.tafsili_level_1 or
+            self.tafsili_level_2 or
+            self.tafsili_level_3
+        )
+        if not has_any_account:
+            raise ValidationError(_('لطفاً حداقل یک حساب (معین یا تفصیلی) را انتخاب کنید.'))
+
+        # Note: Tafsili levels are independent - no hierarchical validation required
+        # Each level is filtered independently based on sub_account configuration in chart of accounts
 
     def save(self, *args, **kwargs):
         self.clean()
