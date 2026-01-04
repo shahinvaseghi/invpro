@@ -247,57 +247,95 @@ ItemPriceCardFormSet = modelformset_factory(
 
 class SalesSettingsForm(BaseModelForm):
     """Form for sales settings."""
-    
+
     class Meta:
         model = SalesSettings
         fields = [
-            # TafsiliHierarchy fields removed
+            'customer_tafsili_level_1',
+            'customer_tafsili_level_1_description',
+            'customer_tafsili_level_2',
+            'customer_tafsili_level_2_description',
+            'customer_tafsili_level_3',
+            'customer_tafsili_level_3_description',
         ]
         widgets = {
-            'customer_tafsili_level': forms.Select(attrs={
+            'customer_tafsili_level_1': forms.Select(attrs={
                 'class': 'form-control',
             }),
-            'bank_tafsili_level': forms.Select(attrs={
+            'customer_tafsili_level_1_description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'توضیحات اضافی برای سطح ۱...',
+            }),
+            'customer_tafsili_level_2': forms.Select(attrs={
                 'class': 'form-control',
             }),
-            'check_tafsili_level': forms.Select(attrs={
+            'customer_tafsili_level_2_description': forms.Textarea(attrs={
                 'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'توضیحات اضافی برای سطح ۲...',
+            }),
+            'customer_tafsili_level_3': forms.Select(attrs={
+                'class': 'form-control',
+            }),
+            'customer_tafsili_level_3_description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'توضیحات اضافی برای سطح ۳...',
             }),
         }
         labels = {
-            'customer_tafsili_level': _('سطح تفصیلی مشتری‌ها'),
-            'bank_tafsili_level': _('سطح تفصیلی بانک‌ها'),
-            'check_tafsili_level': _('سطح تفصیلی چک‌ها'),
+            'customer_tafsili_level_1': _('نوع تفصیلی مشتری ۱'),
+            'customer_tafsili_level_1_description': _('توضیحات سطح ۱'),
+            'customer_tafsili_level_2': _('نوع تفصیلی مشتری ۲'),
+            'customer_tafsili_level_2_description': _('توضیحات سطح ۲'),
+            'customer_tafsili_level_3': _('نوع تفصیلی مشتری ۳'),
+            'customer_tafsili_level_3_description': _('توضیحات سطح ۳'),
         }
         help_texts = {
-            'customer_tafsili_level': _('سطح تفصیلی که برای مشتری‌ها استفاده می‌شود'),
-            'bank_tafsili_level': _('سطح تفصیلی که برای بانک‌ها استفاده می‌شود'),
-            'check_tafsili_level': _('سطح تفصیلی که برای چک‌ها استفاده می‌شود'),
+            'customer_tafsili_level_1': _('نوع تفصیلی سطح ۱ برای مشتریان'),
+            'customer_tafsili_level_1_description': _('توضیحات اضافی برای نوع تفصیلی سطح ۱ مشتریان'),
+            'customer_tafsili_level_2': _('نوع تفصیلی سطح ۲ برای مشتریان'),
+            'customer_tafsili_level_2_description': _('توضیحات اضافی برای نوع تفصیلی سطح ۲ مشتریان'),
+            'customer_tafsili_level_3': _('نوع تفصیلی سطح ۳ برای مشتریان'),
+            'customer_tafsili_level_3_description': _('توضیحات اضافی برای نوع تفصیلی سطح ۳ مشتریان'),
         }
-    
+
     def __init__(self, *args, company_id: Optional[int] = None, **kwargs):
-        """Initialize form with tafsili level choices."""
+        """Initialize form with company filtering."""
         super().__init__(*args, **kwargs)
         self.company_id = company_id
 
-        # Set choices for tafsili level fields
-        tafsili_choices = [(1, _('سطح 1')), (2, _('سطح 2')), (3, _('سطح 3'))]
+        if company_id:
+            # Filter tafsili types by company
+            from accounting.models import TafsiliType
+            tafsili_types = TafsiliType.objects.filter(
+                company_id=company_id,
+                is_enabled=1
+            ).order_by('sort_order', 'public_code')
 
-        # Set choices for all three fields
-        self.fields['customer_tafsili_level'].choices = tafsili_choices
-        self.fields['bank_tafsili_level'].choices = tafsili_choices
-        self.fields['check_tafsili_level'].choices = tafsili_choices
+            # Set querysets for all three fields
+            for field_name in ['customer_tafsili_level_1', 'customer_tafsili_level_2', 'customer_tafsili_level_3']:
+                self.fields[field_name].queryset = tafsili_types
+                self.fields[field_name].empty_label = _("--- انتخاب کنید ---")
+                self.fields[field_name].label_from_instance = lambda obj: f"{obj.public_code} - {obj.name}"
+        else:
+            # No company selected, empty querysets
+            from accounting.models import TafsiliType
+            for field_name in ['customer_tafsili_level_1', 'customer_tafsili_level_2', 'customer_tafsili_level_3']:
+                self.fields[field_name].queryset = TafsiliType.objects.none()
 
-        # Add empty option
-        self.fields['customer_tafsili_level'].choices = [('', _('انتخاب کنید...'))] + tafsili_choices
-        self.fields['bank_tafsili_level'].choices = [('', _('انتخاب کنید...'))] + tafsili_choices
-        self.fields['check_tafsili_level'].choices = [('', _('انتخاب کنید...'))] + tafsili_choices
-    
     def clean(self):
         """Validate form data."""
         cleaned_data = super().clean()
 
-        # No additional validation needed for simple choice fields
+        # Optional: Add validation to ensure selected accounts are valid
+        level_1 = cleaned_data.get('customer_tafsili_level_1')
+        level_2 = cleaned_data.get('customer_tafsili_level_2')
+        level_3 = cleaned_data.get('customer_tafsili_level_3')
+
+        # You can add custom validation here if needed
+        # For example, ensure level_1, level_2, level_3 are different accounts, etc.
 
         return cleaned_data
 

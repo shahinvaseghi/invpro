@@ -7,13 +7,13 @@
 <section class="page-section">
     <div class="section-header">
         <h1>{% trans "تنظیمات فروش" %}</h1>
-        <p>{% trans "تنظیم سطح تفصیلی برای مشتری‌ها، بانک‌ها و چک‌ها" %}</p>
+        <p>{% trans "تنظیم نوع تفصیلی برای مشتریان" %}</p>
     </div>
 
     <div class="card">
         <form method="post" class="form">
             {% csrf_token %}
-            
+
             {% if form.non_field_errors %}
                 <div class="alert alert-danger">
                     {{ form.non_field_errors }}
@@ -21,44 +21,86 @@
             {% endif %}
 
             <div class="form-group">
-                <label for="{{ form.customer_tafsili_level.id_for_label }}">
-                    {{ form.customer_tafsili_level.label }}
-                    {% if form.customer_tafsili_level.field.required %}<span class="text-danger">*</span>{% endif %}
+                <label for="{{ form.customer_tafsili_level_1.id_for_label }}">
+                    {{ form.customer_tafsili_level_1.label }}
+                    {% if form.customer_tafsili_level_1.field.required %}<span class="text-danger">*</span>{% endif %}
                 </label>
-                {{ form.customer_tafsili_level }}
-                {% if form.customer_tafsili_level.help_text %}
-                    <small class="form-text text-muted">{{ form.customer_tafsili_level.help_text }}</small>
+                {{ form.customer_tafsili_level_1 }}
+                {% if form.customer_tafsili_level_1.help_text %}
+                    <small class="form-text text-muted">{{ form.customer_tafsili_level_1.help_text }}</small>
                 {% endif %}
-                {% if form.customer_tafsili_level.errors %}
-                    <div class="text-danger">{{ form.customer_tafsili_level.errors }}</div>
+                {% if form.customer_tafsili_level_1.errors %}
+                    <div class="text-danger">{{ form.customer_tafsili_level_1.errors }}</div>
                 {% endif %}
             </div>
 
             <div class="form-group">
-                <label for="{{ form.bank_tafsili_level.id_for_label }}">
-                    {{ form.bank_tafsili_level.label }}
-                    {% if form.bank_tafsili_level.field.required %}<span class="text-danger">*</span>{% endif %}
+                <label for="{{ form.customer_tafsili_level_1_description.id_for_label }}">
+                    {{ form.customer_tafsili_level_1_description.label }}
+                    {% if form.customer_tafsili_level_1_description.field.required %}<span class="text-danger">*</span>{% endif %}
                 </label>
-                {{ form.bank_tafsili_level }}
-                {% if form.bank_tafsili_level.help_text %}
-                    <small class="form-text text-muted">{{ form.bank_tafsili_level.help_text }}</small>
+                {{ form.customer_tafsili_level_1_description }}
+                {% if form.customer_tafsili_level_1_description.help_text %}
+                    <small class="form-text text-muted">{{ form.customer_tafsili_level_1_description.help_text }}</small>
                 {% endif %}
-                {% if form.bank_tafsili_level.errors %}
-                    <div class="text-danger">{{ form.bank_tafsili_level.errors }}</div>
+                {% if form.customer_tafsili_level_1_description.errors %}
+                    <div class="text-danger">{{ form.customer_tafsili_level_1_description.errors }}</div>
                 {% endif %}
             </div>
 
             <div class="form-group">
-                <label for="{{ form.check_tafsili_level.id_for_label }}">
-                    {{ form.check_tafsili_level.label }}
-                    {% if form.check_tafsili_level.field.required %}<span class="text-danger">*</span>{% endif %}
+                <label for="{{ form.customer_tafsili_level_2.id_for_label }}">
+                    {{ form.customer_tafsili_level_2.label }}
+                    {% if form.customer_tafsili_level_2.field.required %}<span class="text-danger">*</span>{% endif %}
                 </label>
-                {{ form.check_tafsili_level }}
-                {% if form.check_tafsili_level.help_text %}
-                    <small class="form-text text-muted">{{ form.check_tafsili_level.help_text }}</small>
+                {{ form.customer_tafsili_level_2 }}
+                {% if form.customer_tafsili_level_2.help_text %}
+                    <small class="form-text text-muted">{{ form.customer_tafsili_level_2.help_text }}</small>
                 {% endif %}
-                {% if form.check_tafsili_level.errors %}
-                    <div class="text-danger">{{ form.check_tafsili_level.errors }}</div>
+                {% if form.customer_tafsili_level_2.errors %}
+                    <div class="text-danger">{{ form.customer_tafsili_level_2.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.customer_tafsili_level_2_description.id_for_label }}">
+                    {{ form.customer_tafsili_level_2_description.label }}
+                    {% if form.customer_tafsili_level_2_description.field.required %}<span class="text-danger">*</span>{% endif %}
+                </label>
+                {{ form.customer_tafsili_level_2_description }}
+                {% if form.customer_tafsili_level_2_description.help_text %}
+                    <small class="form-text text-muted">{{ form.customer_tafsili_level_2_description.help_text }}</small>
+                {% endif %}
+                {% if form.customer_tafsili_level_2_description.errors %}
+                    <div class="text-danger">{{ form.customer_tafsili_level_2_description.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.customer_tafsili_level_3.id_for_label }}">
+                    {{ form.customer_tafsili_level_3.label }}
+                    {% if form.customer_tafsili_level_3.field.required %}<span class="text-danger">*</span>{% endif %}
+                </label>
+                {{ form.customer_tafsili_level_3 }}
+                {% if form.customer_tafsili_level_3.help_text %}
+                    <small class="form-text text-muted">{{ form.customer_tafsili_level_3.help_text }}</small>
+                {% endif %}
+                {% if form.customer_tafsili_level_3.errors %}
+                    <div class="text-danger">{{ form.customer_tafsili_level_3.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.customer_tafsili_level_3_description.id_for_label }}">
+                    {{ form.customer_tafsili_level_3_description.label }}
+                    {% if form.customer_tafsili_level_3_description.field.required %}<span class="text-danger">*</span>{% endif %}
+                </label>
+                {{ form.customer_tafsili_level_3_description }}
+                {% if form.customer_tafsili_level_3_description.help_text %}
+                    <small class="form-text text-muted">{{ form.customer_tafsili_level_3_description.help_text }}</small>
+                {% endif %}
+                {% if form.customer_tafsili_level_3_description.errors %}
+                    <div class="text-danger">{{ form.customer_tafsili_level_3_description.errors }}</div>
                 {% endif %}
             </div>
 

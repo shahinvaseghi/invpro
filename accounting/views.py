@@ -1378,6 +1378,7 @@ class AccountBrowserView(FeaturePermissionRequiredMixin, TemplateView):
                     context['selected_account'] = selected_account
                     context['account_documents'] = self.get_account_documents(selected_account)
                     context['account_balances'] = self.calculate_account_balances(selected_account)
+                    context['child_accounts'] = self.get_child_accounts(selected_account)
                 except Account.DoesNotExist:
                     pass
             elif selected_type == 'group':
@@ -1391,6 +1392,7 @@ class AccountBrowserView(FeaturePermissionRequiredMixin, TemplateView):
                     context['selected_group'] = selected_group
                     context['group_documents'] = self.get_group_documents(selected_group)
                     context['group_balances'] = self.calculate_group_balances(selected_group)
+                    context['child_accounts'] = self.get_group_child_accounts(selected_group)
                 except AccountGroup.DoesNotExist:
                     pass
 
@@ -1533,6 +1535,73 @@ class AccountBrowserView(FeaturePermissionRequiredMixin, TemplateView):
             'debit_balance': debit_balance,
             'credit_balance': credit_balance,
         }
+
+    def get_child_accounts(self, account):
+        """Get all child accounts of the selected account."""
+        company_id = self.request.session.get('active_company_id')
+
+        if account.account_level == 1:  # GL Account - get sub-accounts
+            child_accounts = Account.objects.filter(
+                company_id=company_id,
+                account_level=2,  # Sub accounts
+                parent_account=account,
+                is_enabled=1
+            ).order_by('account_code')
+
+            # Calculate balances for each child account
+            result = []
+            for child in child_accounts:
+                balances = self.calculate_account_balances(child)
+                result.append({
+                    'account': child,
+                    'balances': balances
+                })
+            return result
+
+        elif account.account_level == 2:  # Sub Account - get tafsili accounts
+            # Get tafsili accounts that have been used with this sub-account
+            child_accounts = Account.objects.filter(
+                company_id=company_id,
+                account_level=3,  # Tafsili accounts
+                is_enabled=1
+            ).filter(
+                models.Q(document_lines_as_tafsili_1__document__lines__sub_account=account) |
+                models.Q(document_lines_as_tafsili_2__document__lines__sub_account=account) |
+                models.Q(document_lines_as_tafsili_3__document__lines__sub_account=account)
+            ).distinct().order_by('account_code')
+
+            # Calculate balances for each child account
+            result = []
+            for child in child_accounts:
+                balances = self.calculate_account_balances(child)
+                result.append({
+                    'account': child,
+                    'balances': balances
+                })
+            return result
+
+        return []  # GL and Tafsili accounts don't have children in this context
+
+    def get_group_child_accounts(self, group):
+        """Get all GL accounts under the selected group."""
+        company_id = self.request.session.get('active_company_id')
+
+        child_accounts = Account.objects.filter(
+            company_id=company_id,
+            account_level=1,  # GL accounts
+            account_group=group,
+            is_enabled=1
+        ).order_by('account_code')
+
+        # Calculate balances for each child account
+        result = []
+        for child in child_accounts:
+            balances = self.calculate_account_balances(child)
+            result.append({
+                'account': child,
+                'balances': balances
+            })
+        return result
 
     def get_group_documents(self, group):
         """Get documents related to all accounts in the selected group."""

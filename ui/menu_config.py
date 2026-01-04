@@ -377,7 +377,6 @@ def get_menu_structure() -> List[MenuSection]:
             name="Quality Control",
             icon="icon-lab",
             permission="qc.dashboard",
-            requires_superuser=True,
             items=[
                 MenuItem(
                     name="Inspections",

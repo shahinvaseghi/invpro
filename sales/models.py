@@ -113,10 +113,50 @@ class ItemPriceCard(SalesSortableModel):
 class SalesSettings(SalesBaseModel):
     """
     Model for storing sales module settings.
-    Stores tafsili level configuration for customers, banks, and checks.
+    Stores tafsili type configuration for customers.
     """
-    # These fields were removed due to TafsiliHierarchy changes
-    # customer_tafsili_level, bank_tafsili_level, check_tafsili_level
+    customer_tafsili_level_1 = models.ForeignKey(
+        'accounting.TafsiliType',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='sales_settings_customer_level_1',
+        verbose_name=_('نوع تفصیلی مشتری ۱'),
+        help_text=_('نوع تفصیلی سطح ۱ برای مشتریان'),
+    )
+    customer_tafsili_level_2 = models.ForeignKey(
+        'accounting.TafsiliType',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='sales_settings_customer_level_2',
+        verbose_name=_('نوع تفصیلی مشتری ۲'),
+        help_text=_('نوع تفصیلی سطح ۲ برای مشتریان'),
+    )
+    customer_tafsili_level_3 = models.ForeignKey(
+        'accounting.TafsiliType',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='sales_settings_customer_level_3',
+        verbose_name=_('نوع تفصیلی مشتری ۳'),
+        help_text=_('نوع تفصیلی سطح ۳ برای مشتریان'),
+    )
+    customer_tafsili_level_1_description = models.TextField(
+        blank=True,
+        verbose_name=_('توضیحات سطح ۱'),
+        help_text=_('توضیحات اضافی برای نوع تفصیلی سطح ۱ مشتریان'),
+    )
+    customer_tafsili_level_2_description = models.TextField(
+        blank=True,
+        verbose_name=_('توضیحات سطح ۲'),
+        help_text=_('توضیحات اضافی برای نوع تفصیلی سطح ۲ مشتریان'),
+    )
+    customer_tafsili_level_3_description = models.TextField(
+        blank=True,
+        verbose_name=_('توضیحات سطح ۳'),
+        help_text=_('توضیحات اضافی برای نوع تفصیلی سطح ۳ مشتریان'),
+    )
 
     class Meta:
         verbose_name = _("Sales Settings")

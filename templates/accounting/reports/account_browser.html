@@ -151,6 +151,64 @@
             </div>
             {% endif %}
 
+            {% if selected_account or selected_group %}
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5>{% trans "حساب‌های سطح پایین‌تر" %}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>{% trans "کد حساب" %}</th>
+                                    <th>{% trans "نام حساب" %}</th>
+                                    <th>{% trans "گردش بستانکار" %}</th>
+                                    <th>{% trans "گردش بدهکار" %}</th>
+                                    <th>{% trans "مانده بستانکار" %}</th>
+                                    <th>{% trans "مانده بدهکار" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- سطر اول: حساب انتخاب شده -->
+                                {% if selected_account %}
+                                <tr class="table-primary">
+                                    <td><strong>{{ selected_account.account_code }}</strong></td>
+                                    <td><strong>{{ selected_account.account_name }}</strong></td>
+                                    <td class="text-success"><strong>{{ account_balances.credit_turnover|floatformat:0 }}</strong></td>
+                                    <td class="text-danger"><strong>{{ account_balances.debit_turnover|floatformat:0 }}</strong></td>
+                                    <td class="text-warning"><strong>{{ account_balances.credit_balance|floatformat:0 }}</strong></td>
+                                    <td class="text-primary"><strong>{{ account_balances.debit_balance|floatformat:0 }}</strong></td>
+                                </tr>
+                                {% elif selected_group %}
+                                <tr class="table-primary">
+                                    <td><strong>{{ selected_group.group_code }}</strong></td>
+                                    <td><strong>{{ selected_group.group_name }}</strong></td>
+                                    <td class="text-success"><strong>{{ group_balances.credit_turnover|floatformat:0 }}</strong></td>
+                                    <td class="text-danger"><strong>{{ group_balances.debit_turnover|floatformat:0 }}</strong></td>
+                                    <td class="text-warning"><strong>{{ group_balances.credit_balance|floatformat:0 }}</strong></td>
+                                    <td class="text-primary"><strong>{{ group_balances.debit_balance|floatformat:0 }}</strong></td>
+                                </tr>
+                                {% endif %}
+
+                                <!-- سطرهای بعدی: زیرمجموعه‌ها -->
+                                {% for child_data in child_accounts %}
+                                <tr>
+                                    <td>{{ child_data.account.account_code }}</td>
+                                    <td>{{ child_data.account.account_name }}</td>
+                                    <td class="text-success">{{ child_data.balances.credit_turnover|floatformat:0 }}</td>
+                                    <td class="text-danger">{{ child_data.balances.debit_turnover|floatformat:0 }}</td>
+                                    <td class="text-warning">{{ child_data.balances.credit_balance|floatformat:0 }}</td>
+                                    <td class="text-primary">{{ child_data.balances.debit_balance|floatformat:0 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             {% if not selected_account and not selected_group %}
             <div class="card">
                 <div class="card-body text-center">
