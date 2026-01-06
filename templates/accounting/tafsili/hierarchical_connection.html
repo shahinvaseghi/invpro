@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load access_tags %}
+
+{% block title %}{{ page_title|default:"اتصال سلسله مراتبی تفصیلی" }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="accounting-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span class="separator">/</span>
+      <a href="#accounting">{% trans "Accounting" %}</a>
+      <span class="separator">/</span>
+      <span>{% trans "تعاریف پایه" %}</span>
+      <span class="separator">/</span>
+      <span>{% trans "اتصال سلسله مراتبی تفصیلی" %}</span>
+    </nav>
+
+    <h1 class="page-title">{{ page_title|default:"اتصال سلسله مراتبی تفصیلی" }}</h1>
+
+    <div class="page-actions">
+      <button class="btn btn-primary" onclick="showInfo()">
+        {% trans "راهنما" %}
+      </button>
+    </div>
+  </div>
+
+  <div class="module-content">
+    <div class="card">
+      <div class="card-header">
+        <h3>{% trans "اتصال سلسله مراتبی تفصیلی" %}</h3>
+      </div>
+      <div class="card-body">
+        <div class="alert alert-info">
+          <strong>{% trans "توجه:" %}</strong>
+          {% trans "این صفحه برای مدیریت اتصال سلسله مراتبی حساب‌های تفصیلی طراحی شده است. لطفاً با تیم توسعه تماس بگیرید تا این صفحه کامل شود." %}
+        </div>
+
+        <div class="text-center" style="padding: 2rem;">
+          <div class="icon-placeholder" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;">
+            🔗
+          </div>
+          <h4>{% trans "صفحه در حال توسعه" %}</h4>
+          <p class="text-muted">
+            {% trans "این صفحه هنوز پیاده‌سازی نشده است. لطفاً با تیم توسعه تماس بگیرید." %}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showInfo() {
+  alert('{% trans "این صفحه برای مدیریت اتصال سلسله مراتبی حساب‌های تفصیلی استفاده می‌شود." %}');
+}
+</script>
+{% endblock %}

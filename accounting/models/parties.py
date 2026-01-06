@@ -32,9 +32,17 @@ class Party(AccountingSortableModel):
         blank=True,
         editable=False,
     )
-    party_name = models.CharField(
-        max_length=200,
-        help_text=_("Party name (Persian)"),
+    first_name = models.CharField(
+        max_length=100,
+        help_text=_("First name (Persian)"),
+        verbose_name=_("نام"),
+        default='',
+    )
+    last_name = models.CharField(
+        max_length=100,
+        help_text=_("Last name (Persian)"),
+        verbose_name=_("نام خانوادگی"),
+        default='',
     )
     party_name_en = models.CharField(
         max_length=200,
@@ -81,8 +89,8 @@ class Party(AccountingSortableModel):
         ],
         null=True,
         blank=True,
-        help_text=_("سطح تفصیلی مشتری (فقط برای مشتریان)"),
-        verbose_name=_("سطح تفصیلی مشتری"),
+        help_text=_(""),
+        verbose_name=_("نوع مشتری"),
     )
 
     class Meta:
@@ -93,12 +101,32 @@ class Party(AccountingSortableModel):
                 fields=("company", "party_code"),
                 name="accounting_party_code_unique",
             ),
-            models.UniqueConstraint(
-                fields=("company", "party_name"),
-                name="accounting_party_name_unique",
-            ),
         ]
         ordering = ("company", "party_type", "sort_order", "party_code")
+
+    @property
+    def party_name(self) -> str:
+        """Return full name combining first and last name."""
+        return f"{self.first_name} {self.last_name}".strip()
+
+    @property
+    def customer_type_description(self) -> str:
+        """Return customer type description based on customer_tafsili_level."""
+        if self.party_type != 'customer' or not self.customer_tafsili_level:
+            return ''
+
+        try:
+            from sales.models import SalesSettings
+            settings = SalesSettings.get_or_create_for_company(self.company_id)
+            desc_field = f'customer_tafsili_level_{self.customer_tafsili_level}_description'
+            description = getattr(settings, desc_field, '')
+
+            if description:
+                return f'مشتری {self.customer_tafsili_level} - {description}'
+            else:
+                return f'مشتری {self.customer_tafsili_level}'
+        except Exception:
+            return f'مشتری {self.customer_tafsili_level}'
 
     def __str__(self) -> str:
         return f"{self.party_code} - {self.party_name}"
@@ -109,6 +137,7 @@ class Party(AccountingSortableModel):
             self.party_code = generate_sequential_code(
                 self.__class__,
                 company_id=self.company_id,
+                field='party_code',
                 width=10,
                 extra_filters={"party_type": self.party_type},
             )

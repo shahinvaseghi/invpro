@@ -2204,6 +2204,19 @@ class WarehouseSettingsView(FeaturePermissionRequiredMixin, TemplateView):
         return context
 
 
+class HierarchicalTafsiliConnectionView(FeaturePermissionRequiredMixin, TemplateView):
+    """View for managing hierarchical tafsili account connections."""
+    template_name = 'accounting/tafsili/hierarchical_connection.html'
+    feature_code = 'accounting.accounts.tafsili'
+    required_action = 'view'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'accounting'
+        context['page_title'] = 'اتصال سلسله مراتبی تفصیلی'
+        return context
+
+
 # Payment Request Views - Imported from views.payment_request
 from .views.payment_request import (
     PaymentRequestListView,

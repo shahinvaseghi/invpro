@@ -14,7 +14,8 @@ class PartyForm(forms.ModelForm):
         model = Party
         fields = [
             'party_type',
-            'party_name',
+            'first_name',
+            'last_name',
             'party_name_en',
             'national_id',
             'tax_id',
@@ -28,7 +29,8 @@ class PartyForm(forms.ModelForm):
         ]
         widgets = {
             'party_type': forms.Select(attrs={'class': 'form-control'}),
-            'party_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
             'party_name_en': forms.TextInput(attrs={'class': 'form-control'}),
             'national_id': forms.TextInput(attrs={'class': 'form-control'}),
             'tax_id': forms.TextInput(attrs={'class': 'form-control'}),
@@ -42,15 +44,16 @@ class PartyForm(forms.ModelForm):
         }
         labels = {
             'party_type': _('نوع طرف حساب'),
-            'party_name': _('نام طرف حساب'),
-            'party_name_en': _('نام طرف حساب (انگلیسی)'),
+            'first_name': _('نام'),
+            'last_name': _('نام خانوادگی'),
+            'party_name_en': _('نام (انگلیسی)'),
             'national_id': _('کد ملی / شماره ثبت'),
             'tax_id': _('شناسه مالیاتی'),
             'address': _('آدرس'),
             'phone': _('تلفن'),
             'email': _('ایمیل'),
             'contact_person': _('شخص رابط'),
-            'customer_tafsili_level': _('سطح تفصیلی مشتری'),
+            'customer_tafsili_level': _('نوع مشتری'),
             'notes': _('توضیحات'),
             'is_enabled': _('وضعیت'),
         }
@@ -70,6 +73,11 @@ class PartyForm(forms.ModelForm):
         # Configure customer_tafsili_level field
         if 'customer_tafsili_level' in self.fields:
             self.fields['customer_tafsili_level'].empty_label = _("--- انتخاب کنید ---")
+            # Set dynamic choices based on sales settings
+            if company_id:
+                from sales.models import SalesSettings
+                choices = SalesSettings.get_customer_type_choices(company_id)
+                self.fields['customer_tafsili_level'].choices = [('', _("--- انتخاب کنید ---"))] + choices
             # This field should only be visible for customers, but we'll handle visibility in template/JavaScript
 
 

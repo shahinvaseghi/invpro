@@ -210,6 +210,30 @@ class SalesSettings(SalesBaseModel):
         settings, created = cls.objects.get_or_create(company_id=company_id)
         return settings
 
+    @classmethod
+    def get_customer_type_choices(cls, company_id):
+        """Get customer type choices based on configured settings."""
+        settings = cls.get_or_create_for_company(company_id)
+        choices = []
+
+        for level in range(1, 4):
+            tafsili_field = f'customer_tafsili_level_{level}'
+            tafsili_type = getattr(settings, tafsili_field, None)
+
+            if tafsili_type:
+                # Get description from settings
+                desc_field = f'customer_tafsili_level_{level}_description'
+                description = getattr(settings, desc_field, '')
+
+                # Create choice with level number and tafsili type info
+                choice_text = f'مشتری {level}'
+                if description:
+                    choice_text += f' - {description}'
+
+                choices.append((level, choice_text))
+
+        return choices
+
 
 class IncomeReceiptLocation(SalesSortableModel):
     """

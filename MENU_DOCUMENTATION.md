@@ -77,6 +77,7 @@
   - **تعریف حساب کل**: `accounting:gl_accounts` - حساب کل
   - **تعریف حساب معین**: `accounting:sub_accounts` - حساب معین
   - **تعریف حساب تفصیلی**: `accounting:tafsili_accounts` - حساب تفصیلی
+  - **اتصال سلسله مراتبی تفصیلی**: `accounting:hierarchical_tafsili_connection` - اتصال سلسله مراتبی تفصیلی
   - **انواع تفصیلی**: `accounting:tafsili_types` - انواع تفصیلی
   - **مراکز هزینه**: `accounting:cost_centers` - مراکز هزینه
   - **دسته‌بندی درآمد و هزینه**: `accounting:income_expense_categories` - دسته‌بندی درآمد و هزینه
@@ -299,6 +300,7 @@
   - **تعریف حساب کل**: `accounting:gl_accounts` - حساب کل
   - **تعریف حساب معین**: `accounting:sub_accounts` - حساب معین
   - **تعریف حساب تفصیلی**: `accounting:tafsili_accounts` - حساب تفصیلی
+  - **اتصال سلسله مراتبی تفصیلی**: `accounting:hierarchical_tafsili_connection` - اتصال سلسله مراتبی تفصیلی
   - **انواع تفصیلی**: `accounting:tafsili_types` - انواع تفصیلی
   - **مراکز هزینه**: `accounting:cost_centers` - مراکز هزینه
   - **دسته‌بندی درآمد و هزینه**: `accounting:income_expense_categories` - دسته‌بندی
@@ -558,6 +560,8 @@
   - **مسیر**: `/accounting/sub-accounts/`
 - `accounting:tafsili_accounts` - تعریف حساب تفصیلی
   - **مسیر**: `/accounting/tafsili-accounts/`
+- `accounting:hierarchical_tafsili_connection` - اتصال سلسله مراتبی تفصیلی
+  - **مسیر**: `/accounting/hierarchical-tafsili-connection/`
 - `accounting:cost_centers` - مراکز هزینه
   - **مسیر**: `/accounting/income-expense/cost-centers/`
 - `accounting:income_expense_categories` - دسته‌بندی درآمد و هزینه

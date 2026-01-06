@@ -371,7 +371,8 @@ class CustomerForm(PartyForm):
         # Ensure customer_tafsili_level is included for customers
         fields = [
             'party_type',
-            'party_name',
+            'first_name',
+            'last_name',
             'party_name_en',
             'national_id',
             'tax_id',

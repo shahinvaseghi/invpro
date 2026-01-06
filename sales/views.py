@@ -565,15 +565,15 @@ class CustomersListView(BaseListView):
     
     def get_detail_url_name(self) -> str:
         """Return detail URL name."""
-        return 'sales:customer_detail'
+        return None  # No detail view for customers
     
     def get_edit_url_name(self) -> str:
         """Return edit URL name."""
-        return 'sales:customer_edit'
-    
+        return None  # No edit view for customers
+
     def get_delete_url_name(self) -> str:
         """Return delete URL name."""
-        return 'sales:customer_delete'
+        return None  # No delete view for customers
     
     def get_page_title(self) -> str:
         """Return page title."""
@@ -585,6 +585,7 @@ class CustomersListView(BaseListView):
         context['table_headers'] = [
             {'label': _('کد مشتری'), 'field': 'party_code', 'type': 'code'},
             {'label': _('نام مشتری'), 'field': 'party_name'},
+            {'label': _('نوع مشتری'), 'field': 'customer_type_description'},
             {'label': _('کد ملی / شماره ثبت'), 'field': 'national_id'},
             {'label': _('شناسه مالیاتی'), 'field': 'tax_id'},
             {'label': _('تلفن'), 'field': 'phone'},
@@ -614,16 +615,85 @@ class CustomerCreateView(BaseCreateView):
         return kwargs
     
     def form_valid(self, form):
-        """Create customer."""
+        """Create customer and auto-create tafsili account if configured."""
         # Set party_type to customer
         form.instance.party_type = 'customer'
         form.instance.created_by = self.request.user
 
-        # Save customer (simplified - no auto account creation)
+        # Save customer
         customer = form.save()
 
+        # Auto-create tafsili account if customer has tafsili level configured
+        if customer.customer_tafsili_level:
+            self._create_customer_tafsili_account(customer)
+
         return super().form_valid(form)
-    
+
+    def _create_customer_tafsili_account(self, customer):
+        """Auto-create tafsili account for customer based on sales settings."""
+        from accounting.models import Account, PartyAccount
+        from sales.models import SalesSettings
+
+        try:
+            # Get company ID
+            company_id = self.request.session.get('active_company_id')
+            if not company_id:
+                return
+
+            # Get sales settings for company
+            settings = SalesSettings.get_or_create_for_company(company_id)
+
+            # Get tafsili type and level based on customer's tafsili level
+            tafsili_level = customer.customer_tafsili_level
+            tafsili_type_field = f'customer_tafsili_level_{tafsili_level}'
+            account_level_field = f'customer_tafsili_level_{tafsili_level}_account_level'
+
+            tafsili_type = getattr(settings, tafsili_type_field, None)
+            account_level = getattr(settings, account_level_field, None)
+
+            # Skip if tafsili type is not configured
+            if not tafsili_type:
+                return
+
+            # Generate account code
+            from inventory.utils.codes import generate_sequential_code
+            account_code = generate_sequential_code(
+                Account,
+                company_id=company_id,
+                field='account_code',
+                width=10,
+            )
+
+            # Create tafsili account
+            tafsili_account = Account.objects.create(
+                company_id=company_id,
+                account_code=account_code,
+                account_name=f"{customer.party_name} - تفصیلی مشتری",
+                account_name_en=f"{customer.party_name_en or ''} - Customer Tafsili",
+                account_level=3,  # Always tafsili
+                tafsili_type=tafsili_type,
+                tafsili_level=account_level or 1,  # Default to level 1 if not set
+                description=f"تفصیلی خودکار ایجاد شده برای مشتری: {customer.party_name}",
+                is_enabled=1,
+                created_by=self.request.user,
+            )
+
+            # Create PartyAccount relation
+            PartyAccount.objects.create(
+                party=customer,
+                account=tafsili_account,
+                is_primary=1,  # Make it primary
+                company_id=company_id,
+                notes="تفصیلی خودکار ایجاد شده",
+                created_by=self.request.user,
+            )
+
+        except Exception as e:
+            # Log error but don't fail customer creation
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to auto-create tafsili account for customer {customer.pk}: {e}")
+
     def get_breadcrumbs(self):
         """Return breadcrumbs."""
         return [

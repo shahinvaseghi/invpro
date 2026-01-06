@@ -500,6 +500,12 @@ def get_menu_structure() -> List[MenuSection]:
                             permission="accounting.accounts.tafsili"
                         ),
                         MenuItem(
+                            name="اتصال سلسله مراتبی تفصیلی",
+                            url_name="accounting:hierarchical_tafsili_connection",
+                            icon="icon-link",
+                            permission="accounting.accounts.tafsili"
+                        ),
+                        MenuItem(
                             name="مراکز هزینه",
                             url_name="accounting:cost_centers",
                             icon="icon-building",

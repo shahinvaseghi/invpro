@@ -138,6 +138,9 @@ urlpatterns = [
     path('tafsili-types/<int:pk>/', TafsiliTypeDetailView.as_view(), name='tafsili_type_detail'),
     path('tafsili-types/<int:pk>/edit/', TafsiliTypeUpdateView.as_view(), name='tafsili_type_edit'),
     path('tafsili-types/<int:pk>/delete/', TafsiliTypeDeleteView.as_view(), name='tafsili_type_delete'),
+
+    # Hierarchical Tafsili Connection (اتصال سلسله مراتبی تفصیلی)
+    path('hierarchical-tafsili-connection/', views_module.HierarchicalTafsiliConnectionView.as_view(), name='hierarchical_tafsili_connection'),
     
     # Accounting Documents (اسناد حسابداری)
     path('documents/create/', views_module.AccountingDocumentCreateView.as_view(), name='document_create'),
