@@ -293,19 +293,35 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function renderTafsili(tafsili, subCode) {
+        const hasChildren = tafsili.children && tafsili.children.length > 0;
         let html = '<li class="account-tree-item">';
         html += '<div class="tree-node" style="padding-right: 4.5rem;">';
-        html += '<span style="width: 20px; display: inline-block;"></span>';
+
+        if (hasChildren) {
+            html += `<span class="tree-toggle collapsed" onclick="toggleNode(this)"></span>`;
+        } else {
+            html += '<span style="width: 20px; display: inline-block;"></span>';
+        }
+
         html += '<div class="tree-content">';
         html += `<span class="tree-code">${tafsili.code}</span>`;
         html += `<span class="tree-name">${tafsili.name}</span>`;
-        html += `<span class="tree-level-badge tree-level-tafsili">تفصیلی</span>`;
+        html += `<span class="tree-level-badge tree-level-tafsili">تفصیلی ${tafsili.level}</span>`;
         html += '</div>';
         html += '<div class="tree-actions">';
         html += `<a href="{% url 'accounting:account_detail' 0 %}" class="btn-view" onclick="this.href=this.href.replace('0', '${tafsili.id}')">مشاهده</a>`;
         html += `<a href="{% url 'accounting:account_edit' 0 %}" class="btn-edit" onclick="this.href=this.href.replace('0', '${tafsili.id}')">ویرایش</a>`;
         html += '</div>';
         html += '</div>';
+
+        if (hasChildren) {
+            html += '<ul class="tree-children" id="tafsili-' + tafsili.code + '-children">';
+            tafsili.children.forEach(child => {
+                html += renderTafsili(child, subCode);
+            });
+            html += '</ul>';
+        }
+
         html += '</li>';
         return html;
     }

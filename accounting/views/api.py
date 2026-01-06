@@ -430,26 +430,54 @@ def get_account_tree(request):
                 
                 sub_accounts_data = []
                 for sub in sub_accounts:
-                    # دریافت تفصیلی‌هایی که در سندهای این معین استفاده شده‌اند
-                    tafsili_accounts = Account.objects.filter(
-                        company_id=company_id,
-                        account_level=3,
-                        is_enabled=1
-                    ).filter(
-                        # تفصیلی‌هایی که در سندهای این معین استفاده شده‌اند
-                        models.Q(document_lines_as_tafsili_1__document__lines__sub_account=sub) |
-                        models.Q(document_lines_as_tafsili_2__document__lines__sub_account=sub) |
-                        models.Q(document_lines_as_tafsili_3__document__lines__sub_account=sub)
-                    ).distinct().order_by('account_code')
+                    # بررسی وجود hierarchy برای این شرکت
+                    from accounting.models import TafsiliAccountHierarchy
+                    hierarchy_exists = TafsiliAccountHierarchy.objects.filter(company_id=company_id).exists()
 
-                    tafsili_data = [
-                        {
-                            'id': t.id,
-                            'code': t.account_code,
-                            'name': t.account_name,
-                        }
-                        for t in tafsili_accounts
-                    ]
+                    if hierarchy_exists:
+                        # اگر hierarchy وجود دارد، فقط تفصیلی‌های سطح ۱ متصل رو نمایش بده
+                        from accounting.models import SubAccountTafsiliLevel1Relation
+                        connected_tafsili_level1_ids = SubAccountTafsiliLevel1Relation.objects.filter(
+                            company_id=company_id,
+                            sub_account=sub
+                        ).values_list('tafsili_level1_account_id', flat=True)
+
+                        # دریافت تفصیلی‌های سطح ۱ متصل
+                        connected_accounts = Account.objects.filter(
+                            company_id=company_id,
+                            account_level=3,
+                            id__in=connected_tafsili_level1_ids,
+                            is_enabled=1
+                        ).order_by('account_code')
+
+                        # ساخت hierarchy برای تفصیلی‌های متصل
+                        tafsili_data = []
+                        for account in connected_accounts:
+                            tafsili_data.append(build_tafsili_hierarchy_tree(account, company_id))
+
+                    else:
+                        # اگر hierarchy وجود ندارد، تفصیلی‌های استفاده شده در سندها رو نمایش بده
+                        used_tafsili_accounts = Account.objects.filter(
+                            company_id=company_id,
+                            account_level=3,
+                            is_enabled=1
+                        ).filter(
+                            models.Q(document_lines_as_tafsili_1__document__lines__sub_account=sub) |
+                            models.Q(document_lines_as_tafsili_2__document__lines__sub_account=sub) |
+                            models.Q(document_lines_as_tafsili_3__document__lines__sub_account=sub)
+                        ).distinct().order_by('account_code')
+
+                        # گروه‌بندی بر اساس سطح برای نمایش بهتر
+                        tafsili_data = []
+                        for level in [1, 2, 3]:
+                            level_accounts = [acc for acc in used_tafsili_accounts if acc.tafsili_level == level]
+                            for t in level_accounts:
+                                tafsili_data.append({
+                                    'id': t.id,
+                                    'code': t.account_code,
+                                    'name': t.account_name,
+                                    'level': t.tafsili_level,
+                                })
 
                     sub_accounts_data.append({
                         'id': sub.id,
@@ -483,6 +511,32 @@ def get_account_tree(request):
             'success': False,
             'message': _('خطا در دریافت درختچه حساب‌ها: {}').format(str(e))
         }, status=500)
+
+
+def build_tafsili_hierarchy_tree(account, company_id):
+    """Build complete hierarchy tree for a tafsili account recursively."""
+    from accounting.models import TafsiliAccountHierarchy
+
+    tafsili_item = {
+        'id': account.id,
+        'code': account.account_code,
+        'name': account.account_name,
+        'level': account.tafsili_level,
+    }
+
+    # گرفتن فرزندان مستقیم
+    children_relations = TafsiliAccountHierarchy.objects.filter(
+        company_id=company_id,
+        parent_account=account
+    ).select_related('child_account').order_by('sort_order')
+
+    if children_relations.exists():
+        tafsili_item['children'] = [
+            build_tafsili_hierarchy_tree(child.child_account, company_id)
+            for child in children_relations
+        ]
+
+    return tafsili_item
 
 
 @require_http_methods(["GET"])

@@ -77,6 +77,7 @@
   - **تعریف حساب کل**: `accounting:gl_accounts` - حساب کل
   - **تعریف حساب معین**: `accounting:sub_accounts` - حساب معین
   - **تعریف حساب تفصیلی**: `accounting:tafsili_accounts` - حساب تفصیلی
+  - **اتصال تفصیلی به معین**: `accounting:subaccount_tafsili_level1_connection` - اتصال تفصیلی به معین
   - **اتصال سلسله مراتبی تفصیلی**: `accounting:hierarchical_tafsili_connection` - اتصال سلسله مراتبی تفصیلی
   - **انواع تفصیلی**: `accounting:tafsili_types` - انواع تفصیلی
   - **مراکز هزینه**: `accounting:cost_centers` - مراکز هزینه

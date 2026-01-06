@@ -4,7 +4,7 @@ Forms for Tafsili Account (حساب تفصیلی) management.
 from typing import Optional
 from django import forms
 from django.utils.translation import gettext_lazy as _
-from ..models import Account, TafsiliType, TafsiliAccountHierarchy
+from ..models import Account, TafsiliType, TafsiliAccountHierarchy, SubAccountTafsiliLevel1Relation
 
 
 class TafsiliAccountForm(forms.ModelForm):
@@ -341,5 +341,124 @@ class TafsiliAccountHierarchyForm(forms.ModelForm):
             existing = existing.exclude(pk=self.instance.pk)
         if existing.exists():
             raise forms.ValidationError(_('این رابطه سلسله مراتبی از قبل وجود دارد.'))
+
+        return cleaned_data
+
+
+class SubAccountTafsiliLevel1RelationForm(forms.ModelForm):
+    """Form for creating/editing SubAccount-Tafsili Level 1 relations."""
+
+    sub_account = forms.ModelChoiceField(
+        queryset=Account.objects.none(),
+        label=_('حساب معین'),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        required=True,
+        empty_label=_('-- انتخاب کنید --'),
+        help_text=_('حساب معین که تفصیلی سطح ۱ به آن وصل خواهد شد')
+    )
+
+    tafsili_level1_account = forms.ModelChoiceField(
+        queryset=Account.objects.none(),
+        label=_('حساب تفصیلی سطح ۱'),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        required=True,
+        empty_label=_('-- انتخاب کنید --'),
+        help_text=_('حساب تفصیلی سطح ۱ که به معین وصل خواهد شد')
+    )
+
+    class Meta:
+        model = SubAccountTafsiliLevel1Relation
+        fields = [
+            'sub_account',
+            'tafsili_level1_account',
+            'is_primary',
+            'notes',
+        ]
+        widgets = {
+            'is_primary': forms.Select(attrs={'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+        labels = {
+            'sub_account': _('حساب معین'),
+            'tafsili_level1_account': _('حساب تفصیلی سطح ۱'),
+            'is_primary': _('تفصیلی سطح ۱ اصلی'),
+            'notes': _('یادداشت‌ها'),
+        }
+
+    def __init__(self, *args, company_id: Optional[int] = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.company_id = company_id
+
+        # Filter accounts by company
+        if company_id:
+            # Filter sub accounts (level 2) that are tafsili enabled
+            sub_accounts = Account.objects.filter(
+                company_id=company_id,
+                account_level=2,
+                is_enabled=1,
+                is_tafsili_enabled=1  # Only show tafsili-enabled sub accounts
+            ).order_by('account_code')
+            self.fields['sub_account'].queryset = sub_accounts
+
+            # Filter tafsili level 1 accounts (level 3 with tafsili_level=1)
+            tafsili_level1_accounts = Account.objects.filter(
+                company_id=company_id,
+                account_level=3,
+                tafsili_level=1,
+                is_enabled=1
+            ).order_by('account_code')
+            self.fields['tafsili_level1_account'].queryset = tafsili_level1_accounts
+
+            # Set company for new instances
+            if not self.instance.pk:
+                from shared.models import Company
+                try:
+                    self.instance.company = Company.objects.get(pk=company_id)
+                except Company.DoesNotExist:
+                    pass
+
+    def clean(self):
+        cleaned_data = super().clean()
+        sub_account = cleaned_data.get('sub_account')
+        tafsili_level1_account = cleaned_data.get('tafsili_level1_account')
+
+        # Validate both accounts are selected
+        if not sub_account:
+            raise forms.ValidationError({
+                'sub_account': _('حساب معین الزامی است.')
+            })
+
+        if not tafsili_level1_account:
+            raise forms.ValidationError({
+                'tafsili_level1_account': _('حساب تفصیلی سطح ۱ الزامی است.')
+            })
+
+        # Validate sub_account is level 2
+        if sub_account and sub_account.account_level != 2:
+            raise forms.ValidationError({
+                'sub_account': _('حساب انتخاب شده باید معین (سطح ۲) باشد.')
+            })
+
+        # Validate tafsili_level1_account is level 3 and tafsili_level is 1
+        if tafsili_level1_account:
+            if tafsili_level1_account.account_level != 3:
+                raise forms.ValidationError({
+                    'tafsili_level1_account': _('حساب تفصیلی باید سطح ۳ باشد.')
+                })
+            if tafsili_level1_account.tafsili_level != 1:
+                raise forms.ValidationError({
+                    'tafsili_level1_account': _('حساب تفصیلی باید سطح تفصیلی ۱ باشد.')
+                })
+
+        # Validate both accounts belong to same company
+        if self.company_id:
+            if sub_account and sub_account.company_id != self.company_id:
+                raise forms.ValidationError({
+                    'sub_account': _('حساب معین باید متعلق به شرکت فعلی باشد.')
+                })
+            if tafsili_level1_account and tafsili_level1_account.company_id != self.company_id:
+                raise forms.ValidationError({
+                    'tafsili_level1_account': _('حساب تفصیلی باید متعلق به شرکت فعلی باشد.')
+                })
 
         return cleaned_data

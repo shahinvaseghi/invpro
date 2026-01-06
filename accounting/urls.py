@@ -139,6 +139,12 @@ urlpatterns = [
     path('tafsili-types/<int:pk>/edit/', TafsiliTypeUpdateView.as_view(), name='tafsili_type_edit'),
     path('tafsili-types/<int:pk>/delete/', TafsiliTypeDeleteView.as_view(), name='tafsili_type_delete'),
 
+    # SubAccount Tafsili Level1 Connection (اتصال تفصیلی به معین)
+    path('subaccount-tafsili-level1-connection/', views_module.SubAccountTafsiliLevel1ConnectionView.as_view(), name='subaccount_tafsili_level1_connection'),
+    path('subaccount-tafsili-level1-connection/create/', views_module.SubAccountTafsiliLevel1CreateView.as_view(), name='subaccount_tafsili_level1_create'),
+    path('subaccount-tafsili-level1-connection/<int:pk>/edit/', views_module.SubAccountTafsiliLevel1UpdateView.as_view(), name='subaccount_tafsili_level1_edit'),
+    path('subaccount-tafsili-level1-connection/<int:pk>/delete/', views_module.SubAccountTafsiliLevel1DeleteView.as_view(), name='subaccount_tafsili_level1_delete'),
+
     # Hierarchical Tafsili Connection (اتصال سلسله مراتبی تفصیلی)
     path('hierarchical-tafsili-connection/', views_module.HierarchicalTafsiliConnectionView.as_view(), name='hierarchical_tafsili_connection'),
     path('hierarchical-tafsili-connection/create/', views_module.TafsiliHierarchyCreateView.as_view(), name='tafsili_hierarchy_create'),

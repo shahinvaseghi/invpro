@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="card-title mb-0">
+                            <i class="icon-trash"></i>
+                            حذف اتصال تفصیلی سطح ۱ به معین
+                        </h4>
+                        <div>
+                            <a href="{% url 'accounting:subaccount_tafsili_level1_connection' %}" class="btn btn-secondary">
+                                <i class="icon-arrow-left"></i>
+                                بازگشت
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation -->
+    <div class="row">
+        <div class="col-lg-6 mx-auto">
+            <div class="card border-danger">
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <i class="icon-warning icon-4x text-danger"></i>
+                    </div>
+
+                    <h5 class="card-title text-danger mb-3">تأیید حذف</h5>
+
+                    <p class="card-text mb-4">
+                        آیا مطمئن هستید که می‌خواهید اتصال زیر را حذف کنید؟
+                    </p>
+
+                    <div class="alert alert-warning text-start">
+                        <strong>معین:</strong> {{ object.sub_account.account_code }} - {{ object.sub_account.account_name }}<br>
+                        <strong>تفصیلی سطح ۱:</strong> {{ object.tafsili_level1_account.account_code }} - {{ object.tafsili_level1_account.account_name }}<br>
+                        {% if object.notes %}
+                            <strong>یادداشت:</strong> {{ object.notes }}
+                        {% endif %}
+                    </div>
+
+                    <div class="alert alert-info">
+                        <strong>توجه:</strong> این عملیات قابل بازگشت نیست.
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="{% url 'accounting:subaccount_tafsili_level1_connection' %}" class="btn btn-secondary">
+                                انصراف
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="icon-trash"></i>
+                                حذف قطعی
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

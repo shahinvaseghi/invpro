@@ -380,6 +380,66 @@ class TafsiliSubAccountRelation(AccountingBaseModel):
         super().save(*args, **kwargs)
 
 
+class SubAccountTafsiliLevel1Relation(AccountingBaseModel):
+    """
+    رابطه مستقیم بین معین و تفصیلی سطح ۱.
+    هر معین مشخص می‌کنه که به کدوم تفصیلی‌های سطح ۱ وصل هست.
+    """
+    sub_account = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        related_name='tafsili_level1_relations',
+        limit_choices_to={'account_level': 2},
+        help_text=_("حساب معین")
+    )
+    tafsili_level1_account = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        related_name='sub_account_level1_relations',
+        limit_choices_to={'account_level': 3, 'tafsili_level': 1},
+        help_text=_("حساب تفصیلی سطح ۱")
+    )
+    is_primary = models.PositiveSmallIntegerField(
+        choices=ENABLED_FLAG_CHOICES,
+        default=0,
+        help_text=_("حساب تفصیلی سطح ۱ اصلی (برای نمایش پیش‌فرض)")
+    )
+    notes = models.TextField(
+        blank=True,
+        help_text=_("یادداشت‌های اضافی")
+    )
+
+    class Meta:
+        verbose_name = _("رابطه معین-تفصیلی سطح ۱")
+        verbose_name_plural = _("روابط معین-تفصیلی سطح ۱")
+        ordering = ("company", "sub_account", "-is_primary", "tafsili_level1_account")
+
+    def __str__(self) -> str:
+        return f"{self.sub_account.account_code} → {self.tafsili_level1_account.account_code}"
+
+    def clean(self):
+        """Validate relation."""
+        # Skip validation if objects are not loaded yet (during form validation)
+        try:
+            if self.sub_account and self.sub_account.account_level != 2:
+                raise ValidationError(_("Sub account must be level 2 (معین)."))
+
+            if self.tafsili_level1_account:
+                if self.tafsili_level1_account.account_level != 3:
+                    raise ValidationError(_("Tafsili account must be level 3 (تفصیلی)."))
+                if self.tafsili_level1_account.tafsili_level != 1:
+                    raise ValidationError(_("Tafsili account must be level 1."))
+
+            # Validate company consistency
+            if self.sub_account and self.tafsili_level1_account:
+                if self.sub_account.company_id != self.tafsili_level1_account.company_id:
+                    raise ValidationError(_("Both accounts must belong to the same company."))
+        except:
+            # If related objects are not loaded, skip validation
+            # Validation will be done in the form
+            pass
+
+
 class TafsiliAccountHierarchy(AccountingBaseModel):
     """
     روابط سلسله مراتبی بین حساب‌های تفصیلی.

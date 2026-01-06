@@ -13,10 +13,11 @@ from shared.views.base import BaseCreateView, BaseFormsetCreateView, BaseListVie
 from accounting.views.base import AccountingBaseView
 from accounting.models import (
     CostCenter, IncomeExpenseCategory, Party, PartyAccount, TreasuryAccount,
-    AccountingDocument, AccountingDocumentLine, Account, TafsiliAccountHierarchy
+    AccountingDocument, AccountingDocumentLine, Account, TafsiliAccountHierarchy,
+    SubAccountTafsiliLevel1Relation
 )
 from accounting.forms import CostCenterForm, IncomeExpenseCategoryForm, PartyForm, PartyAccountForm, TreasuryAccountForm, FiscalMemoryConfigForm
-from accounting.forms.tafsili_accounts import TafsiliAccountHierarchyForm
+from accounting.forms.tafsili_accounts import TafsiliAccountHierarchyForm, SubAccountTafsiliLevel1RelationForm
 from accounting.views.automation import (
     AutomationProcessListView,
     AutomationProcessCreateView,
@@ -2268,6 +2269,120 @@ class TafsiliHierarchyDeleteView(FeaturePermissionRequiredMixin, DeleteView):
         return context
 
 
+class SubAccountTafsiliLevel1CreateView(FeaturePermissionRequiredMixin, CreateView):
+    """View for creating new SubAccount-Tafsili Level 1 relations."""
+    model = SubAccountTafsiliLevel1Relation
+    form_class = SubAccountTafsiliLevel1RelationForm
+    template_name = 'accounting/tafsili/subaccount_tafsili_level1_form.html'
+    feature_code = 'accounting.accounts.tafsili'
+    required_action = 'create'
+
+    def get_success_url(self):
+        return reverse('accounting:subaccount_tafsili_level1_connection')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['company_id'] = self.request.session.get('active_company_id')
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'accounting'
+        context['page_title'] = 'افزودن اتصال تفصیلی سطح ۱ به معین'
+        return context
+
+
+class SubAccountTafsiliLevel1UpdateView(FeaturePermissionRequiredMixin, UpdateView):
+    """View for updating SubAccount-Tafsili Level 1 relations."""
+    model = SubAccountTafsiliLevel1Relation
+    form_class = SubAccountTafsiliLevel1RelationForm
+    template_name = 'accounting/tafsili/subaccount_tafsili_level1_form.html'
+    feature_code = 'accounting.accounts.tafsili'
+    required_action = 'edit'
+
+    def get_success_url(self):
+        return reverse('accounting:subaccount_tafsili_level1_connection')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['company_id'] = self.request.session.get('active_company_id')
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'accounting'
+        context['page_title'] = 'ویرایش اتصال تفصیلی سطح ۱ به معین'
+        return context
+
+
+class SubAccountTafsiliLevel1DeleteView(FeaturePermissionRequiredMixin, DeleteView):
+    """View for deleting SubAccount-Tafsili Level 1 relations."""
+    model = SubAccountTafsiliLevel1Relation
+    template_name = 'accounting/tafsili/subaccount_tafsili_level1_confirm_delete.html'
+    feature_code = 'accounting.accounts.tafsili'
+    required_action = 'delete'
+
+    def get_success_url(self):
+        return reverse('accounting:subaccount_tafsili_level1_connection')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'accounting'
+        context['page_title'] = 'حذف اتصال تفصیلی سطح ۱ به معین'
+        return context
+
+
+class SubAccountTafsiliLevel1ConnectionView(FeaturePermissionRequiredMixin, TemplateView):
+    """View for managing SubAccount-Tafsili Level 1 connections."""
+    template_name = 'accounting/tafsili/subaccount_tafsili_level1_connection.html'
+    feature_code = 'accounting.accounts.tafsili'
+    required_action = 'view'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'accounting'
+        context['page_title'] = 'اتصال تفصیلی سطح ۱ به معین'
+
+        # Get company from session
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            from accounting.models import SubAccountTafsiliLevel1Relation, Account
+
+            # Get all relations for this company
+            context['relations'] = SubAccountTafsiliLevel1Relation.objects.filter(
+                company_id=company_id
+            ).select_related('sub_account', 'tafsili_level1_account').order_by('sub_account__account_code', 'tafsili_level1_account__account_code')
+
+            # Group relations by sub_account for better display
+            relations_by_sub_account = {}
+            for relation in context['relations']:
+                sub_account_id = relation.sub_account_id
+                if sub_account_id not in relations_by_sub_account:
+                    relations_by_sub_account[sub_account_id] = {
+                        'sub_account': relation.sub_account,
+                        'relations': []
+                    }
+                relations_by_sub_account[sub_account_id]['relations'].append(relation)
+
+            context['relations_by_sub_account'] = relations_by_sub_account
+
+            # Get all sub accounts and tafsili level 1 accounts for dropdowns
+            context['sub_accounts'] = Account.objects.filter(
+                company_id=company_id,
+                account_level=2,
+                is_enabled=1
+            ).order_by('account_code')
+
+            context['tafsili_level1_accounts'] = Account.objects.filter(
+                company_id=company_id,
+                account_level=3,
+                tafsili_level=1,
+                is_enabled=1
+            ).order_by('account_code')
+
+        return context
+
+
 class HierarchicalTafsiliConnectionView(FeaturePermissionRequiredMixin, TemplateView):
     """View for managing hierarchical tafsili account connections."""
     template_name = 'accounting/tafsili/hierarchical_connection.html'
@@ -2426,7 +2541,7 @@ class FilteredTafsiliAccountsAPIView(View):
         )
 
         # Apply normal tafsili type filtering based on sub_account
-        filtered_accounts = self._apply_normal_filtering(base_queryset, sub_account_id)
+        filtered_accounts = self._apply_normal_filtering(base_queryset, sub_account_id, company_id)
 
         # Apply hierarchy filtering based on selections
         result = self._apply_hierarchy_filtering(
@@ -2439,7 +2554,7 @@ class FilteredTafsiliAccountsAPIView(View):
 
         return JsonResponse(result)
 
-    def _apply_normal_filtering(self, queryset, sub_account_id):
+    def _apply_normal_filtering(self, queryset, sub_account_id, company_id):
         """Apply normal tafsili type filtering based on sub_account relations."""
         if not sub_account_id:
             return queryset
@@ -2449,34 +2564,71 @@ class FilteredTafsiliAccountsAPIView(View):
         except ValueError:
             return queryset.none()
 
+        # Check if sub_account is tafsili_enabled
+        sub_account = Account.objects.filter(
+            pk=sub_account_id,
+            company_id=company_id,
+            account_level=2,
+            is_enabled=1
+        ).first()
+
+        if not sub_account:
+            return queryset.none()
+
+        is_tafsili_enabled = sub_account.is_tafsili_enabled == 1
+
+        if not is_tafsili_enabled:
+            # If sub_account is not tafsili_enabled, don't show any tafsili accounts
+            return queryset.annotate(
+                allowed_level_1=models.Value(False, output_field=models.BooleanField()),
+                allowed_level_2=models.Value(False, output_field=models.BooleanField()),
+                allowed_level_3=models.Value(False, output_field=models.BooleanField())
+            )
+
         # Get tafsili types allowed for each level in this sub_account
         from accounting.models import SubAccountTafsiliTypeRelation
 
         level_1_types = SubAccountTafsiliTypeRelation.objects.filter(
-            company_id=queryset.first().company_id if queryset.exists() else 0,
+            company_id=company_id,
             sub_account_id=sub_account_id,
             level=1
         ).values_list('tafsili_type_id', flat=True)
 
         level_2_types = SubAccountTafsiliTypeRelation.objects.filter(
-            company_id=queryset.first().company_id if queryset.exists() else 0,
+            company_id=company_id,
             sub_account_id=sub_account_id,
             level=2
         ).values_list('tafsili_type_id', flat=True)
 
         level_3_types = SubAccountTafsiliTypeRelation.objects.filter(
-            company_id=queryset.first().company_id if queryset.exists() else 0,
+            company_id=company_id,
             sub_account_id=sub_account_id,
             level=3
         ).values_list('tafsili_type_id', flat=True)
+
+        # Get SubAccount-Tafsili Level 1 relations for this sub_account
+        from accounting.models import SubAccountTafsiliLevel1Relation
+        subaccount_tafsili_level1_ids = SubAccountTafsiliLevel1Relation.objects.filter(
+            company_id=company_id,
+            sub_account_id=sub_account_id
+        ).values_list('tafsili_level1_account_id', flat=True)
+
+        # Check if any relations are defined for each level
+        has_level_1_relations = level_1_types.exists() and subaccount_tafsili_level1_ids.exists()
+        has_level_2_relations = level_2_types.exists()
+        has_level_3_relations = level_3_types.exists()
 
         # Return filtered queryset with annotations for allowed levels
         # Also filter by tafsili_level to ensure accounts only appear in their designated level
         return queryset.annotate(
             allowed_level_1=models.Case(
                 models.When(
-                    models.Q(tafsili_type_id__in=level_1_types) &
-                    models.Q(tafsili_level=1),
+                    # If relations are defined, filter by them
+                    models.Q(tafsili_level=1) & (
+                        models.Q(tafsili_type_id__in=level_1_types, id__in=subaccount_tafsili_level1_ids) if has_level_1_relations
+                        # If no relations defined but sub_account is tafsili_enabled, show all level 1 accounts
+                        else models.Q(tafsili_level=1)
+                    ),
                     then=models.Value(True)
                 ),
                 default=models.Value(False),
@@ -2484,8 +2636,12 @@ class FilteredTafsiliAccountsAPIView(View):
             ),
             allowed_level_2=models.Case(
                 models.When(
-                    models.Q(tafsili_type_id__in=level_2_types) &
-                    models.Q(tafsili_level=2),
+                    # If relations are defined, filter by them
+                    models.Q(tafsili_level=2) & (
+                        models.Q(tafsili_type_id__in=level_2_types) if has_level_2_relations
+                        # If no relations defined but sub_account is tafsili_enabled, show all level 2 accounts
+                        else models.Q(tafsili_level=2)
+                    ),
                     then=models.Value(True)
                 ),
                 default=models.Value(False),
@@ -2493,8 +2649,12 @@ class FilteredTafsiliAccountsAPIView(View):
             ),
             allowed_level_3=models.Case(
                 models.When(
-                    models.Q(tafsili_type_id__in=level_3_types) &
-                    models.Q(tafsili_level=3),
+                    # If relations are defined, filter by them
+                    models.Q(tafsili_level=3) & (
+                        models.Q(tafsili_type_id__in=level_3_types) if has_level_3_relations
+                        # If no relations defined but sub_account is tafsili_enabled, show all level 3 accounts
+                        else models.Q(tafsili_level=3)
+                    ),
                     then=models.Value(True)
                 ),
                 default=models.Value(False),

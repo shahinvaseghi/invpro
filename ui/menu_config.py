@@ -491,6 +491,12 @@ def get_menu_structure() -> List[MenuSection]:
                             permission="accounting.accounts.tafsili"
                         ),
                         MenuItem(
+                            name="اتصال تفصیلی به معین",
+                            url_name="accounting:subaccount_tafsili_level1_connection",
+                            icon="icon-link",
+                            permission="accounting.accounts.tafsili"
+                        ),
+                        MenuItem(
                             name="اتصال سلسله مراتبی تفصیلی",
                             url_name="accounting:hierarchical_tafsili_connection",
                             icon="icon-link",

@@ -7,7 +7,7 @@ from .accounts import AccountForm
 from .account_groups import AccountGroupForm
 from .gl_accounts import GLAccountForm
 from .sub_accounts import SubAccountForm
-from .tafsili_accounts import TafsiliAccountForm
+from .tafsili_accounts import TafsiliAccountForm, SubAccountTafsiliLevel1RelationForm
 from .tafsili_types import TafsiliTypeForm
 from .document_attachments import DocumentAttachmentUploadForm, DocumentAttachmentFilterForm
 from .cost_centers import CostCenterForm
@@ -36,6 +36,7 @@ __all__ = [
     'GLAccountForm',
     'SubAccountForm',
     'TafsiliAccountForm',
+    'SubAccountTafsiliLevel1RelationForm',
     'TafsiliTypeForm',
     'DocumentAttachmentUploadForm',
     'DocumentAttachmentFilterForm',
