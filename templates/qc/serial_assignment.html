@@ -100,9 +100,12 @@
                 id="serial_{{ forloop.counter }}"
                 class="form-control"
                 style="width: 100%;"
-                required
                 {% if forloop.counter <= line_info.serials_assigned %}
                 value="{{ line_info.existing_serials|slice:forloop.counter|slice:":1" }}"
+                readonly
+                style="width: 100%; background-color: #f9fafb; cursor: not-allowed;"
+                {% else %}
+                required
                 {% endif %}
                 placeholder="{% trans 'Enter serial number' %}">
             </div>
@@ -113,9 +116,15 @@
             <a href="{% url 'qc:serial_assignment_list' %}" class="btn btn-secondary">
               {% trans "Back to List" %}
             </a>
+            {% if line_info.is_complete %}
+            <button type="button" class="btn btn-secondary" disabled style="cursor: not-allowed;">
+              ✓ {% trans "Serials Already Assigned" %}
+            </button>
+            {% else %}
             <button type="submit" class="btn btn-success">
               ✓ {% trans "Save Serials" %}
             </button>
+            {% endif %}
           </div>
         </form>
       </div>

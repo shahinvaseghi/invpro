@@ -2169,7 +2169,6 @@ class IssueWarehouseTransferBatchAssignmentListView(InventoryBaseView, BaseDocum
 
         # Only show approved warehouse transfers that are not fully allocated
         queryset = queryset.filter(
-            status=models.IssueWarehouseTransfer.Status.APPROVED,
             is_locked=1,  # Must be locked (approved)
         ).exclude(
             # Exclude fully allocated transfers (all lines have complete batch allocation)
@@ -2258,7 +2257,6 @@ class IssueWarehouseTransferBatchAssignmentView(LineFormsetMixin, InventoryBaseV
             models.IssueWarehouseTransfer,
             pk=self.kwargs.get('pk'),
             company_id=self.request.session.get('active_company_id'),
-            status=models.IssueWarehouseTransfer.Status.APPROVED,
             is_locked=1
         )
 
@@ -2327,7 +2325,6 @@ class IssueWarehouseTransferBatchAssignmentLineView(InventoryBaseView, View):
             models.IssueWarehouseTransfer,
             pk=kwargs.get('pk'),
             company_id=request.session.get('active_company_id'),
-            status=models.IssueWarehouseTransfer.Status.APPROVED,
             is_locked=1
         )
 

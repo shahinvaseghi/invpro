@@ -1250,6 +1250,8 @@ class ItemSerial(InventoryBaseModel):
         "ReceiptPermanent",
         on_delete=models.PROTECT,
         related_name="serials",
+        null=True,
+        blank=True,
     )
     receipt_document_code = models.CharField(max_length=20)
     receipt_line_reference = models.CharField(max_length=30, blank=True)
@@ -1306,13 +1308,15 @@ class ItemSerial(InventoryBaseModel):
     def save(self, *args, **kwargs):
         if self.item and not self.item_code:
             self.item_code = self.item.item_code
-        if self.lot and not self.lot_code:
+        if self.lot_id and not self.lot_code:
             self.lot_code = self.lot.lot_code
-        if self.receipt_document and not self.receipt_document_code:
+        if self.receipt_document_id and not self.receipt_document_code:
             self.receipt_document_code = self.receipt_document.document_code
-        if self.current_warehouse and not self.current_warehouse_code:
+        elif not self.receipt_document_id and not self.receipt_document_code:
+            self.receipt_document_code = ''
+        if self.current_warehouse_id and not self.current_warehouse_code:
             self.current_warehouse_code = self.current_warehouse.public_code
-        if self.current_company_unit and not self.current_company_unit_code:
+        if self.current_company_unit_id and not self.current_company_unit_code:
             self.current_company_unit_code = self.current_company_unit.public_code
         super().save(*args, **kwargs)
 

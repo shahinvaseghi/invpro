@@ -56,7 +56,7 @@ class QCSerialAssignmentListView(BaseListView):
             },
             {
                 'label': _('Serial Status'),
-                'custom_content': '{% if object.serials_complete %}<span class="badge badge-success">Complete</span>{% else %}<span class="badge badge-warning">{{ object.lines_with_complete_serials }}/{{ object.lines_needing_serials }} complete</span>{% endif %}',
+                'custom_content': '{% if object.serials_complete %}<span style="background-color: #10b981; color: white; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 600;">Complete</span>{% else %}<span style="background-color: #f59e0b; color: white; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 600;">{{ object.lines_with_complete_serials|default:0 }}/{{ object.lines_needing_serials|default:0 }} complete</span>{% endif %}',
             },
         ]
 
@@ -243,6 +243,19 @@ class QCSerialAssignmentLineView(FeaturePermissionRequiredMixin, QCBaseView, Vie
         if not line.item or line.item.serial_in_qc != 1:
             messages.error(request, _('This item does not require QC serial assignment.'))
             return HttpResponseRedirect(reverse('qc:serial_assignment_list'))
+
+        # Check if serials already exist for this line
+        existing_serials_count = inventory_models.ItemSerial.objects.filter(
+            receipt_line_reference=f"QC:{line.pk}",
+            company=receipt.company,
+            is_enabled=1
+        ).count()
+
+        required_quantity = int(line.qc_approved_quantity or line.quantity)
+
+        if existing_serials_count >= required_quantity:
+            messages.warning(request, _('Serials have already been assigned to this line.'))
+            return HttpResponseRedirect(reverse('qc:temporary_receipt_serial_assignment', kwargs={'pk': receipt.pk}))
 
         # Get serial codes from POST
         serial_codes = []

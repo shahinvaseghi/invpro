@@ -237,8 +237,7 @@ def get_menu_structure() -> List[MenuSection]:
                             name="حواله انتقال بین انبارها",
                             url_name="inventory:issue_warehouse_transfer",
                             icon="icon-refresh",
-                            permission="inventory.issues.warehouse_transfer",
-                            requires_superuser=True
+                            permission="inventory.issues.warehouse_transfer"
                         ),
                         MenuItem(
                             name="تخصیص بچ حواله‌های انتقال",
@@ -317,57 +316,49 @@ def get_menu_structure() -> List[MenuSection]:
                     name="BOM",
                     url_name="production:bom_list",
                     icon="icon-clipboard",
-                    permission="production.bom",
-                    requires_superuser=True
+                    permission="production.bom"
                 ),
                 MenuItem(
                     name="Processes",
                     url_name="production:processes",
                     icon="icon-refresh",
-                    permission="production.processes",
-                    requires_superuser=True
+                    permission="production.processes"
                 ),
                 MenuItem(
                     name="Product Orders",
                     url_name="production:product_orders",
                     icon="icon-package",
-                    permission="production.product_orders",
-                    requires_superuser=True
+                    permission="production.product_orders"
                 ),
                 MenuItem(
                     name="Transfer to Line Requests",
                     url_name="production:transfer_requests",
                     icon="icon-truck",
-                    permission="production.transfer_requests",
-                    requires_superuser=True
+                    permission="production.transfer_requests"
                 ),
                 MenuItem(
                     name="Performance Records",
                     url_name="production:performance_records",
                     icon="icon-chart",
-                    permission="production.performance_records",
-                    requires_superuser=True
+                    permission="production.performance_records"
                 ),
                 MenuItem(
                     name="QC Operations",
                     url_name="production:qc_operations",
                     icon="icon-lab",
-                    permission="production.qc_operations",
-                    requires_superuser=True
+                    permission="production.qc_operations"
                 ),
                 MenuItem(
                     name="Rework",
                     url_name="production:rework_document_list",
                     icon="icon-refresh",
-                    permission="production.rework",
-                    requires_superuser=True
+                    permission="production.rework"
                 ),
                 MenuItem(
                     name="شناسایی و ردیابی",
                     url_name="production:tracking_identification",
                     icon="icon-search",
-                    permission="production.tracking_identification",
-                    requires_superuser=True
+                    permission="production.tracking_identification"
                 ),
             ]
         ),
@@ -1022,8 +1013,7 @@ def get_menu_structure() -> List[MenuSection]:
                     name="Item Price Cards",
                     url_name="sales:price_card_list",
                     icon="icon-list",
-                    permission="sales.price_card",
-                    requires_superuser=True
+                    permission="sales.price_card"
                 ),
                 MenuItem(
                     name="Sales Invoice",
@@ -1035,22 +1025,19 @@ def get_menu_structure() -> List[MenuSection]:
                     name="مشتریان",
                     url_name="sales:customers",
                     icon="icon-users",
-                    permission="sales.customers",
-                    requires_superuser=True
+                    permission="sales.customers"
                 ),
                 MenuItem(
                     name="محل دریافت درآمد",
                     url_name="sales:income_receipt_location_list",
                     icon="icon-location",
-                    permission="sales.income_receipt_location",
-                    requires_superuser=True
+                    permission="sales.income_receipt_location"
                 ),
                 MenuItem(
                     name="تنظیمات",
                     url_name="sales:settings",
                     icon="icon-settings",
-                    permission="sales.settings",
-                    requires_superuser=True
+                    permission="sales.settings"
                 ),
             ]
         ),
@@ -1199,15 +1186,13 @@ def get_menu_structure() -> List[MenuSection]:
                     name="Service Request",
                     url_name="procurement:service_requests",
                     icon="icon-service",
-                    permission="procurement.services.request",
-                    requires_superuser=True
+                    permission="procurement.services.request"
                 ),
                 MenuItem(
                     name="Transfer to Line Requests",
                     url_name="production:transfer_requests",
                     icon="icon-truck",
-                    permission="production.transfer_requests",
-                    requires_superuser=True
+                    permission="production.transfer_requests"
                 ),
                 MenuItem(
                     name="Leave Request",
@@ -1337,21 +1322,18 @@ def get_menu_structure() -> List[MenuSection]:
                     url_name="procurement:purchase_orders",
                     icon="icon-cart",
                     permission="procurement.orders.list",
-                    requires_superuser=True,
                     children=[
                         MenuItem(
                             name="Purchase Orders",
                             url_name="procurement:purchase_orders",
                             icon="icon-shopping-cart",
-                            permission="procurement.orders.list",
-                            requires_superuser=True
+                            permission="procurement.orders.list"
                         ),
                         MenuItem(
                             name="Purchase Invoices",
                             url_name="procurement:purchase_invoices",
                             icon="icon-file-text",
-                            permission="procurement.invoices.purchase",
-                            requires_superuser=True
+                            permission="procurement.invoices.purchase"
                         ),
                     ]
                 ),
@@ -1360,21 +1342,18 @@ def get_menu_structure() -> List[MenuSection]:
                     url_name="procurement:service_requests",
                     icon="icon-service",
                     permission="procurement.services.request",
-                    requires_superuser=True,
                     children=[
                         MenuItem(
                             name="Service Requests",
                             url_name="procurement:service_requests",
                             icon="icon-file",
-                            permission="procurement.services.request",
-                            requires_superuser=True
+                            permission="procurement.services.request"
                         ),
                         MenuItem(
                             name="Service Invoices",
                             url_name="procurement:service_invoices",
                             icon="icon-file-text",
-                            permission="procurement.invoices.service",
-                            requires_superuser=True
+                            permission="procurement.invoices.service"
                         ),
                     ]
                 ),

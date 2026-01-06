@@ -2471,19 +2471,32 @@ class FilteredTafsiliAccountsAPIView(View):
         ).values_list('tafsili_type_id', flat=True)
 
         # Return filtered queryset with annotations for allowed levels
+        # Also filter by tafsili_level to ensure accounts only appear in their designated level
         return queryset.annotate(
             allowed_level_1=models.Case(
-                models.When(tafsili_type_id__in=level_1_types, then=models.Value(True)),
+                models.When(
+                    models.Q(tafsili_type_id__in=level_1_types) &
+                    models.Q(tafsili_level=1),
+                    then=models.Value(True)
+                ),
                 default=models.Value(False),
                 output_field=models.BooleanField()
             ),
             allowed_level_2=models.Case(
-                models.When(tafsili_type_id__in=level_2_types, then=models.Value(True)),
+                models.When(
+                    models.Q(tafsili_type_id__in=level_2_types) &
+                    models.Q(tafsili_level=2),
+                    then=models.Value(True)
+                ),
                 default=models.Value(False),
                 output_field=models.BooleanField()
             ),
             allowed_level_3=models.Case(
-                models.When(tafsili_type_id__in=level_3_types, then=models.Value(True)),
+                models.When(
+                    models.Q(tafsili_type_id__in=level_3_types) &
+                    models.Q(tafsili_level=3),
+                    then=models.Value(True)
+                ),
                 default=models.Value(False),
                 output_field=models.BooleanField()
             )

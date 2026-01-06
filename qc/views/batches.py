@@ -57,7 +57,7 @@ class QCBatchAssignmentListView(BaseListView):
             },
             {
                 'label': _('Batch Status'),
-                'custom_content': '{% if object.batches_complete %}<span class="badge badge-success">Complete</span>{% else %}<span class="badge badge-warning">{{ object.lines_with_complete_batches }}/{{ object.lines_needing_batches }} complete</span>{% endif %}',
+                'custom_content': '{% if object.batches_complete %}<span style="background-color: #10b981; color: white; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 600;">Complete</span>{% else %}<span style="background-color: #f59e0b; color: white; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 600;">{{ object.lines_with_complete_batches|default:0 }}/{{ object.lines_needing_batches|default:0 }} complete</span>{% endif %}',
             },
         ]
 
@@ -238,6 +238,17 @@ class QCBatchAssignmentLineView(FeaturePermissionRequiredMixin, QCBaseView, View
 
         # All items in temporary receipts need batch assignment
         # No additional validation needed since temporary receipt only accepts items that require QC
+
+        # Check if batch already exists for this line
+        existing_batch = ItemBatch.objects.filter(
+            receipt_temporary_line=line,
+            company=receipt.company,
+            is_enabled=1
+        ).first()
+
+        if existing_batch:
+            messages.warning(request, _('Batch has already been assigned to this line.'))
+            return HttpResponseRedirect(reverse('qc:temporary_receipt_batch_assignment', kwargs={'pk': receipt.pk}))
 
         # Get batch number from POST
         batch_number = request.POST.get('batch_number', '').strip()

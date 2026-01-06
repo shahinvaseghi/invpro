@@ -161,16 +161,30 @@ class AccountingDocumentLineForm(forms.ModelForm):
                 is_enabled=1
             ).order_by('account_code')
 
-            # Tafsili Accounts (level 3) - initially all, will be filtered by JS based on selected sub_account
-            tafsili_queryset = Account.objects.filter(
+            # Tafsili Accounts - filter by tafsili_level for each column
+            # Level 1: only accounts with tafsili_level=1
+            self.fields['tafsili_level_1'].queryset = Account.objects.filter(
                 company_id=company_id,
                 account_level=3,
+                tafsili_level=1,
                 is_enabled=1
             ).order_by('account_code')
 
-            self.fields['tafsili_level_1'].queryset = tafsili_queryset
-            self.fields['tafsili_level_2'].queryset = tafsili_queryset
-            self.fields['tafsili_level_3'].queryset = tafsili_queryset
+            # Level 2: only accounts with tafsili_level=2
+            self.fields['tafsili_level_2'].queryset = Account.objects.filter(
+                company_id=company_id,
+                account_level=3,
+                tafsili_level=2,
+                is_enabled=1
+            ).order_by('account_code')
+
+            # Level 3: only accounts with tafsili_level=3
+            self.fields['tafsili_level_3'].queryset = Account.objects.filter(
+                company_id=company_id,
+                account_level=3,
+                tafsili_level=3,
+                is_enabled=1
+            ).order_by('account_code')
         else:
             self.fields['sub_account'].queryset = Account.objects.none()
             self.fields['tafsili_level_1'].queryset = Account.objects.none()

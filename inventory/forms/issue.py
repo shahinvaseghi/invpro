@@ -1280,7 +1280,7 @@ class IssueConsumptionLineForm(IssueLineBaseForm):
 
 class IssueConsignmentLineForm(IssueLineBaseForm):
     """Form for consignment issue line items."""
-    
+
     consignment_receipt = forms.ModelChoiceField(
         queryset=ReceiptConsignment.objects.none(),
         required=False,
@@ -1288,7 +1288,7 @@ class IssueConsignmentLineForm(IssueLineBaseForm):
         widget=forms.Select(attrs={'class': 'form-control'}),
         help_text=_('Optional: specify which consignment receipt this issue is related to.'),
     )
-    
+
     destination_type = forms.ModelChoiceField(
         queryset=CompanyUnit.objects.none(),
         required=False,
@@ -1296,7 +1296,7 @@ class IssueConsignmentLineForm(IssueLineBaseForm):
         widget=forms.Select(attrs={'class': 'form-control'}),
         help_text=_('واحد کاری که این حواله را دریافت می‌کند.'),
     )
-    
+
     class Meta:
         model = IssueConsignmentLine
         fields = [
@@ -1322,7 +1322,6 @@ class IssueConsignmentLineForm(IssueLineBaseForm):
         """Initialize form with company filtering."""
         super().__init__(*args, company_id=company_id, **kwargs)
         self._update_destination_type_queryset()
-        self._update_batch_queryset()
 
     def _update_destination_type_queryset(self) -> None:
         """Update destination_type (CompanyUnit) queryset after company_id is set."""
@@ -1742,9 +1741,6 @@ class IssueWarehouseTransferLineForm(IssueLineBaseForm):
                         self.initial['destination_warehouse'] = instance_dest_wh_id
                         self._ensure_warehouse_instance('destination_warehouse', instance_dest_wh_id)
                 self.fields['destination_warehouse'].label_from_instance = lambda obj: f"{obj.public_code} · {obj.name}"
-
-        # Update batch queryset
-        self._update_batch_queryset()
 
     def _update_querysets_after_company_id(self) -> None:
         """Update warehouse querysets after company_id is set by formset."""

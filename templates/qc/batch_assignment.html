@@ -89,9 +89,12 @@
               id="batch_number_{{ line_info.line.pk }}"
               class="form-control"
               style="width: 100%; max-width: 400px;"
-              required
               {% if line_info.existing_batch %}
               value="{{ line_info.existing_batch.batch_number }}"
+              readonly
+              style="width: 100%; max-width: 400px; background-color: #f9fafb; cursor: not-allowed;"
+              {% else %}
+              required
               {% endif %}
               placeholder="{% trans 'Enter batch number (e.g., 0125-000001)' %}"
               maxlength="30">
@@ -101,9 +104,15 @@
           </div>
 
           <div class="form-actions" style="display: flex; gap: 1rem; justify-content: flex-end; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+            {% if not line_info.existing_batch %}
             <button type="submit" class="btn btn-success">
               ✓ {% trans "Save Batch Number" %}
             </button>
+            {% else %}
+            <button type="button" class="btn btn-secondary" disabled style="cursor: not-allowed;">
+              ✓ {% trans "Batch Already Assigned" %}
+            </button>
+            {% endif %}
           </div>
         </form>
       </div>

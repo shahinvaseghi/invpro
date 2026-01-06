@@ -201,22 +201,22 @@ class ItemBatch(QCBaseModel):
     
     def save(self, *args, **kwargs):
         """Auto-populate cached fields."""
-        if self.item and not self.item_code:
+        if self.item_id and not self.item_code:
             self.item_code = self.item.item_code or self.item.full_item_code or ""
-        
-        if self.receipt_temporary and not self.receipt_temporary_code:
+
+        if self.receipt_temporary_id and not self.receipt_temporary_code:
             self.receipt_temporary_code = self.receipt_temporary.document_code
-        
-        if self.receipt_temporary_line and not self.quantity:
+
+        if self.receipt_temporary_line_id and not self.quantity:
             self.quantity = self.receipt_temporary_line.qc_approved_quantity or self.receipt_temporary_line.quantity
-        
-        if self.receipt_temporary_line and not self.unit:
+
+        if self.receipt_temporary_line_id and not self.unit:
             self.unit = self.receipt_temporary_line.unit
-        
-        if self.receipt_temporary_line and not self.warehouse:
+
+        if self.receipt_temporary_line_id and not self.warehouse_id:
             self.warehouse = self.receipt_temporary_line.warehouse
-        
-        if self.warehouse and not self.warehouse_code:
+
+        if self.warehouse_id and not self.warehouse_code:
             self.warehouse_code = self.warehouse.public_code
         
         super().save(*args, **kwargs)

@@ -317,13 +317,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Tafsili level change listeners - for hierarchy filtering
         document.querySelectorAll('.line-tafsili-level-1, .line-tafsili-level-2, .line-tafsili-level-3').forEach(select => {
-            $(select).on('select2:select', function(e) {
+            $(select).on('select2:select', function(e, params) {
                 console.log('Tafsili level change triggered');
-                handleTafsiliLevelChange({target: select});
+                // Prevent triggering during programmatic updates
+                if (!params || !params.programmatic) {
+                    handleTafsiliLevelChange({target: select});
+                }
             });
-            $(select).on('change', function(e) {
+            $(select).on('change', function(e, params) {
                 console.log('Tafsili level regular change triggered');
-                handleTafsiliLevelChange({target: select});
+                // Prevent triggering during programmatic updates
+                if (!params || !params.programmatic) {
+                    handleTafsiliLevelChange({target: select});
+                }
             });
         });
 
@@ -426,6 +432,42 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
+    function updateTafsiliAccountsForRowExcluding(row, subAccountId, excludeSelect) {
+        const tafsili1 = row.querySelector('.line-tafsili-level-1');
+        const tafsili2 = row.querySelector('.line-tafsili-level-2');
+        const tafsili3 = row.querySelector('.line-tafsili-level-3');
+
+        // Get current selections
+        const level1Value = tafsili1 ? tafsili1.value : '';
+        const level2Value = tafsili2 ? tafsili2.value : '';
+        const level3Value = tafsili3 ? tafsili3.value : '';
+
+        console.log('Updating tafsili accounts for row (excluding changed select):', {
+            subAccountId,
+            level1Value,
+            level2Value,
+            level3Value,
+            excludeSelect: excludeSelect ? excludeSelect.className : 'none'
+        });
+
+        // Fetch filtered tafsili accounts
+        const apiUrl = `/accounting/api/filtered-tafsili-accounts/?sub_account_id=${subAccountId}&level_1=${level1Value}&level_2=${level2Value}&level_3=${level3Value}&company_id=1`;
+
+        fetch(apiUrl)
+            .then(r => r.json())
+            .then(data => {
+                console.log('Filtered tafsili accounts response:', data);
+
+                // Update each level EXCEPT the one that changed
+                if (tafsili1 && tafsili1 !== excludeSelect) updateTafsiliSelect(tafsili1, data.level_1 || []);
+                if (tafsili2 && tafsili2 !== excludeSelect) updateTafsiliSelect(tafsili2, data.level_2 || []);
+                if (tafsili3 && tafsili3 !== excludeSelect) updateTafsiliSelect(tafsili3, data.level_3 || []);
+            })
+            .catch(error => {
+                console.error('Error fetching filtered tafsili accounts:', error);
+            });
+    }
+
     // Handle tafsili level changes for hierarchy filtering
     function handleTafsiliLevelChange(event) {
         console.log('handleTafsiliLevelChange called');
@@ -440,8 +482,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (!subAccountId) return;
 
-        // Update all tafsili selects in this row
-        updateTafsiliAccountsForRow(row, subAccountId);
+        // Update only OTHER tafsili selects in this row (not the one that changed)
+        updateTafsiliAccountsForRowExcluding(row, subAccountId, changedSelect);
     }
 
     function updateTafsiliSelect(select, accounts) {
@@ -449,13 +491,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
         console.log('Updating select with accounts:', accounts.length);
 
-        // Destroy existing Select2
-        if ($(select).hasClass('select2-hidden-accessible')) {
-            $(select).select2('destroy');
-        }
+        // Store current value to preserve selection
+        const currentValue = select.value;
 
-        // Clear options
-        select.innerHTML = '<option value="">انتخاب تفصیلی</option>';
+        // Clear existing options except the first one (placeholder)
+        while (select.options.length > 1) {
+            select.remove(1);
+        }
 
         // Add new options - accounts is now an array of objects with id, text, code, name
         accounts.forEach(account => {
@@ -465,15 +507,16 @@ document.addEventListener('DOMContentLoaded', function() {
             select.appendChild(option);
         });
 
-        // Reinitialize Select2
-        $(select).select2({
-            theme: 'bootstrap-5',
-            language: 'fa',
-            dir: 'rtl',
-            placeholder: 'انتخاب تفصیلی',
-            allowClear: true,
-            width: '100%'
-        });
+        // Try to restore the previous selection if it still exists in new options
+        if (currentValue && Array.from(select.options).some(option => option.value === currentValue)) {
+            select.value = currentValue;
+            // Trigger change event to update Select2 display (marked as programmatic)
+            $(select).trigger('change', { programmatic: true });
+        } else if (currentValue) {
+            // If previous selection is no longer valid, clear it
+            select.value = '';
+            $(select).trigger('change', { programmatic: true });
+        }
 
         console.log('Select updated successfully');
     }
