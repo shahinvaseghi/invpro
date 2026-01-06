@@ -4,7 +4,7 @@ Forms for Tafsili Account (حساب تفصیلی) management.
 from typing import Optional
 from django import forms
 from django.utils.translation import gettext_lazy as _
-from ..models import Account, TafsiliType
+from ..models import Account, TafsiliType, TafsiliAccountHierarchy
 
 
 class TafsiliAccountForm(forms.ModelForm):
@@ -225,3 +225,121 @@ class TafsiliAccountForm(forms.ModelForm):
             instance.save(update_fields=['metadata'])
         
         return instance
+
+
+class TafsiliAccountHierarchyForm(forms.ModelForm):
+    """Form for creating/editing Tafsili Account Hierarchy relations."""
+
+    parent_account = forms.ModelChoiceField(
+        queryset=Account.objects.none(),
+        label=_('حساب تفصیلی والد'),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        required=True,
+        empty_label=_('-- انتخاب کنید --'),
+        help_text=_('حساب تفصیلی که والد رابطه خواهد بود')
+    )
+
+    child_account = forms.ModelChoiceField(
+        queryset=Account.objects.none(),
+        label=_('حساب تفصیلی فرزند'),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        required=True,
+        empty_label=_('-- انتخاب کنید --'),
+        help_text=_('حساب تفصیلی که فرزند رابطه خواهد بود')
+    )
+
+    class Meta:
+        model = TafsiliAccountHierarchy
+        fields = [
+            'parent_account',
+            'child_account',
+            'sort_order',
+            'notes',
+        ]
+        widgets = {
+            'sort_order': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+        labels = {
+            'parent_account': _('حساب والد'),
+            'child_account': _('حساب فرزند'),
+            'sort_order': _('ترتیب نمایش'),
+            'notes': _('یادداشت‌ها'),
+        }
+
+    def __init__(self, *args, company_id: Optional[int] = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.company_id = company_id
+
+        # Filter accounts to only show tafsili accounts (level 3) from the current company
+        if company_id:
+            tafsili_accounts = Account.objects.filter(
+                company_id=company_id,
+                account_level=3,
+                is_enabled=1
+            ).order_by('account_code')
+
+            self.fields['parent_account'].queryset = tafsili_accounts
+            self.fields['child_account'].queryset = tafsili_accounts
+
+            # Set company for new instances
+            if not self.instance.pk:
+                from shared.models import Company
+                try:
+                    self.instance.company = Company.objects.get(pk=company_id)
+                except Company.DoesNotExist:
+                    pass
+
+    def clean(self):
+        cleaned_data = super().clean()
+        parent_account = cleaned_data.get('parent_account')
+        child_account = cleaned_data.get('child_account')
+
+        # Validate both accounts are selected
+        if not parent_account:
+            raise forms.ValidationError({
+                'parent_account': _('حساب والد الزامی است.')
+            })
+
+        if not child_account:
+            raise forms.ValidationError({
+                'child_account': _('حساب فرزند الزامی است.')
+            })
+
+        # Validate accounts are different
+        if parent_account == child_account:
+            raise forms.ValidationError(_('حساب والد و فرزند نمی‌توانند یکسان باشند.'))
+
+        # Validate tafsili level hierarchy - parent should have lower tafsili_level than child
+        # This ensures logical hierarchy: level 1 can be parent of level 2, level 2 can be parent of level 3
+        if hasattr(parent_account, 'tafsili_level') and hasattr(child_account, 'tafsili_level'):
+            if parent_account.tafsili_level is not None and child_account.tafsili_level is not None:
+                if parent_account.tafsili_level >= child_account.tafsili_level:
+                    raise forms.ValidationError(
+                        _('حساب والد باید سطح تفصیلی پایین‌تری نسبت به حساب فرزند داشته باشد. '
+                          'مثلاً سطح ۱ می‌تواند والد سطح ۲ باشد، سطح ۲ می‌تواند والد سطح ۳ باشد.')
+                    )
+
+        # Validate both accounts belong to same company
+        if self.company_id:
+            if parent_account.company_id != self.company_id:
+                raise forms.ValidationError({
+                    'parent_account': _('حساب والد باید متعلق به شرکت فعلی باشد.')
+                })
+            if child_account.company_id != self.company_id:
+                raise forms.ValidationError({
+                    'child_account': _('حساب فرزند باید متعلق به شرکت فعلی باشد.')
+                })
+
+        # Check for existing relation
+        existing = TafsiliAccountHierarchy.objects.filter(
+            company_id=self.company_id,
+            parent_account=parent_account,
+            child_account=child_account
+        )
+        if self.instance.pk:
+            existing = existing.exclude(pk=self.instance.pk)
+        if existing.exists():
+            raise forms.ValidationError(_('این رابطه سلسله مراتبی از قبل وجود دارد.'))
+
+        return cleaned_data

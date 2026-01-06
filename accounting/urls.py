@@ -141,6 +141,9 @@ urlpatterns = [
 
     # Hierarchical Tafsili Connection (اتصال سلسله مراتبی تفصیلی)
     path('hierarchical-tafsili-connection/', views_module.HierarchicalTafsiliConnectionView.as_view(), name='hierarchical_tafsili_connection'),
+    path('hierarchical-tafsili-connection/create/', views_module.TafsiliHierarchyCreateView.as_view(), name='tafsili_hierarchy_create'),
+    path('hierarchical-tafsili-connection/<int:pk>/edit/', views_module.TafsiliHierarchyUpdateView.as_view(), name='tafsili_hierarchy_edit'),
+    path('hierarchical-tafsili-connection/<int:pk>/delete/', views_module.TafsiliHierarchyDeleteView.as_view(), name='tafsili_hierarchy_delete'),
     
     # Accounting Documents (اسناد حسابداری)
     path('documents/create/', views_module.AccountingDocumentCreateView.as_view(), name='document_create'),
@@ -290,6 +293,7 @@ urlpatterns = [
     path('automation/lines/<int:pk>/edit/', views_module.AutomationDocumentLineUpdateView.as_view(), name='automation_document_line_edit'),
     path('automation/lines/<int:pk>/delete/', views_module.AutomationDocumentLineDeleteView.as_view(), name='automation_document_line_delete'),
     # API endpoints
+    path('api/tafsili-hierarchy-tree/', views_module.TafsiliHierarchyTreeAPIView.as_view(), name='tafsili_hierarchy_tree_api'),
     path('automation/api/document-info/<str:document_id>/', views_module.get_document_info, name='automation_api_document_info'),
     path('automation/api/filterable-fields/<str:document_id>/', views_module.get_filterable_fields, name='automation_api_filterable_fields'),
     path('automation/api/extractable-fields/<str:document_id>/', views_module.get_extractable_fields, name='automation_api_extractable_fields'),

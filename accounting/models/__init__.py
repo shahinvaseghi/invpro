@@ -22,6 +22,7 @@ from .accounts import (
     SubAccountGLAccountRelation,
     SubAccountTafsiliTypeRelation,
     TafsiliSubAccountRelation,
+    TafsiliAccountHierarchy,
 )
 
 # Tafsili Types
@@ -99,6 +100,7 @@ __all__ = [
     'SubAccountGLAccountRelation',
     'SubAccountTafsiliTypeRelation',
     'TafsiliSubAccountRelation',
+    'TafsiliAccountHierarchy',
     # Tafsili Types
     'TafsiliType',
     # Hierarchy (removed)

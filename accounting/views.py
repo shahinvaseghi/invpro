@@ -1,8 +1,8 @@
 """
 Views for accounting module.
 """
-from django.views.generic import TemplateView, CreateView, View, FormView
-from django.http import HttpResponseRedirect, JsonResponse
+from django.views.generic import TemplateView, CreateView, UpdateView, DeleteView, View, FormView
+from django.http import HttpResponseRedirect, JsonResponse, Http404
 from django.urls import reverse, reverse_lazy, NoReverseMatch
 from django.contrib import messages
 from django.utils.translation import gettext_lazy as _
@@ -13,9 +13,10 @@ from shared.views.base import BaseCreateView, BaseFormsetCreateView, BaseListVie
 from accounting.views.base import AccountingBaseView
 from accounting.models import (
     CostCenter, IncomeExpenseCategory, Party, PartyAccount, TreasuryAccount,
-    AccountingDocument, AccountingDocumentLine, Account
+    AccountingDocument, AccountingDocumentLine, Account, TafsiliAccountHierarchy
 )
 from accounting.forms import CostCenterForm, IncomeExpenseCategoryForm, PartyForm, PartyAccountForm, TreasuryAccountForm, FiscalMemoryConfigForm
+from accounting.forms.tafsili_accounts import TafsiliAccountHierarchyForm
 from accounting.views.automation import (
     AutomationProcessListView,
     AutomationProcessCreateView,
@@ -2204,6 +2205,69 @@ class WarehouseSettingsView(FeaturePermissionRequiredMixin, TemplateView):
         return context
 
 
+class TafsiliHierarchyCreateView(FeaturePermissionRequiredMixin, CreateView):
+    """View for creating new Tafsili Account Hierarchy relations."""
+    model = TafsiliAccountHierarchy
+    form_class = TafsiliAccountHierarchyForm
+    template_name = 'accounting/tafsili/hierarchy_form.html'
+    feature_code = 'accounting.accounts.tafsili'
+    required_action = 'create'
+
+    def get_success_url(self):
+        return reverse('accounting:hierarchical_tafsili_connection')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['company_id'] = self.request.session.get('active_company_id')
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'accounting'
+        context['page_title'] = 'افزودن رابطه سلسله مراتبی تفصیلی'
+        return context
+
+
+class TafsiliHierarchyUpdateView(FeaturePermissionRequiredMixin, UpdateView):
+    """View for updating Tafsili Account Hierarchy relations."""
+    model = TafsiliAccountHierarchy
+    form_class = TafsiliAccountHierarchyForm
+    template_name = 'accounting/tafsili/hierarchy_form.html'
+    feature_code = 'accounting.accounts.tafsili'
+    required_action = 'edit'
+
+    def get_success_url(self):
+        return reverse('accounting:hierarchical_tafsili_connection')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['company_id'] = self.request.session.get('active_company_id')
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'accounting'
+        context['page_title'] = 'ویرایش رابطه سلسله مراتبی تفصیلی'
+        return context
+
+
+class TafsiliHierarchyDeleteView(FeaturePermissionRequiredMixin, DeleteView):
+    """View for deleting Tafsili Account Hierarchy relations."""
+    model = TafsiliAccountHierarchy
+    template_name = 'accounting/tafsili/hierarchy_confirm_delete.html'
+    feature_code = 'accounting.accounts.tafsili'
+    required_action = 'delete'
+
+    def get_success_url(self):
+        return reverse('accounting:hierarchical_tafsili_connection')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'accounting'
+        context['page_title'] = 'حذف رابطه سلسله مراتبی تفصیلی'
+        return context
+
+
 class HierarchicalTafsiliConnectionView(FeaturePermissionRequiredMixin, TemplateView):
     """View for managing hierarchical tafsili account connections."""
     template_name = 'accounting/tafsili/hierarchical_connection.html'
@@ -2214,7 +2278,126 @@ class HierarchicalTafsiliConnectionView(FeaturePermissionRequiredMixin, Template
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'accounting'
         context['page_title'] = 'اتصال سلسله مراتبی تفصیلی'
+
+        # Get company from session
+        company_id = self.request.session.get('active_company_id')
+        if company_id:
+            from accounting.models import TafsiliAccountHierarchy, Account
+
+            # Get all hierarchy relations for this company
+            context['hierarchy_relations'] = TafsiliAccountHierarchy.objects.filter(
+                company_id=company_id
+            ).select_related('parent_account', 'child_account').order_by('sort_order', 'parent_account__account_code')
+
+            # Get all tafsili accounts for dropdowns
+            context['tafsili_accounts'] = Account.objects.filter(
+                company_id=company_id,
+                account_level=3,
+                is_enabled=1
+            ).order_by('account_code')
+
+            # Build hierarchy tree for display
+            context['hierarchy_tree'] = self._build_hierarchy_tree(company_id)
+
         return context
+
+    def _build_hierarchy_tree(self, company_id):
+        """Build a hierarchical tree structure for display."""
+        from accounting.models import TafsiliAccountHierarchy, Account
+
+        # Get all root nodes (accounts that are parents but don't have parents themselves)
+        all_relations = TafsiliAccountHierarchy.objects.filter(
+            company_id=company_id
+        ).select_related('parent_account', 'child_account')
+
+        # Find root accounts (accounts that are parents but don't appear as children)
+        parent_ids = set(relation.parent_account_id for relation in all_relations)
+        child_ids = set(relation.child_account_id for relation in all_relations)
+        root_ids = parent_ids - child_ids
+
+        # Get root accounts
+        root_accounts = Account.objects.filter(
+            id__in=root_ids,
+            company_id=company_id
+        ).order_by('account_code')
+
+        def build_tree_node(account):
+            """Recursively build tree node."""
+            children_relations = [
+                rel for rel in all_relations
+                if rel.parent_account_id == account.id
+            ]
+
+            return {
+                'account': account,
+                'children': [
+                    build_tree_node(rel.child_account)
+                    for rel in sorted(children_relations, key=lambda x: x.sort_order)
+                ]
+            }
+
+        return [build_tree_node(account) for account in root_accounts]
+
+
+class TafsiliHierarchyTreeAPIView(View):
+    """API endpoint for getting tafsili hierarchy tree data."""
+
+    def get(self, request, *args, **kwargs):
+        company_id = request.GET.get('company_id')
+
+        if not company_id:
+            return JsonResponse({'error': 'Company ID is required'}, status=400)
+
+        try:
+            company_id = int(company_id)
+        except ValueError:
+            return JsonResponse({'error': 'Invalid company ID'}, status=400)
+
+        # Build hierarchy tree
+        from accounting.models import TafsiliAccountHierarchy, Account
+
+        # Get all relations for this company
+        all_relations = TafsiliAccountHierarchy.objects.filter(
+            company_id=company_id
+        ).select_related('parent_account', 'child_account')
+
+        if not all_relations.exists():
+            return JsonResponse({'tree': []})
+
+        # Find root accounts (accounts that are parents but don't appear as children)
+        parent_ids = set(relation.parent_account_id for relation in all_relations)
+        child_ids = set(relation.child_account_id for relation in all_relations)
+        root_ids = parent_ids - child_ids
+
+        # Get root accounts
+        root_accounts = Account.objects.filter(
+            id__in=root_ids,
+            company_id=company_id
+        ).order_by('account_code')
+
+        def build_tree_node(account):
+            """Recursively build tree node for API response."""
+            children_relations = [
+                rel for rel in all_relations
+                if rel.parent_account_id == account.id
+            ]
+
+            return {
+                'account': {
+                    'id': account.id,
+                    'account_code': account.account_code,
+                    'account_name': account.account_name,
+                    'account_name_en': account.account_name_en,
+                },
+                'children': [
+                    build_tree_node(rel.child_account)
+                    for rel in sorted(children_relations, key=lambda x: x.sort_order)
+                ]
+            }
+
+        tree_data = [build_tree_node(account) for account in root_accounts]
+
+        return JsonResponse({'tree': tree_data})
 
 
 # Payment Request Views - Imported from views.payment_request

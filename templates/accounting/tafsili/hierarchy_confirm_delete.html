@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load access_tags %}
+
+{% block title %}{{ page_title|default:"حذف رابطه سلسله مراتبی تفصیلی" }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="accounting-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span class="separator">/</span>
+      <a href="{% url 'accounting:dashboard' %}">{% trans "Accounting" %}</a>
+      <span class="separator">/</span>
+      <span>{% trans "تعاریف پایه" %}</span>
+      <span class="separator">/</span>
+      <a href="{% url 'accounting:hierarchical_tafsili_connection' %}">{% trans "اتصال سلسله مراتبی تفصیلی" %}</a>
+      <span class="separator">/</span>
+      <span>{% trans "حذف" %}</span>
+    </nav>
+
+    <h1 class="page-title">{{ page_title|default:"حذف رابطه سلسله مراتبی تفصیلی" }}</h1>
+  </div>
+
+  <div class="module-content">
+    <div class="row justify-content-center">
+      <div class="col-md-6">
+        <div class="card border-danger">
+          <div class="card-header bg-danger text-white">
+            <h3 class="card-title mb-0">
+              <i class="fas fa-exclamation-triangle"></i> {% trans "تأیید حذف" %}
+            </h3>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-warning">
+              <i class="fas fa-exclamation-triangle"></i>
+              {% trans "آیا از حذف این رابطه سلسله مراتبی اطمینان دارید؟ این عملیات قابل برگرداندن نیست." %}
+            </div>
+
+            <div class="card mb-3">
+              <div class="card-header">
+                <strong>{% trans "جزئیات رابطه:" %}</strong>
+              </div>
+              <div class="card-body">
+                <dl class="row">
+                  <dt class="col-sm-4">{% trans "حساب والد:" %}</dt>
+                  <dd class="col-sm-8">
+                    <strong>{{ object.parent_account.account_code }}</strong> -
+                    {{ object.parent_account.account_name }}
+                  </dd>
+
+                  <dt class="col-sm-4">{% trans "حساب فرزند:" %}</dt>
+                  <dd class="col-sm-8">
+                    <strong>{{ object.child_account.account_code }}</strong> -
+                    {{ object.child_account.account_name }}
+                  </dd>
+
+                  {% if object.notes %}
+                  <dt class="col-sm-4">{% trans "یادداشت‌ها:" %}</dt>
+                  <dd class="col-sm-8">{{ object.notes }}</dd>
+                  {% endif %}
+                </dl>
+              </div>
+            </div>
+
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle"></i>
+              {% trans "توجه: حذف این رابطه ممکن است بر فیلترینگ حساب‌های تفصیلی در سند حسابداری تأثیر بگذارد." %}
+            </div>
+
+            <form method="post">
+              {% csrf_token %}
+              <div class="d-flex justify-content-between">
+                <a href="{% url 'accounting:hierarchical_tafsili_connection' %}" class="btn btn-secondary">
+                  <i class="fas fa-arrow-left"></i> {% trans "انصراف" %}
+                </a>
+                <button type="submit" class="btn btn-danger">
+                  <i class="fas fa-trash"></i> {% trans "حذف رابطه" %}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load access_tags %}
+
+{% block title %}{{ page_title|default:"فرم رابطه سلسله مراتبی تفصیلی" }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="accounting-module">
+  <div class="module-header">
+    <nav class="breadcrumb">
+      <a href="{% url 'ui:dashboard' %}">{% trans "Dashboard" %}</a>
+      <span class="separator">/</span>
+      <a href="{% url 'accounting:dashboard' %}">{% trans "Accounting" %}</a>
+      <span class="separator">/</span>
+      <span>{% trans "تعاریف پایه" %}</span>
+      <span class="separator">/</span>
+      <a href="{% url 'accounting:hierarchical_tafsili_connection' %}">{% trans "اتصال سلسله مراتبی تفصیلی" %}</a>
+      <span class="separator">/</span>
+      <span>{{ page_title|default:"فرم" }}</span>
+    </nav>
+
+    <h1 class="page-title">{{ page_title|default:"فرم رابطه سلسله مراتبی تفصیلی" }}</h1>
+  </div>
+
+  <div class="module-content">
+    <div class="row justify-content-center">
+      <div class="col-md-8">
+        <div class="card">
+          <div class="card-header">
+            <h3>
+              {% if form.instance.pk %}
+                <i class="fas fa-edit"></i> {% trans "ویرایش رابطه سلسله مراتبی" %}
+              {% else %}
+                <i class="fas fa-plus"></i> {% trans "افزودن رابطه سلسله مراتبی جدید" %}
+              {% endif %}
+            </h3>
+          </div>
+          <div class="card-body">
+            <form method="post">
+              {% csrf_token %}
+
+              <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                {% trans "رابطه سلسله مراتبی بین حساب‌های تفصیلی ایجاد کنید. حساب والد بالاتر از حساب فرزند در ساختار قرار می‌گیرد." %}
+              </div>
+
+              {% if form.non_field_errors %}
+              <div class="alert alert-danger">
+                <ul class="mb-0">
+                  {% for error in form.non_field_errors %}
+                  <li>{{ error }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+              {% endif %}
+
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label for="{{ form.parent_account.id_for_label }}" class="form-label">
+                      {{ form.parent_account.label }}
+                      <span class="text-danger">*</span>
+                    </label>
+                    {{ form.parent_account }}
+                    {% if form.parent_account.errors %}
+                    <div class="text-danger small">
+                      {{ form.parent_account.errors.0 }}
+                    </div>
+                    {% endif %}
+                    {% if form.parent_account.help_text %}
+                    <div class="form-text">{{ form.parent_account.help_text }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label for="{{ form.child_account.id_for_label }}" class="form-label">
+                      {{ form.child_account.label }}
+                      <span class="text-danger">*</span>
+                    </label>
+                    {{ form.child_account }}
+                    {% if form.child_account.errors %}
+                    <div class="text-danger small">
+                      {{ form.child_account.errors.0 }}
+                    </div>
+                    {% endif %}
+                    {% if form.child_account.help_text %}
+                    <div class="form-text">{{ form.child_account.help_text }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label for="{{ form.sort_order.id_for_label }}" class="form-label">
+                      {{ form.sort_order.label }}
+                    </label>
+                    {{ form.sort_order }}
+                    {% if form.sort_order.errors %}
+                    <div class="text-danger small">
+                      {{ form.sort_order.errors.0 }}
+                    </div>
+                    {% endif %}
+                    {% if form.sort_order.help_text %}
+                    <div class="form-text">{{ form.sort_order.help_text }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label for="{{ form.notes.id_for_label }}" class="form-label">
+                  {{ form.notes.label }}
+                </label>
+                {{ form.notes }}
+                {% if form.notes.errors %}
+                <div class="text-danger small">
+                  {{ form.notes.errors.0 }}
+                </div>
+                {% endif %}
+                {% if form.notes.help_text %}
+                <div class="form-text">{{ form.notes.help_text }}</div>
+                {% endif %}
+              </div>
+
+              <div class="d-flex justify-content-between">
+                <a href="{% url 'accounting:hierarchical_tafsili_connection' %}" class="btn btn-secondary">
+                  <i class="fas fa-arrow-left"></i> {% trans "بازگشت" %}
+                </a>
+                <button type="submit" class="btn btn-primary">
+                  {% if form.instance.pk %}
+                    <i class="fas fa-save"></i> {% trans "ذخیره تغییرات" %}
+                  {% else %}
+                    <i class="fas fa-plus"></i> {% trans "افزودن رابطه" %}
+                  {% endif %}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Initialize Select2 for better UX
+$(document).ready(function() {
+  $('#{{ form.parent_account.id_for_label }}').select2({
+    theme: 'bootstrap-5',
+    language: 'fa',
+    dir: 'rtl',
+    placeholder: 'انتخاب حساب تفصیلی والد',
+    allowClear: true,
+    width: '100%'
+  });
+
+  $('#{{ form.child_account.id_for_label }}').select2({
+    theme: 'bootstrap-5',
+    language: 'fa',
+    dir: 'rtl',
+    placeholder: 'انتخاب حساب تفصیلی فرزند',
+    allowClear: true,
+    width: '100%'
+  });
+});
+</script>
+{% endblock %}

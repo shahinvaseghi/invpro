@@ -379,3 +379,116 @@ class TafsiliSubAccountRelation(AccountingBaseModel):
         self.clean()
         super().save(*args, **kwargs)
 
+
+class TafsiliAccountHierarchy(AccountingBaseModel):
+    """
+    روابط سلسله مراتبی بین حساب‌های تفصیلی.
+    امکان ایجاد ساختار درختی برای سازماندهی بهتر حساب‌های تفصیلی.
+    """
+    parent_account = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        related_name='hierarchy_children',
+        limit_choices_to={'account_level': 3},
+        help_text="حساب تفصیلی والد (parent)"
+    )
+    child_account = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        related_name='hierarchy_parents',
+        limit_choices_to={'account_level': 3},
+        help_text="حساب تفصیلی فرزند (child)"
+    )
+    level_depth = models.PositiveSmallIntegerField(
+        default=1,
+        help_text="عمق رابطه در درخت (۱=مستقیم، ۲=نوه، ...)"
+    )
+    sort_order = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="ترتیب نمایش در لیست"
+    )
+    notes = models.TextField(
+        blank=True,
+        help_text="یادداشت‌های اضافی"
+    )
+
+    class Meta:
+        verbose_name = "رابطه سلسله مراتبی تفصیلی"
+        verbose_name_plural = "روابط سلسله مراتبی تفصیلی"
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "parent_account", "child_account"),
+                name="accounting_tafsili_hierarchy_unique",
+            ),
+        ]
+        ordering = ("company", "sort_order", "parent_account", "child_account")
+
+    def __str__(self) -> str:
+        return f"{self.parent_account.account_code} → {self.child_account.account_code}"
+
+    def clean(self):
+        """Validate hierarchy relation."""
+        if self.parent_account.account_level != 3:
+            raise ValidationError(_("Parent account must be level 3 (تفصیلی)."))
+        if self.child_account.account_level != 3:
+            raise ValidationError(_("Child account must be level 3 (تفصیلی)."))
+        if self.parent_account.company_id != self.child_account.company_id:
+            raise ValidationError(_("Both accounts must belong to the same company."))
+        if self.parent_account == self.child_account:
+            raise ValidationError(_("Parent and child accounts cannot be the same."))
+
+        # Validate tafsili level hierarchy - parent should have lower tafsili_level than child
+        if (hasattr(self.parent_account, 'tafsili_level') and hasattr(self.child_account, 'tafsili_level')):
+            if (self.parent_account.tafsili_level is not None and self.child_account.tafsili_level is not None):
+                if self.parent_account.tafsili_level >= self.child_account.tafsili_level:
+                    raise ValidationError(
+                        _("حساب والد باید سطح تفصیلی پایین‌تری نسبت به حساب فرزند داشته باشد. "
+                          "مثلاً سطح ۱ می‌تواند والد سطح ۲ باشد، سطح ۲ می‌تواند والد سطح ۳ باشد.")
+                    )
+
+        # Check for circular reference
+        if self._has_circular_reference(self.parent_account, self.child_account):
+            raise ValidationError(_("This relation would create a circular reference."))
+
+        # Calculate level_depth automatically
+        self.level_depth = self._calculate_level_depth()
+
+    def _has_circular_reference(self, parent, child, visited=None):
+        """Check if adding this relation would create a circular reference."""
+        if visited is None:
+            visited = set()
+
+        if parent in visited:
+            return True
+
+        visited.add(parent)
+
+        # Check all children of the child account
+        for relation in TafsiliAccountHierarchy.objects.filter(
+            company=self.company,
+            parent_account=child
+        ).exclude(id=self.id if self.pk else None):
+            if self._has_circular_reference(parent, relation.child_account, visited.copy()):
+                return True
+
+        return False
+
+    def _calculate_level_depth(self):
+        """Calculate the depth level of this relation in the hierarchy tree."""
+        # Find the maximum depth path from parent to this child
+        max_depth = 1
+
+        # Check if parent has any parents (indirect ancestors)
+        for ancestor_relation in TafsiliAccountHierarchy.objects.filter(
+            company=self.company,
+            child_account=self.parent_account
+        ):
+            # This relation adds one level to the ancestor's depth
+            max_depth = max(max_depth, ancestor_relation.level_depth + 1)
+
+        return max_depth
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
