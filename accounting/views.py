@@ -2400,6 +2400,276 @@ class TafsiliHierarchyTreeAPIView(View):
         return JsonResponse({'tree': tree_data})
 
 
+class FilteredTafsiliAccountsAPIView(View):
+    """API endpoint for getting filtered tafsili accounts based on hierarchy and selections."""
+
+    def get(self, request, *args, **kwargs):
+        sub_account_id = request.GET.get('sub_account_id')
+        selected_level_1 = request.GET.get('level_1')
+        selected_level_2 = request.GET.get('level_2')
+        selected_level_3 = request.GET.get('level_3')
+        company_id = request.GET.get('company_id')
+
+        if not company_id:
+            return JsonResponse({'error': 'Company ID is required'}, status=400)
+
+        try:
+            company_id = int(company_id)
+        except ValueError:
+            return JsonResponse({'error': 'Invalid company ID'}, status=400)
+
+        # Get base queryset for tafsili accounts
+        base_queryset = Account.objects.filter(
+            company_id=company_id,
+            account_level=3,
+            is_enabled=1
+        )
+
+        # Apply normal tafsili type filtering based on sub_account
+        filtered_accounts = self._apply_normal_filtering(base_queryset, sub_account_id)
+
+        # Apply hierarchy filtering based on selections
+        result = self._apply_hierarchy_filtering(
+            filtered_accounts,
+            company_id,
+            selected_level_1,
+            selected_level_2,
+            selected_level_3
+        )
+
+        return JsonResponse(result)
+
+    def _apply_normal_filtering(self, queryset, sub_account_id):
+        """Apply normal tafsili type filtering based on sub_account relations."""
+        if not sub_account_id:
+            return queryset
+
+        try:
+            sub_account_id = int(sub_account_id)
+        except ValueError:
+            return queryset.none()
+
+        # Get tafsili types allowed for each level in this sub_account
+        from accounting.models import SubAccountTafsiliTypeRelation
+
+        level_1_types = SubAccountTafsiliTypeRelation.objects.filter(
+            company_id=queryset.first().company_id if queryset.exists() else 0,
+            sub_account_id=sub_account_id,
+            level=1
+        ).values_list('tafsili_type_id', flat=True)
+
+        level_2_types = SubAccountTafsiliTypeRelation.objects.filter(
+            company_id=queryset.first().company_id if queryset.exists() else 0,
+            sub_account_id=sub_account_id,
+            level=2
+        ).values_list('tafsili_type_id', flat=True)
+
+        level_3_types = SubAccountTafsiliTypeRelation.objects.filter(
+            company_id=queryset.first().company_id if queryset.exists() else 0,
+            sub_account_id=sub_account_id,
+            level=3
+        ).values_list('tafsili_type_id', flat=True)
+
+        # Return filtered queryset with annotations for allowed levels
+        return queryset.annotate(
+            allowed_level_1=models.Case(
+                models.When(tafsili_type_id__in=level_1_types, then=models.Value(True)),
+                default=models.Value(False),
+                output_field=models.BooleanField()
+            ),
+            allowed_level_2=models.Case(
+                models.When(tafsili_type_id__in=level_2_types, then=models.Value(True)),
+                default=models.Value(False),
+                output_field=models.BooleanField()
+            ),
+            allowed_level_3=models.Case(
+                models.When(tafsili_type_id__in=level_3_types, then=models.Value(True)),
+                default=models.Value(False),
+                output_field=models.BooleanField()
+            )
+        )
+
+    def _apply_hierarchy_filtering(self, queryset, company_id, selected_level_1, selected_level_2, selected_level_3):
+        """Apply hierarchy-based filtering."""
+        from accounting.models import TafsiliAccountHierarchy
+
+        # Convert string IDs to integers
+        selected_level_1_id = int(selected_level_1) if selected_level_1 and selected_level_1.isdigit() else None
+        selected_level_2_id = int(selected_level_2) if selected_level_2 and selected_level_2.isdigit() else None
+        selected_level_3_id = int(selected_level_3) if selected_level_3 and selected_level_3.isdigit() else None
+
+        # Check if any hierarchy exists for this company
+        hierarchy_exists = TafsiliAccountHierarchy.objects.filter(company_id=company_id).exists()
+
+        if not hierarchy_exists:
+            # No hierarchy exists - return all accounts for each level (but still apply normal filtering)
+            result = {
+                'level_1': self._format_accounts_for_select(queryset.filter(allowed_level_1=True)),
+                'level_2': self._format_accounts_for_select(queryset.filter(allowed_level_2=True)),
+                'level_3': self._format_accounts_for_select(queryset.filter(allowed_level_3=True)),
+            }
+            return result
+
+        # Hierarchy exists - apply filtering based on selections
+        level_1_queryset = queryset.filter(allowed_level_1=True)
+        level_2_queryset = queryset.filter(allowed_level_2=True)
+        level_3_queryset = queryset.filter(allowed_level_3=True)
+
+        # Apply hierarchy filtering only when selections are made
+        if selected_level_3_id:
+            # Level 3 selected - restrict level 2 and level 1 based on hierarchy
+            level_2_ids = self._get_allowed_level_2_accounts(company_id, None, selected_level_3_id)
+            level_1_ids = self._get_allowed_level_1_accounts(company_id, None, selected_level_3_id)
+
+            if level_2_ids:
+                level_2_queryset = level_2_queryset.filter(id__in=level_2_ids)
+            if level_1_ids:
+                level_1_queryset = level_1_queryset.filter(id__in=level_1_ids)
+
+        elif selected_level_2_id:
+            # Level 2 selected - restrict level 1 and level 3 based on hierarchy
+            level_1_ids = self._get_allowed_level_1_accounts(company_id, selected_level_2_id, None)
+            level_3_ids = self._get_allowed_level_3_accounts(company_id, None, selected_level_2_id)
+
+            if level_1_ids:
+                level_1_queryset = level_1_queryset.filter(id__in=level_1_ids)
+            if level_3_ids:
+                level_3_queryset = level_3_queryset.filter(id__in=level_3_ids)
+
+        elif selected_level_1_id:
+            # Level 1 selected - restrict level 2 and level 3 based on hierarchy
+            level_2_ids = self._get_allowed_level_2_accounts(company_id, selected_level_1_id, None)
+            level_3_ids = self._get_allowed_level_3_accounts(company_id, selected_level_1_id, None)
+
+            if level_2_ids:
+                level_2_queryset = level_2_queryset.filter(id__in=level_2_ids)
+            if level_3_ids:
+                level_3_queryset = level_3_queryset.filter(id__in=level_3_ids)
+
+        # Build result
+        result = {
+            'level_1': self._format_accounts_for_select(level_1_queryset),
+            'level_2': self._format_accounts_for_select(level_2_queryset),
+            'level_3': self._format_accounts_for_select(level_3_queryset),
+        }
+
+        return result
+
+    def _get_allowed_level_1_accounts(self, company_id, selected_level_2_id, selected_level_3_id):
+        """Get allowed level 1 accounts based on selections."""
+        from accounting.models import TafsiliAccountHierarchy
+
+        base_ids = set()
+
+        if selected_level_2_id:
+            # Level 2 selected: get its parent (level 1)
+            parents = TafsiliAccountHierarchy.objects.filter(
+                company_id=company_id,
+                child_account_id=selected_level_2_id
+            ).values_list('parent_account_id', flat=True)
+            base_ids.update(parents)
+
+        elif selected_level_3_id:
+            # Level 3 selected: get parent's parent (level 1)
+            # First get parent of level 3 (which is level 2), then get parent of that (level 1)
+            level2_parents = TafsiliAccountHierarchy.objects.filter(
+                company_id=company_id,
+                child_account_id=selected_level_3_id
+            ).values_list('parent_account_id', flat=True)
+
+            for level2_id in level2_parents:
+                level1_parents = TafsiliAccountHierarchy.objects.filter(
+                    company_id=company_id,
+                    child_account_id=level2_id
+                ).values_list('parent_account_id', flat=True)
+                base_ids.update(level1_parents)
+
+        else:
+            # No selection: all accounts can be level 1 (but will be filtered by normal rules)
+            # This will be handled by the normal filtering
+            pass
+
+        return list(base_ids) if base_ids else None
+
+    def _get_allowed_level_2_accounts(self, company_id, selected_level_1_id, selected_level_3_id):
+        """Get allowed level 2 accounts based on selections."""
+        from accounting.models import TafsiliAccountHierarchy
+
+        base_ids = set()
+
+        if selected_level_1_id:
+            # Level 1 selected: get its direct children (level 2)
+            children = TafsiliAccountHierarchy.objects.filter(
+                company_id=company_id,
+                parent_account_id=selected_level_1_id
+            ).values_list('child_account_id', flat=True)
+            base_ids.update(children)
+
+        elif selected_level_3_id:
+            # Level 3 selected: get its direct parent (level 2)
+            parents = TafsiliAccountHierarchy.objects.filter(
+                company_id=company_id,
+                child_account_id=selected_level_3_id
+            ).values_list('parent_account_id', flat=True)
+            base_ids.update(parents)
+
+        else:
+            # No selection: all accounts can be level 2
+            pass
+
+        return list(base_ids) if base_ids else None
+
+    def _get_allowed_level_3_accounts(self, company_id, selected_level_1_id, selected_level_2_id):
+        """Get allowed level 3 accounts based on selections."""
+        from accounting.models import TafsiliAccountHierarchy
+
+        base_ids = set()
+
+        if selected_level_2_id:
+            # Level 2 selected: get its direct children (level 3)
+            children = TafsiliAccountHierarchy.objects.filter(
+                company_id=company_id,
+                parent_account_id=selected_level_2_id
+            ).values_list('child_account_id', flat=True)
+            base_ids.update(children)
+
+        elif selected_level_1_id:
+            # Level 1 selected: get grandchildren (level 3)
+            # First get children of level 1 (level 2), then get children of those (level 3)
+            level2_children = TafsiliAccountHierarchy.objects.filter(
+                company_id=company_id,
+                parent_account_id=selected_level_1_id
+            ).values_list('child_account_id', flat=True)
+
+            for level2_id in level2_children:
+                level3_children = TafsiliAccountHierarchy.objects.filter(
+                    company_id=company_id,
+                    parent_account_id=level2_id
+                ).values_list('child_account_id', flat=True)
+                base_ids.update(level3_children)
+
+        else:
+            # No selection: all accounts can be level 3
+            pass
+
+        return list(base_ids) if base_ids else None
+
+    def _format_accounts_for_select(self, accounts):
+        """Format accounts queryset for select dropdown."""
+        return [
+            {
+                'id': str(account.id),
+                'text': f"{account.account_code} - {account.account_name}",
+                'code': account.account_code,
+                'name': account.account_name,
+                'allowed_level_1': getattr(account, 'allowed_level_1', True),
+                'allowed_level_2': getattr(account, 'allowed_level_2', True),
+                'allowed_level_3': getattr(account, 'allowed_level_3', True),
+            }
+            for account in accounts.order_by('account_code')
+        ]
+
+
 # Payment Request Views - Imported from views.payment_request
 from .views.payment_request import (
     PaymentRequestListView,

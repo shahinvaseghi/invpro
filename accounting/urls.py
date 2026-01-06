@@ -294,6 +294,7 @@ urlpatterns = [
     path('automation/lines/<int:pk>/delete/', views_module.AutomationDocumentLineDeleteView.as_view(), name='automation_document_line_delete'),
     # API endpoints
     path('api/tafsili-hierarchy-tree/', views_module.TafsiliHierarchyTreeAPIView.as_view(), name='tafsili_hierarchy_tree_api'),
+    path('api/filtered-tafsili-accounts/', views_module.FilteredTafsiliAccountsAPIView.as_view(), name='filtered_tafsili_accounts_api'),
     path('automation/api/document-info/<str:document_id>/', views_module.get_document_info, name='automation_api_document_info'),
     path('automation/api/filterable-fields/<str:document_id>/', views_module.get_filterable_fields, name='automation_api_filterable_fields'),
     path('automation/api/extractable-fields/<str:document_id>/', views_module.get_extractable_fields, name='automation_api_extractable_fields'),

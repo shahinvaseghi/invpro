@@ -315,6 +315,18 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Event listeners attached to sub account select');
         });
 
+        // Tafsili level change listeners - for hierarchy filtering
+        document.querySelectorAll('.line-tafsili-level-1, .line-tafsili-level-2, .line-tafsili-level-3').forEach(select => {
+            $(select).on('select2:select', function(e) {
+                console.log('Tafsili level change triggered');
+                handleTafsiliLevelChange({target: select});
+            });
+            $(select).on('change', function(e) {
+                console.log('Tafsili level regular change triggered');
+                handleTafsiliLevelChange({target: select});
+            });
+        });
+
         // Debit/Credit change listeners
         document.querySelectorAll('.line-debit, .line-credit').forEach(input => {
             input.addEventListener('input', calculateTotals);
@@ -374,20 +386,68 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Error fetching GL account:', error);
             });
 
-        // Fetch tafsili accounts - all levels are independent
-        fetch('/fa/accounting/api/get-allowed-tafsili-accounts/?sub_account_id=' + subAccountId + '&company_id=1')
-            .then(r => r.json())
-            .then(data => {
-                // Each level is independent and gets its own allowed accounts
-                updateTafsiliSelect(tafsili1, data.level_1 || []);
-                updateTafsiliSelect(tafsili2, data.level_2 || []);
-                updateTafsiliSelect(tafsili3, data.level_3 || []);
-            })
-            .catch(console.error);
+        // Fetch tafsili accounts with hierarchy filtering
+        updateTafsiliAccountsForRow(row, subAccountId);
     }
 
-    function updateTafsiliSelect(select, types) {
+    // Update tafsili accounts for a row with hierarchy filtering
+    function updateTafsiliAccountsForRow(row, subAccountId) {
+        const tafsili1 = row.querySelector('.line-tafsili-level-1');
+        const tafsili2 = row.querySelector('.line-tafsili-level-2');
+        const tafsili3 = row.querySelector('.line-tafsili-level-3');
+
+        // Get current selections
+        const level1Value = tafsili1 ? tafsili1.value : '';
+        const level2Value = tafsili2 ? tafsili2.value : '';
+        const level3Value = tafsili3 ? tafsili3.value : '';
+
+        console.log('Updating tafsili accounts for row:', {
+            subAccountId,
+            level1Value,
+            level2Value,
+            level3Value
+        });
+
+        // Fetch filtered tafsili accounts
+        const apiUrl = `/accounting/api/filtered-tafsili-accounts/?sub_account_id=${subAccountId}&level_1=${level1Value}&level_2=${level2Value}&level_3=${level3Value}&company_id=1`;
+
+        fetch(apiUrl)
+            .then(r => r.json())
+            .then(data => {
+                console.log('Filtered tafsili accounts response:', data);
+
+                // Update each level
+                if (tafsili1) updateTafsiliSelect(tafsili1, data.level_1 || []);
+                if (tafsili2) updateTafsiliSelect(tafsili2, data.level_2 || []);
+                if (tafsili3) updateTafsiliSelect(tafsili3, data.level_3 || []);
+            })
+            .catch(error => {
+                console.error('Error fetching filtered tafsili accounts:', error);
+            });
+    }
+
+    // Handle tafsili level changes for hierarchy filtering
+    function handleTafsiliLevelChange(event) {
+        console.log('handleTafsiliLevelChange called');
+
+        const changedSelect = event.target;
+        const row = changedSelect.closest('.line-row');
+
+        if (!row) return;
+
+        const subAccountSelect = row.querySelector('.line-sub-account');
+        const subAccountId = subAccountSelect ? subAccountSelect.value : '';
+
+        if (!subAccountId) return;
+
+        // Update all tafsili selects in this row
+        updateTafsiliAccountsForRow(row, subAccountId);
+    }
+
+    function updateTafsiliSelect(select, accounts) {
         if (!select) return;
+
+        console.log('Updating select with accounts:', accounts.length);
 
         // Destroy existing Select2
         if ($(select).hasClass('select2-hidden-accessible')) {
@@ -397,14 +457,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Clear options
         select.innerHTML = '<option value="">انتخاب تفصیلی</option>';
 
-        // Add options without optgroups
-        types.forEach(type => {
-            type.accounts.forEach(account => {
-                const option = document.createElement('option');
-                option.value = account.id;
-                option.textContent = `${account.code} · ${account.name}`;
-                select.appendChild(option);
-            });
+        // Add new options - accounts is now an array of objects with id, text, code, name
+        accounts.forEach(account => {
+            const option = document.createElement('option');
+            option.value = account.id;
+            option.textContent = account.text; // Use the formatted text from API
+            select.appendChild(option);
         });
 
         // Reinitialize Select2
@@ -416,6 +474,8 @@ document.addEventListener('DOMContentLoaded', function() {
             allowClear: true,
             width: '100%'
         });
+
+        console.log('Select updated successfully');
     }
 
     function clearTafsiliSelect(select) {
