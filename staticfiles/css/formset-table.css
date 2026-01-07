@@ -1,0 +1,466 @@
+/**
+ * Formset table layout styles.
+ * 
+ * This file provides common CSS styles for displaying formsets as tables
+ * with grid layout. Used in warehouse requests, purchase requests, and other
+ * multi-line forms.
+ */
+
+/* Formset wrapper */
+.formset-table-wrapper {
+  margin-top: 1rem;
+  overflow-x: auto;
+  overflow-y: visible;
+  width: 100%;
+}
+
+/* Formset container */
+.formset-container {
+  margin-top: 1rem;
+  overflow-x: auto;
+  overflow-y: visible;
+  width: 100%;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+
+/* Ensure form-container doesn't hide overflow for formset */
+.form-container {
+  overflow-x: visible !important;
+}
+
+.form-container .formset-container {
+  margin-left: -24px;
+  margin-right: -24px;
+  padding-left: 24px;
+  padding-right: 24px;
+  width: calc(100% + 48px);
+}
+
+/* Formset table */
+.formset-table {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  min-width: 1200px;
+  width: max-content;
+  margin: 0;
+}
+
+/* Formset rows container */
+.formset-rows-container {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Table header */
+.formset-table-header {
+  display: grid !important;
+  grid-template-columns: 50px 3fr 1.5fr 1.5fr 1.5fr 1.5fr 2fr 80px !important; /* Default: with delete column */
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background-color: #f3f4f6;
+  border-bottom: 2px solid #e5e7eb;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+/* Override for formsets without delete */
+.formset-table[data-can-delete="false"] .formset-table-header {
+  grid-template-columns: 50px 3fr 1.5fr 1.5fr 1.5fr 1.5fr 2fr !important;
+}
+
+/* Table row */
+.formset-table-row,
+.formset-row {
+  display: grid !important;
+  grid-template-columns: 50px 3fr 1.5fr 1.5fr 1.5fr 1.5fr 2fr 80px !important; /* Default: with delete column */
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  align-items: start;
+  transition: background-color 0.2s;
+}
+
+/* Override for formsets without delete */
+.formset-table[data-can-delete="false"] .formset-table-row,
+.formset-table[data-can-delete="false"] .formset-row {
+  grid-template-columns: 50px 3fr 1.5fr 1.5fr 1.5fr 1.5fr 2fr !important;
+}
+
+.formset-table-row:last-child,
+.formset-row:last-child {
+  border-bottom: none;
+}
+
+.formset-table-row:hover,
+.formset-row:hover {
+  background-color: #f9fafb;
+}
+
+.formset-table-row.deleted,
+.formset-row.deleted {
+  opacity: 0.5;
+  background-color: #fee2e2;
+}
+
+/* Table cell */
+.formset-table-cell,
+.formset-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+  overflow: hidden;
+  word-wrap: break-word;
+}
+
+.formset-cell.formset-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.formset-cell.formset-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.formset-cell.formset-delete input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.formset-table-cell.cell-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+/* Form controls in cells */
+.formset-table-cell select,
+.formset-table-cell input[type="text"],
+.formset-table-cell input[type="number"],
+.formset-table-cell input[type="date"],
+.formset-table-cell textarea,
+.formset-cell select,
+.formset-cell input[type="text"],
+.formset-cell input[type="number"],
+.formset-cell input[type="date"],
+.formset-cell textarea {
+  width: 100%;
+  max-width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  box-sizing: border-box;
+}
+
+.formset-table-cell textarea,
+.formset-cell textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+/* Item select wrapper */
+.item-select-wrapper {
+  width: 100%;
+}
+
+/* Item filters */
+.item-filters {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.item-filters select,
+.item-filters input[type="text"] {
+  flex: 1;
+  min-width: 80px;
+  max-width: 100%;
+  font-size: 0.7rem;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background-color: #f9fafb;
+  color: #6b7280;
+  box-sizing: border-box;
+}
+
+.item-filters select:focus,
+.item-filters input[type="text"]:focus {
+  outline: none;
+  border-color: #2563eb;
+  background-color: #ffffff;
+}
+
+.item-filters input[type="text"] {
+  flex: 2;
+  min-width: 150px;
+}
+
+/* Item select wrapper - ensure proper layout */
+.item-select-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.item-select-wrapper select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Hide initial Django form select dropdown - JavaScript will populate it via API */
+/* Only hide the actual item select, not filter selects (item_type_filter, etc.) */
+.item-select-wrapper select[name*="-item"]:not([name*="_filter"]):not([data-populated]) {
+  display: none !important;
+}
+
+/* Show dropdown after it's populated */
+.item-select-wrapper select[name*="-item"]:not([name*="_filter"])[data-populated="true"] {
+  display: block !important;
+  width: 100% !important;
+  margin-top: 0.5rem !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Ensure item select is visible and properly styled */
+.item-select-wrapper select[name*="-item"]:not([name*="_filter"]) {
+  transition: display 0.3s, opacity 0.3s;
+  min-height: 38px;
+}
+
+/* Delete cell */
+.formset-table-cell.cell-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.formset-table-cell.cell-delete input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+/* Error messages */
+.formset-table-cell .error,
+.formset-cell .error {
+  font-size: 0.75rem;
+  color: #dc2626;
+  margin-top: 0.25rem;
+}
+
+.error.full-width {
+  grid-column: 1 / -1;
+  padding: 0.5rem;
+  background-color: #fee2e2;
+  border-radius: 4px;
+  margin-top: 0.5rem;
+}
+
+/* Add line button */
+.btn-add-formset-row {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+}
+
+.btn-add-icon {
+  font-size: 1.2rem;
+  margin-right: 0.25rem;
+}
+
+[dir="rtl"] .btn-add-icon {
+  margin-right: 0;
+  margin-left: 0.25rem;
+}
+
+/* Success button */
+.btn-success {
+  background-color: #10b981;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  padding: 0.5rem 1rem;
+  margin-top: 1rem;
+}
+
+.btn-success:hover {
+  background-color: #059669;
+}
+
+/* Responsive */
+@media (max-width: 1400px) {
+  .formset-table {
+    min-width: 100%;
+    width: 100%;
+  }
+  
+  .formset-table-header,
+  .formset-table-row,
+  .formset-row {
+    grid-template-columns: 40px 2fr 1fr 1fr 1.2fr 1.2fr 1.5fr 60px !important;
+  }
+  
+  .formset-table[data-can-delete="false"] .formset-table-header,
+  .formset-table[data-can-delete="false"] .formset-table-row,
+  .formset-table[data-can-delete="false"] .formset-row {
+    grid-template-columns: 40px 2fr 1fr 1fr 1.2fr 1.2fr 1.5fr !important;
+  }
+  
+  #price-cards-formset .formset-table-header,
+  #price-cards-formset .formset-row.line-row,
+  #price-cards-formset .line-row.formset-row {
+    grid-template-columns: 40px 2fr 1fr 1fr 1.2fr 1.2fr 1.5fr 60px !important;
+  }
+  
+  #price-cards-formset[data-can-delete="false"] .formset-table-header,
+  #price-cards-formset[data-can-delete="false"] .formset-row.line-row,
+  #price-cards-formset[data-can-delete="false"] .line-row.formset-row {
+    grid-template-columns: 40px 2fr 1fr 1fr 1.2fr 1.2fr 1.5fr !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .formset-table-wrapper,
+  .formset-container {
+    overflow-x: scroll;
+  }
+  
+  .formset-table {
+    min-width: 800px;
+  }
+}
+
+/* Legacy class names for backward compatibility */
+.lines-formset-wrapper {
+  margin-top: 1rem;
+  overflow-x: auto;
+  overflow-y: visible;
+  width: 100%;
+}
+
+.lines-formset {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  min-width: 1200px;
+  width: max-content;
+}
+
+.lines-table-header {
+  display: grid !important;
+  grid-template-columns: 50px 3fr 1.5fr 1.5fr 2fr 2fr 80px !important; /* Default: with delete column */
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background-color: #f3f4f6;
+  border-bottom: 2px solid #e5e7eb;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.line-row {
+  display: grid !important;
+  grid-template-columns: 50px 3fr 1.5fr 1.5fr 2fr 2fr 80px !important; /* Default: with delete column - legacy 7 columns */
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  align-items: start;
+  transition: background-color 0.2s;
+}
+
+/* Price card formset specific - 8 columns */
+#price-cards-formset .formset-table-header,
+#price-cards-formset .formset-row.line-row,
+#price-cards-formset .line-row.formset-row {
+  display: grid !important;
+  grid-template-columns: 50px 3fr 1.5fr 1.5fr 1.5fr 1.5fr 2fr 80px !important; /* 8 columns for price card */
+}
+
+#price-cards-formset[data-can-delete="false"] .formset-table-header,
+#price-cards-formset[data-can-delete="false"] .formset-row.line-row,
+#price-cards-formset[data-can-delete="false"] .line-row.formset-row {
+  grid-template-columns: 50px 3fr 1.5fr 1.5fr 1.5fr 1.5fr 2fr !important; /* 7 columns without delete */
+}
+
+/* Override for formsets without delete */
+.lines-formset[data-can-delete="false"] .lines-table-header,
+.lines-formset[data-can-delete="false"] .line-row {
+  grid-template-columns: 50px 3fr 1.5fr 1.5fr 2fr 2fr !important;
+}
+
+.line-row:last-child {
+  border-bottom: none;
+}
+
+.line-row:hover {
+  background-color: #f9fafb;
+}
+
+.line-row.deleted {
+  opacity: 0.5;
+  background-color: #fee2e2;
+}
+
+.line-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.line-cell.line-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.line-cell.line-item select,
+.line-cell.line-unit select,
+.line-cell.line-quantity input,
+.line-cell.line-warehouse select,
+.line-cell.line-notes textarea {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.line-cell.line-notes textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+.line-cell.line-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.line-cell.line-delete input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
