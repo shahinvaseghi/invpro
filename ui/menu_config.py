@@ -479,27 +479,9 @@ def get_menu_structure() -> List[MenuSection]:
                             permission="accounting.accounts.sub"
                         ),
                         MenuItem(
-                            name="انواع تفصیلی",
-                            url_name="accounting:tafsili_types",
-                            icon="icon-list",
-                            permission="accounting.accounts.tafsili"
-                        ),
-                        MenuItem(
                             name="تعریف حساب تفصیلی",
                             url_name="accounting:tafsili_accounts",
                             icon="icon-clipboard",
-                            permission="accounting.accounts.tafsili"
-                        ),
-                        MenuItem(
-                            name="اتصال تفصیلی به معین",
-                            url_name="accounting:subaccount_tafsili_level1_connection",
-                            icon="icon-link",
-                            permission="accounting.accounts.tafsili"
-                        ),
-                        MenuItem(
-                            name="اتصال سلسله مراتبی تفصیلی",
-                            url_name="accounting:hierarchical_tafsili_connection",
-                            icon="icon-link",
                             permission="accounting.accounts.tafsili"
                         ),
                         MenuItem(

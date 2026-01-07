@@ -320,6 +320,16 @@ class BOMMaterialLineForm(forms.ModelForm):
 class BOMMaterialLineFormSetBase(forms.BaseInlineFormSet):
     """Custom formset with better validation for BOM materials."""
     
+    def __init__(self, *args, **kwargs):
+        """Initialize formset and handle form_kwargs."""
+        # Extract form_kwargs if provided (Django will pass them to each form)
+        # form_kwargs is used to pass company_id to each form instance
+        form_kwargs = kwargs.pop('form_kwargs', {})
+        
+        # Call parent __init__ with form_kwargs
+        # Django's BaseInlineFormSet will pass form_kwargs to each form's __init__
+        super().__init__(*args, form_kwargs=form_kwargs, **kwargs)
+    
     def clean(self) -> None:
         """Validate that at least one complete material line exists and no duplicates."""
         if any(self.errors):

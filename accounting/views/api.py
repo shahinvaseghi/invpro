@@ -456,21 +456,25 @@ def get_account_tree(request):
                             tafsili_data.append(build_tafsili_hierarchy_tree(account, company_id))
 
                     else:
-                        # اگر hierarchy وجود ندارد، تفصیلی‌های استفاده شده در سندها رو نمایش بده
-                        used_tafsili_accounts = Account.objects.filter(
+                        # اگر hierarchy وجود ندارد، تفصیلی‌های مجاز برای این معین رو نمایش بده
+                        from accounting.models import SubAccountTafsiliTypeRelation
+
+                        allowed_tafsili_types = SubAccountTafsiliTypeRelation.objects.filter(
+                            company_id=company_id,
+                            sub_account=sub
+                        ).values_list('tafsili_type_id', flat=True)
+
+                        allowed_tafsili_accounts = Account.objects.filter(
                             company_id=company_id,
                             account_level=3,
+                            tafsili_type_id__in=allowed_tafsili_types,
                             is_enabled=1
-                        ).filter(
-                            models.Q(document_lines_as_tafsili_1__document__lines__sub_account=sub) |
-                            models.Q(document_lines_as_tafsili_2__document__lines__sub_account=sub) |
-                            models.Q(document_lines_as_tafsili_3__document__lines__sub_account=sub)
                         ).distinct().order_by('account_code')
 
                         # گروه‌بندی بر اساس سطح برای نمایش بهتر
                         tafsili_data = []
                         for level in [1, 2, 3]:
-                            level_accounts = [acc for acc in used_tafsili_accounts if acc.tafsili_level == level]
+                            level_accounts = [acc for acc in allowed_tafsili_accounts if acc.tafsili_level == level]
                             for t in level_accounts:
                                 tafsili_data.append({
                                     'id': t.id,

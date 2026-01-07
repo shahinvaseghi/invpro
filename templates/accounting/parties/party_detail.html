@@ -1,0 +1,84 @@
+{% extends "shared/generic/generic_detail.html" %}
+{% load i18n %}
+
+{% block detail_sections %}
+<div class="form-section">
+  <h3>{% trans "اطلاعات مشتری" %}</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "کد مشتری" %}</label>
+      <div class="readonly-field">
+        <code>{{ object.party_code }}</code>
+      </div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "نام" %}</label>
+      <div class="readonly-field">
+        {{ object.first_name|default:"-" }}
+      </div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "نام خانوادگی" %}</label>
+      <div class="readonly-field">
+        {{ object.last_name|default:"-" }}
+      </div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "نوع مشتری" %}</label>
+      <div class="readonly-field">
+        {{ object.customer_type_description|default:object.get_party_type_display }}
+      </div>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "کد ملی" %}</label>
+      <div class="readonly-field">
+        {{ object.national_id|default:"-" }}
+      </div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "شماره تماس" %}</label>
+      <div class="readonly-field">
+        {{ object.phone|default:"-" }}
+      </div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "ایمیل" %}</label>
+      <div class="readonly-field">
+        {{ object.email|default:"-" }}
+      </div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "کد مالیاتی" %}</label>
+      <div class="readonly-field">
+        {{ object.tax_id|default:"-" }}
+      </div>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "آدرس" %}</label>
+      <div class="readonly-field">
+        {{ object.address|default:"-"|linebreaks }}
+      </div>
+    </div>
+    <div class="form-field">
+      <label>{% trans "تماس شخص" %}</label>
+      <div class="readonly-field">
+        {{ object.contact_person|default:"-" }}
+      </div>
+    </div>
+  </div>
+  {% if object.notes %}
+  <div class="form-row">
+    <div class="form-field">
+      <label>{% trans "یادداشت‌ها" %}</label>
+      <div class="readonly-field">
+        {{ object.notes|linebreaks }}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

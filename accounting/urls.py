@@ -193,6 +193,9 @@ urlpatterns = [
     # Party Accounts (طرف حساب‌ها)
     path('parties/', views_module.PartiesView.as_view(), name='parties'),
     path('parties/create/', views_module.PartyCreateView.as_view(), name='party_create'),
+    path('parties/<int:pk>/', views_module.PartyDetailView.as_view(), name='party_detail'),
+    path('parties/<int:pk>/edit/', views_module.PartyUpdateView.as_view(), name='party_edit'),
+    path('parties/<int:pk>/delete/', views_module.PartyDeleteView.as_view(), name='party_delete'),
     path('parties/accounts/', views_module.PartyAccountsView.as_view(), name='party_accounts'),
     path('parties/accounts/create/', views_module.PartyAccountCreateView.as_view(), name='party_account_create'),
     path('parties/movements/', views_module.PartyMovementsView.as_view(), name='party_movements'),

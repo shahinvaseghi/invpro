@@ -13,6 +13,9 @@
     <a href="{% url 'accounting:tafsili_types' %}" class="btn btn-secondary">
       {% trans "مدیریت انواع تفصیلی" %}
     </a>
+    <a href="{% url 'accounting:hierarchical_tafsili_connection' %}" class="btn btn-secondary">
+      🔗 {% trans "اتصال سلسله مراتبی تفصیلی" %}
+    </a>
   {% endif %}
   {% if print_enabled %}
     <button class="btn btn-secondary btn-print" data-action="print" data-table-id="mainTable" data-print-title="{% trans 'تعریف حساب تفصیلی' %}">

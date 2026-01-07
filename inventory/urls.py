@@ -10,6 +10,7 @@ from .views.issues import (
 )
 # Import other views
 from . import views
+from .views.receipts import ReceiptTemporaryRevertConversionView
 
 # Import API endpoints from refactored module (with Type Hints)
 from .views import api as views_api
@@ -106,6 +107,7 @@ urlpatterns = [
     path('receipts/temporary/<int:pk>/lock/', views.ReceiptTemporaryLockView.as_view(), name='receipt_temporary_lock'),
     path('receipts/temporary/<int:pk>/unlock/', views.ReceiptTemporaryUnlockView.as_view(), name='receipt_temporary_unlock'),
     path('receipts/temporary/<int:pk>/send-to-qc/', views.ReceiptTemporarySendToQCView.as_view(), name='receipt_temporary_send_to_qc'),
+    path('receipts/temporary/<int:pk>/revert-conversion/', ReceiptTemporaryRevertConversionView.as_view(), name='receipt_temporary_revert_conversion'),
     path('receipts/permanent/', views.ReceiptPermanentListView.as_view(), name='receipt_permanent'),
     path('receipts/permanent/create/', views.ReceiptPermanentCreateView.as_view(), name='receipt_permanent_create'),
     path('receipts/permanent/create-from-request/<int:pk>/', views.ReceiptPermanentCreateFromPurchaseRequestView.as_view(), name='receipt_permanent_create_from_request'),

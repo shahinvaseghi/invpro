@@ -9,7 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_http_methods
 from django.db import models
 from shared.mixins import FeaturePermissionRequiredMixin
-from shared.views.base import BaseCreateView, BaseFormsetCreateView, BaseListView
+from shared.views.base import BaseCreateView, BaseDetailView, BaseFormsetCreateView, BaseListView, BaseUpdateView, BaseDeleteView
 from accounting.views.base import AccountingBaseView
 from accounting.models import (
     CostCenter, IncomeExpenseCategory, Party, PartyAccount, TreasuryAccount,
@@ -494,16 +494,37 @@ class CostCenterCreateView(FeaturePermissionRequiredMixin, AccountingBaseView, C
 
 
 # Party Accounts
-class PartiesView(FeaturePermissionRequiredMixin, TemplateView):
+class PartiesView(BaseListView):
     """Parties management view."""
+    model = Party
     template_name = 'accounting/parties/list.html'
     feature_code = 'accounting.parties.list'
     required_action = 'view'
+    search_fields = ['first_name', 'last_name', 'party_name', 'party_code', 'national_id', 'phone', 'email']
+    default_order_by = ['party_type', 'party_code']
+
+    def get_queryset(self):
+        """Filter parties queryset."""
+        queryset = super().get_queryset()
+        # Filter only customers (party_type='customer')
+        return queryset.filter(party_type='customer')
+
+    def get_detail_url_name(self):
+        """Return detail URL name."""
+        return 'accounting:party_detail'
+
+    def get_edit_url_name(self):
+        """Return edit URL name."""
+        return 'accounting:party_edit'
+
+    def get_delete_url_name(self):
+        """Return delete URL name."""
+        return 'accounting:party_delete'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['active_module'] = 'accounting'
-        context['page_title'] = 'طرف حساب‌ها'
+        context['page_title'] = 'مشتری‌ها'
         context['create_url'] = reverse('accounting:party_create')
         context['party_accounts_url'] = reverse('accounting:party_accounts')
         return context
@@ -543,6 +564,87 @@ class PartyCreateView(FeaturePermissionRequiredMixin, AccountingBaseView, Create
         ]
         context['cancel_url'] = reverse('accounting:parties')
         return context
+
+
+class PartyDetailView(BaseDetailView):
+    """Party detail view."""
+    model = Party
+    template_name = 'accounting/parties/party_detail.html'
+    feature_code = 'accounting.parties.list'
+    required_action = 'view'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['active_module'] = 'accounting'
+        context['page_title'] = f'مشتری: {self.object.party_name}'
+        context['list_url'] = reverse('accounting:parties')
+        context['edit_url'] = reverse('accounting:party_edit', kwargs={'pk': self.object.pk})
+        context['delete_url'] = reverse('accounting:party_delete', kwargs={'pk': self.object.pk})
+        return context
+
+
+class PartyUpdateView(BaseUpdateView):
+    """Party update view."""
+    model = Party
+    form_class = PartyForm
+    template_name = 'accounting/parties/party_form.html'
+    success_url = reverse_lazy('accounting:parties')
+    feature_code = 'accounting.parties.list'
+    required_action = 'edit_own'
+    success_message = _('مشتری با موفقیت ویرایش شد.')
+
+    def get_form_kwargs(self):
+        """Add company_id to form kwargs."""
+        kwargs = super().get_form_kwargs()
+        kwargs['company_id'] = self.request.session.get('active_company_id')
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        """Add context for form template."""
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = f'ویرایش مشتری: {self.object.party_name}'
+        context['form_title'] = f'ویرایش مشتری: {self.object.party_name}'
+        context['breadcrumbs'] = [
+            {'label': 'داشبورد', 'url': reverse('ui:dashboard')},
+            {'label': 'حسابداری', 'url': reverse('accounting:dashboard')},
+            {'label': 'مشتری‌ها', 'url': reverse('accounting:parties')},
+            {'label': 'ویرایش'},
+        ]
+        context['cancel_url'] = reverse('accounting:parties')
+        return context
+
+
+class PartyDeleteView(BaseDeleteView):
+    """Party delete view."""
+    model = Party
+    success_url = reverse_lazy('accounting:parties')
+    feature_code = 'accounting.parties.list'
+    required_action = 'delete'
+    success_message = _('مشتری با موفقیت حذف شد.')
+
+    def get_context_data(self, **kwargs):
+        """Add context for delete template."""
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = f'حذف مشتری: {self.object.party_name}'
+        context['delete_title'] = f'حذف مشتری: {self.object.party_name}'
+        context['breadcrumbs'] = [
+            {'label': 'داشبورد', 'url': reverse('ui:dashboard')},
+            {'label': 'حسابداری', 'url': reverse('accounting:dashboard')},
+            {'label': 'مشتری‌ها', 'url': reverse('accounting:parties')},
+            {'label': 'حذف'},
+        ]
+        context['cancel_url'] = reverse('accounting:parties')
+        return context
+
+    def get_object_details(self):
+        """Return object details for display."""
+        return [
+            {'label': _('کد مشتری'), 'value': self.object.party_code, 'type': 'code'},
+            {'label': _('نام مشتری'), 'value': self.object.party_name},
+            {'label': _('نوع مشتری'), 'value': self.object.customer_type_description or self.object.get_party_type_display()},
+            {'label': _('شماره تماس'), 'value': self.object.phone or '-'},
+            {'label': _('ایمیل'), 'value': self.object.email or '-'},
+        ]
 
 
 class PartyAccountsView(FeaturePermissionRequiredMixin, TemplateView):
@@ -1560,17 +1662,39 @@ class AccountBrowserView(FeaturePermissionRequiredMixin, TemplateView):
                 })
             return result
 
-        elif account.account_level == 2:  # Sub Account - get tafsili accounts
-            # Get tafsili accounts that have been used with this sub-account
-            child_accounts = Account.objects.filter(
+        elif account.account_level == 2:  # Sub Account - get connected tafsili accounts
+            # Get directly connected level 1 tafsili accounts
+            from accounting.models import SubAccountTafsiliLevel1Relation
+
+            connected_level1_accounts = SubAccountTafsiliLevel1Relation.objects.filter(
                 company_id=company_id,
-                account_level=3,  # Tafsili accounts
-                is_enabled=1
-            ).filter(
-                models.Q(document_lines_as_tafsili_1__document__lines__sub_account=account) |
-                models.Q(document_lines_as_tafsili_2__document__lines__sub_account=account) |
-                models.Q(document_lines_as_tafsili_3__document__lines__sub_account=account)
-            ).distinct().order_by('account_code')
+                sub_account=account
+            ).select_related('tafsili_level1_account').order_by('-is_primary', 'tafsili_level1_account__account_code')
+
+            # Get level 1 account IDs
+            level1_ids = [rel.tafsili_level1_account_id for rel in connected_level1_accounts]
+
+            # Get hierarchy children of connected level 1 accounts
+            from accounting.models import TafsiliAccountHierarchy
+
+            hierarchy_children_ids = TafsiliAccountHierarchy.objects.filter(
+                company_id=company_id,
+                parent_account_id__in=level1_ids
+            ).values_list('child_account_id', flat=True)
+
+            # Combine all related tafsili account IDs
+            all_related_tafsili_ids = level1_ids + list(hierarchy_children_ids)
+
+            # Get tafsili accounts
+            if all_related_tafsili_ids:
+                child_accounts = Account.objects.filter(
+                    company_id=company_id,
+                    id__in=all_related_tafsili_ids,
+                    account_level=3,
+                    is_enabled=1
+                ).select_related('tafsili_type').order_by('tafsili_level', 'account_code')
+            else:
+                child_accounts = Account.objects.none()
 
             # Calculate balances for each child account
             result = []

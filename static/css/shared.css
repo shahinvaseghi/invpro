@@ -444,6 +444,17 @@ textarea {
   color: #ffffff;
 }
 
+.badge-info {
+  background-color: #0dcaf0;
+  color: #000000;
+  border-color: #0dcaf0;
+}
+
+.text-bg-info {
+  background-color: #0dcaf0 !important;
+  color: #000000 !important;
+}
+
 .badge-locked {
   background-color: #dc2626;
   color: #ffffff;

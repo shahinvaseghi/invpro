@@ -8,13 +8,13 @@
 {% endblock %}
 
 {% block table_headers %}
-<th>{% trans "Code" %}</th>
-<th>{% trans "Name" %}</th>
-<th>{% trans "Type" %}</th>
-<th>{% trans "Contact Person" %}</th>
-<th>{% trans "Phone" %}</th>
+<th>{% trans "کد مشتری" %}</th>
+<th>{% trans "نام مشتری" %}</th>
+<th>{% trans "نوع مشتری" %}</th>
+<th>{% trans "تماس شخص" %}</th>
+<th>{% trans "شماره تماس" %}</th>
 {% if show_actions %}
-  <th>{% trans "Actions" %}</th>
+  <th>{% trans "عملیات" %}</th>
 {% endif %}
 {% endblock %}
 
@@ -22,9 +22,9 @@
 {% if object_list %}
   {% for party in object_list %}
   <tr>
-    <td><code>{{ party.code|default:"–" }}</code></td>
-    <td><strong>{{ party.name|default:"–" }}</strong></td>
-    <td>{{ party.party_type|default:"–" }}</td>
+    <td><code>{{ party.party_code|default:"–" }}</code></td>
+    <td><strong>{{ party.party_name|default:"–" }}</strong></td>
+    <td>{{ party.customer_type_description|default:"مشتری" }}</td>
     <td>{{ party.contact_person|default:"–" }}</td>
     <td>{{ party.phone|default:"–" }}</td>
     {% if show_actions %}
@@ -37,7 +37,7 @@
 {% else %}
   <tr>
     <td colspan="{% if show_actions %}6{% else %}5{% endif %}" style="text-align: center; padding: 2rem;">
-      <p>{% trans "این صفحه در حال توسعه است." %}</p>
+      <p>{% trans "هیچ مشتری یافت نشد." %}</p>
     </td>
   </tr>
 {% endif %}

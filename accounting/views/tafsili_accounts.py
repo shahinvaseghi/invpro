@@ -4,6 +4,7 @@ Tafsili Account (حساب تفصیلی) CRUD views for accounting module.
 from typing import Any, Dict
 from django.contrib import messages
 from django.db.models import Q
+from django.db.models.deletion import ProtectedError
 from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
@@ -367,7 +368,30 @@ class TafsiliAccountDeleteView(BaseDeleteView):
         # Check if account is system account
         if obj.is_system_account:
             return False, _('حساب‌های سیستمی قابل حذف نیستند.')
-        
+
+        # Check if account is referenced by PartyAccount (customers/parties)
+        if obj.party_accounts.exists():
+            party_names = [party_account.party.party_name for party_account in obj.party_accounts.all()[:3]]
+            if len(party_names) == 1:
+                return False, _('این حساب تفصیلی هنوز به طرف حساب "{party}" متصل است.').format(party=party_names[0])
+            else:
+                parties_str = ', '.join(party_names)
+                if obj.party_accounts.count() > 3:
+                    parties_str += f" و {obj.party_accounts.count() - 3} طرف حساب دیگر"
+                return False, _('این حساب تفصیلی هنوز به طرف حساب‌های "{parties}" متصل است.').format(parties=parties_str)
+
+        # Check if account is used in AccountingDocumentLine
+        from accounting.models import AccountingDocumentLine
+        document_lines_count = AccountingDocumentLine.objects.filter(
+            Q(tafsili_level_1=obj) | Q(tafsili_level_2=obj) | Q(tafsili_level_3=obj)
+        ).count()
+
+        if document_lines_count > 0:
+            if document_lines_count == 1:
+                return False, _('این حساب تفصیلی در 1 سطر سند حسابداری استفاده شده است.')
+            else:
+                return False, _('این حساب تفصیلی در {count} سطر سند حسابداری استفاده شده است.').format(count=document_lines_count)
+
         return True, None
     
     def get_delete_title(self) -> str:
@@ -394,4 +418,50 @@ class TafsiliAccountDeleteView(BaseDeleteView):
             {'label': _('تعریف حساب تفصیلی'), 'url': reverse('accounting:tafsili_accounts')},
             {'label': _('حذف'), 'url': None},
         ]
+
+    def post(self, request, *args, **kwargs):
+        """Handle POST request for deletion with ProtectedError handling."""
+        self.object = self.get_object()
+
+        # First check validation
+        is_valid, error_message = self.validate_deletion()
+        if not is_valid:
+            messages.error(self.request, error_message)
+            return HttpResponseRedirect(self.get_success_url())
+
+        try:
+            self.object.delete()
+            messages.success(self.request, self.success_message)
+            return HttpResponseRedirect(self.get_success_url())
+        except ProtectedError as e:
+            # Check if error is due to PartyAccount relationships
+            if self.object.party_accounts.exists():
+                party_names = [party_account.party.party_name for party_account in self.object.party_accounts.all()[:3]]
+                if len(party_names) == 1:
+                    error_message = _('نمی‌توان این حساب تفصیلی را حذف کرد چون هنوز به طرف حساب "{party}" متصل است.').format(party=party_names[0])
+                else:
+                    parties_str = ', '.join(party_names)
+                    if self.object.party_accounts.count() > 3:
+                        parties_str += f" و {self.object.party_accounts.count() - 3} طرف حساب دیگر"
+                    error_message = _('نمی‌توان این حساب تفصیلی را حذف کرد چون هنوز به طرف حساب‌های "{parties}" متصل است.').format(parties=parties_str)
+            else:
+                # Check if error is due to AccountingDocumentLine usage
+                from accounting.models import AccountingDocumentLine
+                document_lines_count = AccountingDocumentLine.objects.filter(
+                    Q(tafsili_level_1=self.object) | Q(tafsili_level_2=self.object) | Q(tafsili_level_3=self.object)
+                ).count()
+
+                if document_lines_count > 0:
+                    if document_lines_count == 1:
+                        error_message = _('نمی‌توان این حساب تفصیلی را حذف کرد چون در 1 سطر سند حسابداری استفاده شده است.')
+                    else:
+                        error_message = _('نمی‌توان این حساب تفصیلی را حذف کرد چون در {count} سطر سند حسابداری استفاده شده است.').format(
+                            count=document_lines_count
+                        )
+                else:
+                    # Generic error message for other protected relationships
+                    error_message = _('نمی‌توان این حساب تفصیلی را حذف کرد چون در موارد دیگر استفاده شده است.')
+
+            messages.error(self.request, error_message)
+            return HttpResponseRedirect(self.get_success_url())
 

@@ -367,6 +367,7 @@ class ReceiptTemporaryListView(InventoryBaseView, BaseDocumentListView):
         context['permanent_receipt_url_name'] = 'inventory:receipt_permanent_edit'
         context['empty_heading'] = _('No Temporary Receipts Found')
         context['empty_text'] = _('Start by creating your first temporary receipt.')
+        context['feature_code'] = self.feature_code
         
         # Permissions
         self.add_delete_permissions_to_context(context, 'inventory.receipts.temporary')
@@ -832,6 +833,68 @@ class ReceiptTemporarySendToQCView(FeaturePermissionRequiredMixin, InventoryBase
         receipt.save(update_fields=['status', 'edited_by'])
         
         messages.success(request, _('Temporary receipt has been sent to QC inspection.'))
+        return HttpResponseRedirect(reverse('inventory:receipt_temporary'))
+
+
+class ReceiptTemporaryRevertConversionView(FeaturePermissionRequiredMixin, InventoryBaseView, View):
+    """View to revert conversion of temporary receipt back to unconverted state."""
+    feature_code = 'inventory.receipts.temporary'
+    required_action = 'edit_own'
+    allow_own_scope = True
+
+    def dispatch(self, request, *args, **kwargs):
+        """Check permissions before allowing revert conversion."""
+        from shared.utils.permissions import get_user_feature_permissions, has_feature_permission
+
+        # Superuser bypass
+        if request.user.is_superuser:
+            return super().dispatch(request, *args, **kwargs)
+
+        obj = self.get_object()
+
+        # Check permissions
+        company_id: Optional[int] = request.session.get('active_company_id')
+        permissions = get_user_feature_permissions(request.user, company_id)
+
+        # Check if user is owner and has EDIT_OWN permission
+        is_owner = obj.created_by == request.user if obj.created_by else False
+        can_edit_own = has_feature_permission(permissions, self.feature_code, 'edit_own', allow_own_scope=True)
+        can_edit_other = has_feature_permission(permissions, self.feature_code, 'edit_other', allow_own_scope=False)
+
+        if is_owner and not can_edit_own:
+            raise PermissionDenied(_('شما اجازه ویرایش اسناد خود را ندارید.'))
+        elif not is_owner and not can_edit_other:
+            raise PermissionDenied(_('شما اجازه ویرایش اسناد سایر کاربران را ندارید.'))
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_object(self):
+        """Get the receipt object."""
+        return get_object_or_404(
+            models.ReceiptTemporary,
+            pk=self.kwargs['pk'],
+            company_id=self.request.session.get('active_company_id'),
+            is_enabled=1
+        )
+
+    def post(self, request, *args, **kwargs) -> HttpResponseRedirect:
+        """Revert conversion of temporary receipt."""
+        receipt = self.get_object()
+
+        # Check if receipt is converted
+        if receipt.is_converted != 1:
+            messages.error(request, _('این رسید موقتی تبدیل نشده است.'))
+            return HttpResponseRedirect(reverse('inventory:receipt_temporary'))
+
+        # Revert conversion
+        receipt.is_converted = 0
+        receipt.is_locked = 0  # Unlock it too
+        receipt.converted_receipt = None
+        receipt.converted_receipt_code = ''
+        receipt.edited_by = request.user
+        receipt.save(update_fields=['is_converted', 'is_locked', 'converted_receipt', 'converted_receipt_code', 'edited_by'])
+
+        messages.success(request, _('تبدیل رسید موقتی با موفقیت برگردانده شد.'))
         return HttpResponseRedirect(reverse('inventory:receipt_temporary'))
 
 

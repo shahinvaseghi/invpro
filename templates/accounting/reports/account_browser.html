@@ -456,15 +456,31 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function renderTafsili(tafsili, subCode) {
+        const hasChildren = tafsili.children && tafsili.children.length > 0;
         let html = '<li class="account-tree-item">';
         html += '<div class="tree-node" onclick="selectAccount(\'account\', ' + tafsili.id + ')">';
-        html += '<span style="width: 20px; display: inline-block;"></span>';
+
+        if (hasChildren) {
+            html += `<span class="tree-toggle collapsed" onclick="event.stopPropagation(); toggleNode(this)"></span>`;
+        } else {
+            html += '<span style="width: 20px; display: inline-block;"></span>';
+        }
+
         html += '<div class="tree-content">';
         html += `<span class="tree-code">${tafsili.code}</span>`;
         html += `<span class="tree-name">${tafsili.name}</span>`;
-        html += `<span class="tree-level-badge tree-level-tafsili">تفصیلی</span>`;
+        html += `<span class="tree-level-badge tree-level-tafsili">تفصیلی ${tafsili.level || ''}</span>`;
         html += '</div>';
         html += '</div>';
+
+        if (hasChildren) {
+            html += '<ul class="tree-children" id="tafsili-' + tafsili.code + '-children" style="display: none;">';
+            tafsili.children.forEach(child => {
+                html += renderTafsili(child, subCode);
+            });
+            html += '</ul>';
+        }
+
         html += '</li>';
         return html;
     }

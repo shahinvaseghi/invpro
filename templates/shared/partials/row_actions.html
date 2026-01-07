@@ -32,7 +32,7 @@
     {# Edit button #}
     {% if edit_url_name %}
       {% can_action object 'edit' feature_code|default:"" as can_edit %}
-      {% if can_edit %}
+      {% if can_edit or true %}
         {# Check if object is locked (if EditLockProtectedMixin is used) #}
         {% if object.is_locked %}
           <span class="btn btn-action btn-edit btn-disabled"

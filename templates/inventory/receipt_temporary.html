@@ -185,7 +185,7 @@
   {% if show_temporary_receipt %}
   <td>
     {% if receipt.temporary_receipt %}
-      <a href="{% url temporary_receipt_url_name receipt.temporary_receipt.pk %}" class="badge badge-info badge-link">
+      <a href="{% url temporary_receipt_url_name receipt.temporary_receipt.pk %}" class="badge text-bg-info badge-link">
         {{ receipt.temporary_receipt.document_code }}
       </a>
     {% else %}
@@ -196,7 +196,7 @@
   {% if show_purchase_request %}
   <td>
     {% if receipt.purchase_request %}
-      <a href="{% url purchase_request_url_name receipt.purchase_request.pk %}" class="badge badge-info badge-link">
+      <a href="{% url purchase_request_url_name receipt.purchase_request.pk %}" class="badge text-bg-info badge-link">
         {{ receipt.purchase_request.request_code }}
       </a>
     {% else %}
@@ -298,6 +298,18 @@
             {% trans "Lock" %}
           </button>
         </form>
+        {% endif %}
+      {% endif %}
+      {# Revert conversion button - show if receipt is converted #}
+      {% if receipt.is_converted %}
+        {% can_edit_object receipt feature_code|default:"" as can_edit %}
+        {% if can_edit or user.is_superuser %}
+          <form method="post" action="{% url 'inventory:receipt_temporary_revert_conversion' receipt.pk %}" class="form-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger btn-xs" data-confirm="آیا مطمئن هستید که می‌خواهید تبدیل این رسید موقتی را برگردانید؟ این عملیات ممکن است برگشت‌ناپذیر باشد.">
+              برگرداندن تبدیل
+            </button>
+          </form>
         {% endif %}
       {% endif %}
     </div>

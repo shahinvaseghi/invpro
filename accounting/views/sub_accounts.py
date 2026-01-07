@@ -30,7 +30,7 @@ class SubAccountListView(BaseListView):
     List all Sub accounts (حساب معین) for the active company.
     """
     model = Account
-    template_name = 'shared/generic/generic_list.html'
+    template_name = 'accounting/sub_accounts/sub_account_list.html'
     context_object_name = 'object_list'
     paginate_by = 50
     feature_code = 'accounting.accounts.sub'
